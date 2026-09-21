@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 import PageLayout from '@/components/PageLayout';
 import HeroCarousel from '@/components/HeroCarousel';
@@ -8,8 +7,7 @@ import FactsFigures from '@/components/FactsFigures';
 import ProcessSection from '@/components/ProcessSection';
 import PrivateLabelBand from '@/components/PrivateLabelBand';
 import Gallery from '@/components/Gallery';
-import Marquee, { MarqueePause } from '@/components/motion/Marquee';
-import { isStill } from '@/lib/motion';
+import Marquee, { MarqueeBand } from '@/components/motion/Marquee';
 import { site } from '@/content/site';
 import { categoryBySlug } from '@/content/products';
 
@@ -17,89 +15,62 @@ const leaf = categoryBySlug('leaf-tobacco');
 const cigarettes = categoryBySlug('finished-cigarettes');
 const namesOf = (category: typeof leaf) => category?.products.map((product) => product.name) ?? [];
 
-const two = (n: number) => String(n).padStart(2, '0');
-
 // Between the names: a small mono slash, solid even inside the outlined row (the
 // outline is inherited text-fill / text-stroke, so both are handed back here), and
-// lifted off the baseline to the middle of the capitals beside it.
+// lifted off the baseline to the middle of the capitals beside it. A quarter of the
+// row's size, but never under 13px (the small italic row on a phone): the lift and
+// the spacing are set on the outer span, in the row's own em, so they hold either way.
 const SLASH = (
-  <span className="relative -top-[0.9em] px-[0.1em] font-mono text-[0.26em] font-normal not-italic tracking-normal text-muted-foreground [-webkit-text-fill-color:currentColor] [-webkit-text-stroke:0]">
-    /
+  <span className="relative -top-[0.234em] px-[0.026em] font-mono font-normal not-italic tracking-normal text-muted-foreground [-webkit-text-fill-color:currentColor] [-webkit-text-stroke:0]">
+    <span className="text-[length:max(0.26em,0.8125rem)]">/</span>
   </span>
 );
 
-interface MarqueeRowProps {
-  label: string;
-  count: number;
-  /** The band, handed this row's pause state. */
-  children: (paused: boolean) => ReactNode;
-}
-
 /**
- * One ruled row of the band: a mono annotation cell, a vertical hairline, then the
- * running names. The cell also holds the row's pause control, so it never sits on the
- * type; there is none when the band stands still (prerender, reduced motion).
+ * One ruled row of the band: a mono label cell, a vertical hairline, then the running
+ * names. The label only — no count beside it, and no control of its own: the band has
+ * one, for both rows.
  */
-const MarqueeRow = ({ label, count, children }: MarqueeRowProps) => {
-  const [still] = useState(isStill);
-  const [paused, setPaused] = useState(false);
-
-  return (
-    <div className="border-t border-border first:border-t-0 lg:flex">
-      <div className="flex items-center justify-between gap-4 px-4 pt-3 sm:px-6 lg:w-56 lg:shrink-0 lg:flex-col lg:items-stretch lg:border-r lg:border-border lg:px-0 lg:pb-3 lg:pr-6 lg:pt-6">
-        <p className="eyebrow">{label}</p>
-        <div className="flex items-center justify-between gap-5">
-          <p className="eyebrow tabular-nums">
-            <span aria-hidden="true">({two(count)})</span>
-            <span className="sr-only">{count} products</span>
-          </p>
-          {!still && <MarqueePause paused={paused} onToggle={() => setPaused((p) => !p)} of={label} />}
-        </div>
-      </div>
-      <div className="min-w-0 flex-1 pb-5 pt-2 md:pb-7 lg:pt-7">{children(paused)}</div>
+const MarqueeRow = ({ label, children }: { label: string; children: ReactNode }) => (
+  <div className="border-t border-border first:border-t-0 lg:flex">
+    <div className="px-4 pt-3 sm:px-6 lg:w-56 lg:shrink-0 lg:border-r lg:border-border lg:px-0 lg:pb-3 lg:pr-6 lg:pt-6">
+      <p className="eyebrow">{label}</p>
     </div>
-  );
-};
+    <div className="min-w-0 flex-1 pb-5 pt-2 md:pb-7 lg:pt-7">{children}</div>
+  </div>
+);
 
 /**
  * The export range as a running band between two hairlines, names verbatim from
  * src/content/products.ts: leaf in monumental outline, the finished-cigarette lines
  * beneath it, smaller, in italic, travelling the other way — slowly. From lg the band
- * sits inside the page grid like every other ruled region, each row annotated in mono;
- * on a phone it runs edge to edge. Each row is read out once as a list and has its own
- * pause control in its label cell (see Marquee).
+ * sits inside the page grid like every other ruled region, each row labelled in mono;
+ * on a phone it runs edge to edge. Each row is read out once as a list (see Marquee).
+ *
+ * The two rows move and stop as one (MarqueeBand): a single icon-only pause control in
+ * a ruled cell at the band's right end, never over the names, and a hold while the
+ * pointer or keyboard focus is on the band. When the band stands still (prerender,
+ * reduced motion) there is no control.
  */
 const ProductMarquee = () => (
   <section aria-label={`Products exported by ${site.shortName}`} className="lg:mx-auto lg:max-w-7xl lg:px-6">
-    <div className="overflow-hidden border-y border-border lg:border-r">
+    <MarqueeBand className="overflow-hidden border-y border-border lg:border-r">
       {leaf && (
-        <MarqueeRow label={leaf.label} count={leaf.products.length}>
-          {(paused) => (
-            <Marquee
-              outlined
-              paused={paused}
-              items={namesOf(leaf)}
-              speed={40}
-              separator={SLASH}
-              className="text-foreground"
-            />
-          )}
+        <MarqueeRow label={leaf.label}>
+          <Marquee outlined items={namesOf(leaf)} speed={40} separator={SLASH} className="text-foreground" />
         </MarqueeRow>
       )}
       {cigarettes && (
-        <MarqueeRow label={cigarettes.label} count={cigarettes.products.length}>
-          {(paused) => (
-            <Marquee
-              paused={paused}
-              items={namesOf(cigarettes)}
-              speed={24}
-              separator={SLASH}
-              className="text-[length:clamp(1.5rem,3.6vw,3.25rem)] font-normal italic tracking-[-0.02em] text-muted-foreground [&_.marquee-track]:[animation-direction:reverse]"
-            />
-          )}
+        <MarqueeRow label={cigarettes.label}>
+          <Marquee
+            items={namesOf(cigarettes)}
+            speed={24}
+            separator={SLASH}
+            className="text-[length:clamp(1.5rem,3.6vw,3.25rem)] font-normal italic tracking-[-0.02em] text-muted-foreground [&_.marquee-track]:[animation-direction:reverse]"
+          />
         </MarqueeRow>
       )}
-    </div>
+    </MarqueeBand>
   </section>
 );
 

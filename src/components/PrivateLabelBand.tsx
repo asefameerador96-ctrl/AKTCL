@@ -42,7 +42,7 @@ const PrivateLabelBand = () => {
       className="border-y border-border bg-card py-24 md:py-32 lg:py-36"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <SectionHead number="05" label="Manufacturing Partner" meta={category.label} />
+        <SectionHead label="Manufacturing Partner" />
 
         {/* .display-lg keeps the longest word inside a 320px phone. */}
         <SplitReveal
@@ -67,7 +67,8 @@ const PrivateLabelBand = () => {
               <Reveal as="p" className="display-xs max-w-[30ch] text-foreground">
                 {service.short}
               </Reveal>
-              <Reveal as="p" delay={0.08} className="mt-6 max-w-[60ch] text-base leading-relaxed text-muted-foreground">
+              {/* Running copy at the body's own size; rem, not ch (see .lead in index.css). */}
+              <Reveal as="p" delay={0.08} className="mt-6 max-w-[38rem] text-muted-foreground">
                 {category.long}
               </Reveal>
             </div>
@@ -82,7 +83,7 @@ const PrivateLabelBand = () => {
                 <ul
                   role="list"
                   aria-labelledby="private-label-range"
-                  className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 font-mono text-[12px] font-medium uppercase leading-normal tracking-[0.14em] text-foreground"
+                  className="mono-label mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 tracking-[0.14em] text-foreground"
                 >
                   {range.map((product, i) => (
                     // The slash travels with the name before it, so a line may end on one but never start with one.

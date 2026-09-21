@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 /*
  * The button recipes live in src/index.css (.btn + one tone) so a <Link> can wear them
  * without importing anything: className="btn btn-solid". This file is the same set
- * for real <button>s. One label everywhere — mono, 12px, uppercase, tracked — 2px
+ * for real <button>s. One label everywhere — mono, 13px, uppercase, tracked — 2px
  * corners, solid high-contrast fills, 300ms expo-out, and hover only ever changes
  * colour and border. Nothing scales.
  */

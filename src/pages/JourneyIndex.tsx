@@ -28,9 +28,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const POUR_LINE = 0.6;
 
 /**
- * The seven stages as a ruled ledger: one wide row each — mono index, the stage in
- * the display serif, its line of copy, and the photograph flush against the rules on
- * the right. The whole row opens the stage (the "Read More" link is stretched over
+ * The seven stages as a ruled ledger: one wide row each — the stage's number, its name
+ * in the display serif, its line of copy, and the photograph flush against the rules
+ * on the right. The whole row opens the stage (the "Read More" link is stretched over
  * it); on hover or focus the row's hairline is redrawn in the accent, the name steps
  * 8px and the arrow travels. The photograph stays still.
  *
@@ -76,7 +76,7 @@ const Ledger = () => {
   }, [still]);
 
   return (
-    <section aria-label={`${journeyIntro.eyebrow}: the ${journey.length} stages`} className={cn(WRAP, 'pb-24 md:pb-36')}>
+    <section aria-label={`${journeyIntro.eyebrow}: the stages`} className={cn(WRAP, 'pb-24 md:pb-36')}>
       <div ref={threadRef} className="relative">
         {/* The margin line and its fill. The fill only ever scales. */}
         <span aria-hidden="true" className="absolute inset-y-0 left-0 z-10 w-px bg-border">
@@ -116,7 +116,8 @@ const Ledger = () => {
                   className="grid grid-cols-[minmax(0,1fr)_6.5rem] sm:grid-cols-[minmax(0,1fr)_12rem] lg:grid-cols-12"
                 >
                   <div className="col-start-1 row-start-1 pb-2 pl-5 pr-4 pt-7 sm:pl-8 lg:col-span-5 lg:grid lg:grid-cols-5 lg:pb-10 lg:pr-0 lg:pt-10">
-                    {/* The <ol> carries the order; the numeral is its visual echo. */}
+                    {/* The <ol> carries the order; the numeral is its visual echo. Kept, unlike
+                        the site's other indices: seed to smoke is a real sequence. */}
                     <p
                       aria-hidden="true"
                       className="index-num transition-colors duration-500 ease-expo-out group-data-[on]:text-foreground lg:pt-3"
@@ -130,7 +131,7 @@ const Ledger = () => {
 
                   <div className="col-span-2 row-start-2 pb-8 pl-5 pr-4 pt-3 sm:pl-8 lg:col-span-4 lg:col-start-6 lg:row-start-1 lg:py-10 lg:pl-0 lg:pr-10">
                     <p className="eyebrow lg:pt-3">{stage.title}</p>
-                    <p className="mt-4 max-w-[46ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+                    <p className="mt-4 max-w-[46ch] text-secondary text-muted-foreground">
                       {stage.short}
                     </p>
                     {/* Stretched over the row, so the whole row is one target with one name. */}
@@ -185,7 +186,6 @@ const JourneyIndex = () => (
       eyebrow={journeyIntro.eyebrow}
       title={journeyIntro.heading}
       italicWords={['Our']}
-      meta={`${pad(1)} — ${pad(journey.length)}`}
       lead={hero.body}
     />
     {/* The ledger hangs from the masthead's closing hairline: the two read as one sheet. */}

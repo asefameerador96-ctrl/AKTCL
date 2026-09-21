@@ -27,6 +27,8 @@ const JourneyStage = () => {
         ]
       }
       eyebrow={stage.label}
+      // Kept where other indices went: seed to smoke is a real sequence, and the
+      // counter says where in it this stage falls.
       counter={`${pad(index + 1)} / ${pad(journey.length)}`}
       title={stage.title}
       lead={stage.short}

@@ -11,6 +11,30 @@
  * The two variable packages ship no latin-only stylesheet, so their faces are declared
  * by hand in fonts.css from the packages' own files (the why is in that file). Italics
  * of the sans and the mono are not loaded: nothing uses them.
+ *
+ * TYPE SCALE — the one source of truth for text sizes (raised in feedback round 1: the
+ * owner found the site too small to read). px at a 1440px desktop; phones where they
+ * differ. Components take these classes rather than restating a size, and nothing on
+ * the site is set under 12px — 12px only for legal small print, and 13px is preferred.
+ *
+ *   .display-xl … -xs   headlines, Instrument Serif, fluid        60–144px … 26–32px
+ *   .lead               lead / intro paragraph, muted, measured   18 → 21px, leading 1.55
+ *   .text-lead          the lead's size alone                     clamp(1.125rem, 1rem + 0.4vw, 1.3125rem)
+ *   body, .text-body    running copy                              17px (16px under md), leading 1.65
+ *   .text-secondary     descriptions in cells and rows, footer    16px, leading 1.6
+ *                       links, form help text
+ *   .eyebrow            mono label over a heading, muted          13px, tracking 0.15em
+ *   .mono-label         the same label in the colour it is given: 13px, tracking 0.15em
+ *                       nav links, row links, spec terms, "View Range"
+ *   .btn                button labels                             13px, tracking 0.15em
+ *   .index-num          the few numerals that carry information   13px, tracking 0.14em
+ *                       (slide, carousel and lightbox positions, the journey's stages)
+ *
+ * .text-body / .text-secondary / .text-lead are component classes. lib/utils.ts tells
+ * tailwind-merge they are font sizes, so inside cn() they sit beside a colour utility
+ * safely (and a later text-[size] replaces them, as it would text-lg). .text-secondary
+ * is a size here, never the surface colour — tailwind.config.ts takes that one colour
+ * out of the text-* utilities so the two cannot stack.
  */
 @import '@fontsource/instrument-serif/latin-400.css';
 @import '@fontsource/instrument-serif/latin-400-italic.css';
@@ -52,7 +76,7 @@
  *          ink on ink-foreground (the chalk button) 16.1 · ink-border 1.3 (decorative)
  *   tile   tile-foreground 15.3 (13.5 under .dark, where the tile stays light)
  * muted-foreground is already at the floor on the surface (4.6) — never lighten it, and
- * never set it under 11px. On bg-tile use text-tile-foreground: the themed text colours
+ * never set it under 12px. On bg-tile use text-tile-foreground: the themed text colours
  * flip with the theme and the tile does not.
  */
 @layer base {
@@ -183,9 +207,17 @@
     scrollbar-color: hsl(var(--foreground) / 0.28) transparent;
   }
 
-  /* Understated body: 16px, relaxed leading. Scale contrast is the display type's job. */
+  /* Running copy: 17px (16px on a phone), leading 1.65 — see the type scale at the top.
+     Scale contrast is still the display type's job; the body just has to read easily. */
   body {
-    @apply bg-background font-sans text-base leading-relaxed text-foreground antialiased;
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  @media (min-width: 768px) {
+    body {
+      font-size: 1.0625rem;
+    }
   }
 
   /*
@@ -251,6 +283,9 @@
  * unpainted until main.tsx adds "app-live" — from then on each component holds its
  * own hidden state and plays exactly once (after the age gate: useEntered()).
  *
+ * data-enter="view" borrows only that hold: a first-screen block whose reveals still
+ * play on scroll, both ways (lib/motion), like any other.
+ *
  * No JavaScript, or a crawler: no "js" class, so nothing is ever hidden. Reduced
  * motion: the rule does not apply at all. Bundle blocked or very slow: the failsafe
  * shows the static page after 4 s rather than leaving a hole where the headline is.
@@ -313,11 +348,14 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
    * Every headline on the site takes one of these five — never a stepped text-4xl /
    * md:text-6xl ladder. Instrument Serif, 400, tight. Component layer, so a utility
    * beside it (leading-none, tracking-…, italic, a colour) still wins.
-   *   display-xl   hero / page mastheads          52 → 144px
-   *   display-lg   section headlines              44 → 96px
-   *   display-md   sub-section headlines          36 → 64px
-   *   display-sm   row titles, column heads       28 → 44px
-   *   display-xs   names inside a narrow cell     24 → 32px
+   *   display-xl   hero / page mastheads          60 → 144px
+   *   display-lg   section headlines              50 → 96px
+   *   display-md   sub-section headlines          40 → 64px
+   *   display-sm   row titles, column heads       30 → 44px
+   *   display-xs   names inside a narrow cell     26 → 32px
+   * The phone floors were raised a step in feedback round 1, for more contrast against
+   * the larger body text; each was checked at 360px against the longest word it sets
+   * ("Manufacturing", "Specifications", the product names in a two-up cell).
    */
   .display-xl,
   .display-lg,
@@ -329,51 +367,88 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
     letter-spacing: -0.03em;
   }
   .display-xl {
-    font-size: clamp(3.25rem, 9.5vw, 9rem);
+    font-size: clamp(3.75rem, 9.5vw, 9rem);
     line-height: 0.95;
   }
   .display-lg {
-    font-size: clamp(2.75rem, 6.5vw, 6rem);
+    font-size: clamp(3.1rem, 6.5vw, 6rem);
     line-height: 0.98;
   }
   .display-md {
-    font-size: clamp(2.25rem, 4.5vw, 4rem);
+    font-size: clamp(2.5rem, 4.5vw, 4rem);
     line-height: 1.02;
   }
   .display-sm {
-    font-size: clamp(1.75rem, 3vw, 2.75rem);
+    font-size: clamp(1.9rem, 3vw, 2.75rem);
     line-height: 1.08;
     letter-spacing: -0.02em;
   }
   .display-xs {
-    font-size: clamp(1.5rem, 1.15rem + 0.9vw, 2rem);
+    font-size: clamp(1.6rem, 1.15rem + 0.9vw, 2rem);
     line-height: 1.1;
     letter-spacing: -0.02em;
   }
 
-  /* Lead paragraph: the largest the sans ever gets. Tight, understated, short measure. */
+  /*
+   * ---- Running text ------------------------------------------------------------------
+   * .text-body       running copy: the body's own 17px (16px on a phone), for text
+   *                  inside something that sets a different size.
+   * .text-secondary  descriptions in cells and rows, footer links, form help: 16px.
+   * .text-lead       the lead's size alone, for a lead in its own colour (the hero's).
+   * .lead            the lead paragraph: that size, muted, on a short measure. The
+   *                  largest the sans ever gets.
+   * Sizes and leading only (plus the lead's colour and measure) — never a weight.
+   */
+  .text-body {
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  @media (min-width: 768px) {
+    .text-body {
+      font-size: 1.0625rem;
+    }
+  }
+  .text-secondary {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  .text-lead,
+  .lead {
+    font-size: clamp(1.125rem, 1rem + 0.4vw, 1.3125rem);
+    line-height: 1.55;
+  }
   .lead {
     /* rem, not ch: Plus Jakarta Sans has a wide zero (1ch is 0.73em), so "60ch" runs to
-       some 90 characters. 38rem is about 72 at 16px and 68 at 17px. */
-    @apply max-w-[38rem] text-base leading-relaxed text-muted-foreground md:text-[17px];
+       some 90 characters. 38rem is about 60 characters at 20px. */
+    @apply max-w-[38rem] text-muted-foreground;
   }
 
   /*
    * ---- Mono labels -------------------------------------------------------------------
-   * .eyebrow       the small label over a heading: mono, uppercase, wide, MUTED.
+   * All 13px, uppercase, tracked 0.14–0.15em (they were 11px at 0.22em: wide tracking
+   * on small caps is what made them hard to read).
+   * .mono-label    the label in whatever colour it is given: nav and row links, spec
+   *                terms, the catalogue's "View Range".
+   * .eyebrow       the small label over a heading: the same, MUTED.
    * .eyebrow-signal  the same label as a signal: accent on paper, sage on ink. Sparingly.
-   * .index-num     the 01 / 02 numerals of list rows and section markers.
+   * .index-num     the few numerals that carry information — which photograph of how
+   *                many, which journey stage of seven. Decoration is never numbered.
    * On ink (inside bg-ink / on-ink) they switch to the ink palette by themselves.
    */
+  .mono-label,
   .eyebrow,
   .eyebrow-signal {
-    @apply font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em] text-muted-foreground;
+    @apply font-mono text-[0.8125rem] font-medium uppercase leading-normal tracking-[0.15em];
+  }
+  .eyebrow,
+  .eyebrow-signal {
+    @apply text-muted-foreground;
   }
   .eyebrow-signal {
     @apply text-accent;
   }
   .index-num {
-    @apply font-mono text-[11px] font-medium tabular-nums leading-none tracking-[0.2em] text-muted-foreground;
+    @apply font-mono text-[0.8125rem] font-medium tabular-nums leading-none tracking-[0.14em] text-muted-foreground;
   }
   :where(.bg-ink, .on-ink) .eyebrow,
   :where(.bg-ink, .on-ink) .index-num {
@@ -415,7 +490,7 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
 
   /*
    * ---- Buttons -----------------------------------------------------------------------
-   * One label everywhere: mono, 12px, uppercase, tracked 0.18em. Square-ish (2px),
+   * One label everywhere: mono, 13px, uppercase, tracked 0.15em. Square-ish (2px),
    * solid high-contrast fills, 300ms expo-out, and the only thing hover changes is
    * colour and border — nothing scales, lifts, glows or bounces.
    *   .btn-solid        espresso fill, ivory label (chalk / charcoal in the dark theme);
@@ -430,7 +505,7 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
    * ui/button.tsx wraps the same classes for <Button>; on a <Link> write them directly.
    */
   .btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-3 whitespace-nowrap rounded-sm border border-transparent px-6 font-mono text-[12px] font-medium uppercase leading-none tracking-[0.18em];
+    @apply inline-flex min-h-11 items-center justify-center gap-3 whitespace-nowrap rounded-sm border border-transparent px-6 font-mono text-[0.8125rem] font-medium uppercase leading-none tracking-[0.15em];
     transition:
       color var(--duration-ui) var(--ease-expo-out),
       background-color var(--duration-ui) var(--ease-expo-out),
@@ -599,8 +674,9 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
   .marquee-track {
     animation: marquee var(--marquee-duration, 60s) linear infinite;
   }
-  .marquee:hover .marquee-track,
-  .marquee-track:focus-within,
+  /* :hover for a lone marquee only: a MarqueeBand holds all its rows at once, and an
+     explicit "play" there must not be undone row by row under the pointer. */
+  .marquee:not([data-in-band]):hover .marquee-track,
   .marquee[data-paused] .marquee-track,
   .marquee[data-offscreen] .marquee-track {
     animation-play-state: paused;

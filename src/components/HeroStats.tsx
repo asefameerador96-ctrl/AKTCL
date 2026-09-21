@@ -21,17 +21,17 @@ const COLUMN_STAGGER_S = 0.08;
 const LINE = 'border-ink-foreground/25';
 
 /**
- * The one counted figure. CountUp starts the moment it is on screen, which here is a
- * full second before its column has faded in — and an expo-out count is all but over
- * by then. So it is only mounted when the column starts to rise; until then the
- * starting figure holds the space. The start keeps the digit count of the target
- * ("10,000" → "50,000"), so the figure keeps its width while it runs.
+ * The one counted figure. Left to itself CountUp would start the moment it is on
+ * screen, a full second before its column has faded in — and an expo-out count is all
+ * but over by then. So it is told when: as the column starts to rise. Until then the
+ * column is transparent and the figure is simply the final one, a single plain number
+ * (no screen-reader twin for copied text to repeat). The count starts from a figure
+ * with the target's digit count ("10,000" → "50,000"), so it keeps its width.
  */
 const Counted = ({ fact, delay }: { fact: Fact; delay: number }) => {
   const [still] = useState(isStill);
   const entered = useEntered();
   const [counting, setCounting] = useState(false);
-  const from = 10 ** (String(fact.value).length - 1);
   const format = (n: number) => formatFact(fact, n);
 
   useEffect(() => {
@@ -40,14 +40,7 @@ const Counted = ({ fact, delay }: { fact: Fact; delay: number }) => {
     return () => window.clearTimeout(timer);
   }, [still, entered, delay]);
 
-  if (still || counting) return <CountUp value={fact.value} from={from} format={format} />;
-
-  return (
-    <span className="tabular-nums">
-      <span className="sr-only">{format(fact.value)}</span>
-      <span aria-hidden="true">{format(from)}</span>
-    </span>
-  );
+  return <CountUp play={counting} value={fact.value} from={10 ** (String(fact.value).length - 1)} format={format} />;
 };
 
 /**
@@ -58,8 +51,11 @@ const Counted = ({ fact, delay }: { fact: Fact; delay: number }) => {
  * carries the legibility. Its columns sit on the same grid as the hero above, so the
  * last divider continues the rule beside the headline.
  *
- * On a phone three columns would break these labels over five lines each, so the row
- * becomes a ruled stack: label left, figure right.
+ * Label and figure are one unit: the mono label directly over its numeral, never
+ * pushed apart to the top and foot of a stretched column. From lg every label breaks
+ * over two lines, so the three figures still stand on one line. Below lg three columns
+ * would break the labels over four lines each, so the row becomes a ruled stack: each
+ * pair on one row, the figure right after its label.
  *
  * Figures come from src/content/about.ts only, so the row can never state a number
  * the About copy does not. <dt> leads each pair, so it reads "…industry since: 1953".
@@ -73,7 +69,9 @@ const HeroStats = ({ delay = 0 }: HeroStatsProps) => (
   <div>
     <DrawnRule trigger="enter" delay={delay} lineClassName="bg-ink-foreground/25" />
     <dl
-      className="mx-auto grid w-full max-w-7xl px-4 sm:grid-cols-[repeat(var(--stats),minmax(0,1fr))] sm:px-6"
+      // The cells stretch to the row, so the dividing hairlines run its full height;
+      // what is inside them sits at the top.
+      className="mx-auto grid w-full max-w-7xl px-4 sm:px-6 lg:grid-cols-[repeat(var(--stats),minmax(0,1fr))]"
       style={{ '--stats': facts.length } as CSSProperties}
     >
       {facts.map((fact, i) => {
@@ -84,19 +82,23 @@ const HeroStats = ({ delay = 0 }: HeroStatsProps) => (
             trigger="enter"
             delay={columnDelay}
             className={cn(
-              // Phone: one ruled row, label left and figure right on a shared baseline.
-              // From sm: a column, its figure pushed to the foot so all three stand on
-              // one line however the labels above them happen to break.
-              'flex items-baseline justify-between gap-6 py-2.5 sm:flex-col sm:items-start sm:gap-4 sm:py-5 lg:py-6',
+              // Below lg: one ruled row, the figure straight after its label, standing on
+              // the baseline of the label's last line ("…since 1953") — never sent to
+              // the far side of a wide row. (Where last-baseline is unknown, the first
+              // line's.) From lg: a column, the label directly over its figure.
+              'flex items-baseline gap-4 py-3 [align-items:last_baseline] lg:flex-col lg:items-start lg:gap-3 lg:py-6',
               LINE,
-              i > 0 && 'border-t sm:border-l sm:border-t-0 sm:pl-6 lg:pl-8',
-              i < facts.length - 1 && 'sm:pr-6'
+              i > 0 && 'border-t lg:border-l lg:border-t-0 lg:pl-8',
+              i < facts.length - 1 && 'lg:pr-6'
             )}
           >
-            {/* Measures in rem, not ch: ch knows nothing of the tracking. Two lines at most. */}
-            <dt className="eyebrow max-w-[13rem] leading-snug tracking-[0.16em] sm:max-w-[19rem] sm:leading-normal sm:tracking-[0.22em]">
-              {fact.label}
-            </dt>
+            {/* One measure for every label, so the figures beside them start on one
+                line. 14rem below lg — narrow enough that each label breaks over two
+                lines and its figure follows close behind, and it gives way on a 360px
+                phone; 19rem from lg, where every label again takes two lines, so the
+                three figures stand on one line. rem, not ch: ch knows nothing of the
+                tracking. */}
+            <dt className="eyebrow min-w-0 max-w-[14rem] flex-1 leading-snug lg:max-w-[19rem] lg:flex-none">{fact.label}</dt>
             <dd className="shrink-0 font-display text-[length:clamp(1.75rem,1.1rem+2.6vw,4rem)] font-normal lining-nums leading-none tracking-[-0.03em] text-ink-foreground">
               {fact.isYear ? formatFact(fact) : <Counted fact={fact} delay={columnDelay} />}
               {/* The one signal in the row: a sage mark, never a fill. */}

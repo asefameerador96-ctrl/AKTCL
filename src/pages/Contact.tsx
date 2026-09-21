@@ -20,11 +20,11 @@ const INCLUDE = [
   { term: 'Packing', detail: 'Packing, labelling or specification requirements for your market.' },
 ];
 
-const MONO = 'font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em]';
 // A direct line as a directory row: mono label, the detail, an arrow that darkens as
 // the detail shifts 8px. The whole row is the link (and well over 44px tall).
-const CONTACT_ROW = 'group flex min-h-14 items-center gap-4 py-3 text-sm text-foreground';
-const CONTACT_LABEL = `${MONO} w-24 shrink-0 text-muted-foreground`;
+const CONTACT_ROW = 'group flex min-h-14 items-center gap-4 py-3 text-secondary text-foreground';
+// Wide enough for "Telephone" at the label's 13px and tracking.
+const CONTACT_LABEL = 'mono-label w-28 shrink-0 text-muted-foreground';
 const CONTACT_VALUE = 'min-w-0 flex-1 transition-transform group-hover:translate-x-2 group-focus-visible:translate-x-2';
 const CONTACT_ARROW =
   'h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent';
@@ -32,7 +32,7 @@ const CONTACT_ARROW =
 /** One block of the side panel: a mono heading, then ruled rows or a note beneath it. */
 const PanelSection = ({ title, children }: { title: string; children: ReactNode }) => (
   <section>
-    <h2 className={`${MONO} pb-4 text-foreground`}>{title}</h2>
+    <h2 className="mono-label pb-4 text-foreground">{title}</h2>
     {children}
   </section>
 );
@@ -109,14 +109,12 @@ const Contact = () => {
             className="space-y-14 lg:top-28 lg:[@media(min-height:880px)]:sticky"
           >
             <PanelSection title="What to include">
+              {/* Term over its detail, no index: the four are a checklist, not a sequence. */}
               <dl className="hairline-rows">
-                {INCLUDE.map((item, index) => (
-                  <div key={item.term} className="grid grid-cols-[2.5rem_1fr] gap-x-3 gap-y-1.5 py-5">
-                    <span aria-hidden="true" className="index-num row-span-2 pt-1">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <dt className={`${MONO} text-foreground`}>{item.term}</dt>
-                    <dd className="text-sm leading-relaxed text-muted-foreground">{item.detail}</dd>
+                {INCLUDE.map((item) => (
+                  <div key={item.term} className="space-y-1.5 py-5">
+                    <dt className="mono-label text-foreground">{item.term}</dt>
+                    <dd className="text-secondary text-muted-foreground">{item.detail}</dd>
                   </div>
                 ))}
               </dl>
@@ -162,7 +160,7 @@ const Contact = () => {
                     </li>
                   )}
                   {addressLines && addressLines.length > 0 && (
-                    <li className="flex gap-4 py-5 text-sm">
+                    <li className="flex gap-4 py-5 text-secondary">
                       <span className={CONTACT_LABEL}>Address</span>
                       <address className="not-italic leading-relaxed text-muted-foreground">
                         {addressLines.map((line) => (
@@ -178,7 +176,7 @@ const Contact = () => {
             )}
 
             <PanelSection title="Trade only">
-              <p className="border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
+              <p className="border-t border-border pt-5 text-secondary text-muted-foreground">
                 This website is intended for tobacco trade professionals of legal age ({site.legalAge}+).{' '}
                 {site.shortName} does not sell tobacco products to consumers through this website, and this form is for
                 business enquiries only.

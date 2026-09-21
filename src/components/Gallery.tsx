@@ -25,13 +25,14 @@ const SCROLL_PER_IMAGE_VH = 18;
 
 /**
  * Pinned tiles are sized from the viewport HEIGHT (--tile: 46vh tall, 4:3 — less on a
- * short window, where the navbar's clearance, the section head and the index cells take
- * 23rem of the screen between them), so the sticky screen always has room for its
- * heading and the tiles never letterbox; the plain layout is a swipe row on phones and
- * a 3/4-column contact sheet above that.
+ * short window, where the navbar's clearance, the section head and the cells under the
+ * tiles take 23rem of the screen between them), so the sticky screen always has room
+ * for its heading and the tiles never letterbox; the plain layout is a swipe row on
+ * phones and a 3/4-column contact sheet above that.
  *
  * Either way it is a ruled strip, not a row of cards: square frames that share their
- * 1px hairlines, each with a mono index cell underneath.
+ * 1px hairlines, each with a ruled "View" cell underneath — no "01 / 12" on every
+ * tile; the viewer and the pinned track's progress say where you are.
  */
 const PINNED_FRAME = '[--tile:min(46vh,calc(100vh_-_23rem))]';
 const PINNED_ITEM = 'w-[calc(var(--tile)*4/3)] shrink-0 border-l last:border-r';
@@ -210,7 +211,7 @@ const Lightbox = ({ index, opener, onClose, onStep }: LightboxProps) => {
         {/* Live region: arrow-key navigation announces the new image. */}
         <p
           aria-live="polite"
-          className="order-first col-span-3 border-b px-4 py-3 text-sm leading-relaxed text-ink-muted sm:px-6 md:order-none md:col-span-1 md:flex md:items-center md:border-b-0 md:py-2"
+          className="order-first col-span-3 border-b px-4 py-3 text-base leading-relaxed text-ink-muted sm:px-6 md:order-none md:col-span-1 md:flex md:items-center md:border-b-0 md:py-2"
         >
           <span className="sr-only">
             Image {index + 1} of {images.length}:{' '}
@@ -338,7 +339,7 @@ const Gallery = () => {
   // hold the head, the strip and the progress rule at once.
   const heading = (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
-      <SectionHead number="06" label="Gallery" meta={`${TOTAL} Photographs`} />
+      <SectionHead label="Gallery" />
       <div className={cn('flex items-end justify-between gap-10', pinned ? 'mt-6 lg:mt-8' : 'mt-12 md:mt-16')}>
         <SplitReveal
           as="h2"
@@ -390,17 +391,14 @@ const Gallery = () => {
             style={{ objectPosition: img.position }}
           />
         </span>
-        {/* The index cell: ruled off under the frame. On hover or focus its rule darkens
-            from the left and the word arrives; the plus is always there for touch. */}
-        <span className="relative flex h-11 items-center justify-between gap-4 border-t px-3 md:px-4">
+        {/* The cell under the frame, ruled off and unnumbered. On hover or focus its rule
+            darkens from the left and the word arrives; the plus is always there for touch. */}
+        <span className="relative flex h-11 items-center justify-end gap-4 border-t px-3 md:px-4">
           <span
             aria-hidden="true"
             className={cn('absolute inset-x-0 -top-px h-px origin-left scale-x-0 bg-foreground transition-transform', ON_TILE)}
           />
-          <span className="index-num">
-            <span className="text-foreground">{two(i + 1)}</span> / {TOTAL}
-          </span>
-          <span className="flex items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+          <span className="mono-label flex items-center gap-2.5 text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
             <span className="hidden translate-x-2 opacity-0 transition-[opacity,transform] group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 md:inline">
               View
             </span>

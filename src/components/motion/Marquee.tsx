@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { FocusEvent, PointerEvent, ReactNode } from 'react';
+import { Pause, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { isStill } from '@/lib/motion';
+import { isStill, observeIntersection } from '@/lib/motion';
 
 export interface MarqueeProps {
   /** Verbatim names from src/content (product categories, formats). */
@@ -15,11 +16,15 @@ export interface MarqueeProps {
   /** Sits after every item. Defaults to a short hairline in the text colour. */
   separator?: ReactNode;
   /**
-   * Controlled pause. Pass it (with a <MarqueePause> of your own, wherever the layout
-   * has a cell for one) and the band draws no button. Left out, the band keeps its own
-   * state and sets the button in a row under the type — never on top of it.
+   * Controlled pause, for a layout that sets its own <MarqueeToggle>; the row then
+   * draws no control. Inside a <MarqueeBand> leave it out: the band pauses its rows.
    */
   paused?: boolean;
+  /**
+   * A lone marquee sets its own small pause/play button under its right end. false
+   * leaves it out — only where something else on the page already stops the motion.
+   */
+  control?: boolean;
 }
 
 const TYPE = 'font-display text-[length:clamp(3rem,9vw,8rem)] font-normal leading-none tracking-[-0.03em]';
@@ -28,33 +33,106 @@ const MAX_BOOST = 2.5;
 
 const DEFAULT_SEPARATOR = <span className="inline-block h-px w-[0.5em] bg-current align-middle" />;
 
-interface MarqueePauseProps {
+/** A band's rows read their pause from here; null outside a band. */
+const BandPaused = createContext<boolean | null>(null);
+
+interface MarqueeToggleProps {
   paused: boolean;
   onToggle: () => void;
-  /** What is moving, for the accessible name: "Leaf Tobacco". */
+  /** What is moving, when a page has more than one control: "Leaf Tobacco". */
   of?: string;
   className?: string;
 }
 
 /**
- * The band's pause control (WCAG 2.2.2), set like the hero's: the mono word, no box, no
- * icon — a 44px target whose label darkens on hover. Render it only where the band
- * actually moves (not under isStill()).
+ * The pause control WCAG 2.2.2 asks for: a square 44px cell with a Pause or Play icon
+ * and no visible word. A toggle button with one fixed name, "Pause moving text", and
+ * aria-pressed for its state; the icon shows what a press will do. (A name that turned
+ * into "Play" as well would be announced "Play moving text, pressed", which reads as
+ * playing.) Like the photo carousel's controls it inverts on hover and keyboard focus —
+ * colour only, nothing moves. Render it only where the text actually moves (not under
+ * isStill()).
  */
-export const MarqueePause = ({ paused, onToggle, of, className }: MarqueePauseProps) => (
-  <button
-    type="button"
-    onClick={onToggle}
-    // The name starts with the visible word (WCAG 2.5.3), so it changes with the state.
-    aria-label={`${paused ? 'Play' : 'Pause'} the moving text${of ? `: ${of}` : ''}`}
-    className={cn(
-      'inline-flex min-h-11 items-center rounded-sm font-mono text-[11px] font-medium uppercase not-italic leading-none tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground',
-      className
-    )}
-  >
-    {paused ? 'Play' : 'Pause'}
-  </button>
-);
+export const MarqueeToggle = ({ paused, onToggle, of, className }: MarqueeToggleProps) => {
+  const Icon = paused ? Play : Pause;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={`Pause moving text${of ? `: ${of}` : ''}`}
+      aria-pressed={paused}
+      className={cn(
+        'flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors focus-visible:relative focus-visible:z-10 focus-visible:bg-foreground focus-visible:text-background [@media(hover:hover)]:hover:bg-foreground [@media(hover:hover)]:hover:text-background',
+        className
+      )}
+    >
+      <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
+    </button>
+  );
+};
+
+interface MarqueeBandProps {
+  /** The rows: <Marquee>s, with whatever the layout sets beside them. */
+  children: ReactNode;
+  /** The band's own box: its rules, its width. */
+  className?: string;
+  /** The control's cell at the right end (a hairline on its left, the button at its foot). */
+  controlClassName?: string;
+}
+
+/**
+ * Several running rows as one band with ONE pause control, in a narrow ruled cell at
+ * the band's right end, never over the type. The band also holds still while a mouse
+ * is over it or keyboard focus is inside it; pressing the control is an explicit
+ * choice and outranks that hold until the pointer and focus have left. Under
+ * isStill() the rows are plain lists and there is no control.
+ */
+export const MarqueeBand = ({ children, className, controlClassName }: MarqueeBandProps) => {
+  const [still] = useState(isStill);
+  const [chosen, setChosen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [released, setReleased] = useState(false);
+  const paused = chosen || ((hovered || focused) && !released);
+
+  if (still) return <div className={className}>{children}</div>;
+
+  const onPointerEnter = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse') setHovered(true);
+  };
+  const onPointerLeave = () => {
+    setHovered(false);
+    if (!focused) setReleased(false);
+  };
+  const onBlur = (e: FocusEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setFocused(false);
+    if (!hovered) setReleased(false);
+  };
+
+  return (
+    <div
+      className={cn('flex', className)}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onFocus={() => setFocused(true)}
+      onBlur={onBlur}
+    >
+      <div className="min-w-0 flex-1">
+        <BandPaused.Provider value={paused}>{children}</BandPaused.Provider>
+      </div>
+      <div className={cn('flex shrink-0 items-end border-l border-border', controlClassName)}>
+        <MarqueeToggle
+          paused={chosen}
+          onToggle={() => {
+            setChosen((p) => !p);
+            setReleased(true);
+          }}
+        />
+      </div>
+    </div>
+  );
+};
 
 /**
  * Oversized running band of names. One CSS animation on the compositor moves a track
@@ -62,8 +140,8 @@ export const MarqueePause = ({ paused, onToggle, of, className }: MarqueePausePr
  * velocity only nudges that animation's playbackRate, never the transform itself.
  *
  * Read out once: the first run of items is a real list, every repeat is aria-hidden.
- * Pauses on hover, on focus inside the band, off screen, and with a button
- * (MarqueePause; WCAG 2.2.2 — hover is no use to a keyboard or a thumb). Under
+ * Pauses on hover, off screen, and with a control (WCAG 2.2.2 — hover is no use to a
+ * keyboard or a thumb): the band's, inside a <MarqueeBand>, else its own. Under
  * isStill() it is a plain wrapped list and there is nothing to pause.
  */
 const Marquee = ({
@@ -73,16 +151,18 @@ const Marquee = ({
   outlined = false,
   separator = DEFAULT_SEPARATOR,
   paused: pausedProp,
+  control = true,
 }: MarqueeProps) => {
   const [still] = useState(isStill);
+  const band = useContext(BandPaused);
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<HTMLUListElement>(null);
   // Runs of `items` per half: enough that one half always out-spans the container.
   const [runs, setRuns] = useState(1);
   const [ownPaused, setOwnPaused] = useState(false);
-  const controlled = pausedProp !== undefined;
-  const paused = controlled ? pausedProp : ownPaused;
+  const ownControl = control && band === null && pausedProp === undefined;
+  const paused = Boolean(band) || Boolean(pausedProp) || (ownControl && ownPaused);
 
   // Before first paint: fill the width, and turn px/s into the animation's duration.
   useLayoutEffect(() => {
@@ -114,11 +194,11 @@ const Marquee = ({
     const track = trackRef.current;
     if (still || !root || !track) return;
 
-    const observer =
+    // Off screen it stops; the shared observer the reveals use carries this too.
+    const unobserve =
       typeof IntersectionObserver === 'undefined'
-        ? null
-        : new IntersectionObserver(([entry]) => root.toggleAttribute('data-offscreen', !entry.isIntersecting));
-    observer?.observe(root);
+        ? undefined
+        : observeIntersection(root, {}, (inZone) => root.toggleAttribute('data-offscreen', !inZone));
 
     let frame = 0;
     let rate = 1;
@@ -143,7 +223,7 @@ const Marquee = ({
     window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      observer?.disconnect();
+      unobserve?.();
       window.removeEventListener('scroll', onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
@@ -182,16 +262,24 @@ const Marquee = ({
   );
 
   return (
-    <div ref={rootRef} className={cn('marquee relative overflow-hidden', TYPE, className)} data-paused={paused ? '' : undefined}>
+    // The clip is the root's padding box, and leading-none puts the descenders ("g" in
+    // Virginia) below the line box: the padding gives them room, the margin takes the
+    // space back so the row keeps its height.
+    <div
+      ref={rootRef}
+      className={cn('marquee relative -mb-[0.2em] overflow-hidden pb-[0.2em]', TYPE, className)}
+      data-paused={paused ? '' : undefined}
+      data-in-band={band === null ? undefined : ''}
+    >
       {/* The outline sits on the track, not the root, so nothing else inherits the stroke. */}
       <div ref={trackRef} className={cn('marquee-track flex w-max', outlined && 'text-outline')}>
         {run(false, runRef)}
         {run(true)}
       </div>
       {/* Its own row under the type: the control never sits on the running names. */}
-      {!controlled && (
+      {ownControl && (
         <div className="flex justify-end px-4 sm:px-6">
-          <MarqueePause paused={paused} onToggle={() => setOwnPaused((p) => !p)} />
+          <MarqueeToggle paused={ownPaused} onToggle={() => setOwnPaused((p) => !p)} />
         </div>
       )}
     </div>

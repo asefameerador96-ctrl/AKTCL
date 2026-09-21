@@ -34,10 +34,13 @@ const SIZE: Record<
   NonNullable<LogoProps['size']>,
   { gap: string; mark: string; rule: string; name: string }
 > = {
-  // sm is sized so the full lockup still fits beside the menu controls at 360px.
-  sm: { gap: 'gap-2.5', mark: 'w-[46px]', rule: 'h-7', name: 'text-[8.5px] tracking-[0.18em]' },
-  md: { gap: 'gap-3', mark: 'w-[60px]', rule: 'h-9', name: 'text-[10px] tracking-[0.22em]' },
-  lg: { gap: 'gap-4', mark: 'w-[104px]', rule: 'h-14', name: 'text-xs tracking-[0.26em] sm:text-sm' },
+  // The name's two lines stand about as tall as the mark. sm is the navbar's: at 10.5px
+  // the lockup is some 205px, which still leaves the menu button room at 360px.
+  // leading-none comes AFTER the size: tailwind-merge drops a line-height that precedes
+  // a font-size, and the lines would take the body's 1.65 and outgrow the mark.
+  sm: { gap: 'gap-2.5', mark: 'w-[46px]', rule: 'h-7', name: 'text-[10.5px] leading-none tracking-[0.16em]' },
+  md: { gap: 'gap-3', mark: 'w-[60px]', rule: 'h-9', name: 'text-[12px] leading-none tracking-[0.16em]' },
+  lg: { gap: 'gap-4', mark: 'w-[104px]', rule: 'h-14', name: 'text-[14px] leading-none tracking-[0.16em]' },
 };
 
 /** "Abul Khair" / "Tobacco Co. Ltd." — two even lines that sit the height of the mark. */
@@ -63,7 +66,7 @@ const Logo = ({ variant = 'auto', size = 'md', withName = true, className }: Log
           <span aria-hidden="true" className={cn('w-px shrink-0 transition-colors duration-300', tone.rule, scale.rule)} />
           <span
             className={cn(
-              'flex flex-col gap-[0.45em] whitespace-nowrap font-sans font-semibold uppercase leading-none transition-colors duration-300',
+              'flex flex-col gap-[0.45em] whitespace-nowrap font-sans font-semibold uppercase transition-colors duration-300',
               scale.name,
               tone.name
             )}

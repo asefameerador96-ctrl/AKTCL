@@ -131,7 +131,7 @@ const CursorRing = () => {
           className={cn(
             'absolute left-4 top-5 flex origin-top-left items-center whitespace-nowrap rounded-sm border border-ink-foreground/30 bg-ink px-2.5 py-2',
             // pl makes up for the tracking, which otherwise hangs off the last letter and un-centres the word.
-            'pl-[calc(0.625rem+0.18em)] font-mono text-[11px] font-medium uppercase leading-none tracking-[0.18em] text-ink-foreground'
+            'pl-[calc(0.625rem+0.15em)] font-mono text-[0.8125rem] font-medium uppercase leading-none tracking-[0.15em] text-ink-foreground'
           )}
           style={layer(mode === 'badge', 0.9)}
         >

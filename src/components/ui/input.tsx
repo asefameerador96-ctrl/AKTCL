@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils";
  * in --input so the control's one boundary still clears 3:1. `peer` lets the
  * <FieldRule> that follows it answer to focus and to aria-invalid. Keyboard focus also
  * gets the site's 2px ring, held 4px off so it frames the field instead of crowding
- * the text. 16px on phones, so iOS does not zoom the page on focus.
+ * the text. 17px, the site's body size: the typed answer reads as easily as the copy
+ * around it (and at 16px or more iOS does not zoom the page on focus).
  */
 export const FIELD =
-  "peer block w-full rounded-none border-0 border-b border-input bg-transparent px-0 font-sans text-base text-foreground ring-offset-background transition-colors placeholder:text-muted-foreground hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-50 md:text-[15px]";
+  "peer block w-full rounded-none border-0 border-b border-input bg-transparent px-0 font-sans text-[17px] text-foreground ring-offset-background transition-colors placeholder:text-muted-foreground hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * The second, heavier rule drawn over a field's hairline from the left when the field

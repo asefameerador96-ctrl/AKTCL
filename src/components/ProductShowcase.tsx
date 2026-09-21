@@ -14,10 +14,6 @@ import { categoryImages, productImages } from '@/content/images';
 /** Same URL shape as <EnquiryCta product>, so the enquiry form opens pre-filled. */
 const enquiryPath = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
-const two = (n: number) => String(n).padStart(2, '0');
-
-const productCount = categories.reduce((sum, category) => sum + category.products.length, 0);
-
 // The pair is a 7/5 split sharing one vertical hairline. Both tiles are six twelfths
 // tall (7:6 beside 5:6), so the rule under them runs straight across the two cells.
 // Stacked, they are no wider than 6:5: the portrait cut-outs lose their tips beyond that.
@@ -35,10 +31,10 @@ const CELL_SHAPES = [
 ] as const;
 
 /**
- * One category as a CELL of the ruled split: tile flush to the rules, mono eyebrow,
- * title, one line, and a ruled-off "View Range" row. The whole cell is the link; hover
- * is the catalogue's — the tile darkens, the title's underline is drawn, the arrow
- * travels. No card chrome.
+ * One category as a CELL of the ruled split: tile flush to the rules, title, one line,
+ * and a ruled-off "View Range" row. The whole cell is the link; hover is the
+ * catalogue's — the tile darkens, the title's underline is drawn, the arrow travels.
+ * No card chrome, and no "Category 01" eyebrow: a number that says nothing.
  */
 const CategoryCell = ({ category, index }: { category: ProductCategory; index: number }) => {
   const id = useId();
@@ -77,19 +73,18 @@ const CategoryCell = ({ category, index }: { category: ProductCategory; index: n
 
         <Reveal delay={delay + 0.15} className="flex flex-1 flex-col border-t border-border">
           <div className="flex-1 px-4 pb-10 pt-6 sm:px-6 md:pb-14 md:pt-8 lg:px-8">
-            <p className="eyebrow">{category.eyebrow}</p>
-            <h3 id={`${id}-title`} className="display-md mt-5 text-foreground md:mt-6">
+            <h3 id={`${id}-title`} className="display-md text-foreground">
               <span className="link-underline pb-1 group-hover:[background-position:0%_100%] group-hover:[background-size:100%_1px] group-focus-visible:[background-position:0%_100%] group-focus-visible:[background-size:100%_1px]">
                 {category.title}
               </span>
             </h3>
-            <p id={`${id}-short`} className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground">
+            <p id={`${id}-short`} className="text-secondary mt-5 max-w-md text-muted-foreground">
               {category.short}
             </p>
           </div>
           <p
             id={`${id}-cta`}
-            className="flex min-h-14 items-center justify-between gap-6 border-t border-border px-4 font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-foreground sm:px-6 lg:px-8"
+            className="mono-label flex min-h-14 items-center justify-between gap-6 border-t border-border px-4 text-foreground sm:px-6 lg:px-8"
           >
             View Range
             <TravelArrow className="transition-colors group-hover:text-accent group-focus-visible:text-accent" />
@@ -100,16 +95,10 @@ const CategoryCell = ({ category, index }: { category: ProductCategory; index: n
   );
 };
 
-/** The mono row that names a catalogue list; the grid or directory beneath supplies the rule. */
-const GroupLabel = ({ children, count, unit }: { children: string; count: number; unit: string }) => (
-  <Reveal from="none" className="flex items-baseline justify-between gap-6 pb-4">
-    <p className="eyebrow">{children}</p>
-    <p className="index-num">
-      <span aria-hidden="true">({two(count)})</span>
-      <span className="sr-only">
-        {count} {unit}
-      </span>
-    </p>
+/** The mono label that names a catalogue list (no count); the grid or directory beneath supplies the rule. */
+const GroupLabel = ({ children }: { children: string }) => (
+  <Reveal as="p" from="none" className="eyebrow pb-4">
+    {children}
   </Reveal>
 );
 
@@ -126,11 +115,7 @@ const ProductShowcase = () => {
   return (
     <section id="products" aria-labelledby="products-heading" className="bg-background py-24 md:py-32 lg:py-36">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <SectionHead
-          number="02"
-          label={productsIntro.eyebrow}
-          meta={`${two(categories.length)} Categories · ${two(productCount)} Products`}
-        />
+        <SectionHead label={productsIntro.eyebrow} />
 
         {/* Headline over the wide cell, lead over the narrow one: the split below starts here. */}
         <div className="mt-12 grid gap-y-8 md:mt-16 lg:mt-20 lg:grid-cols-12 lg:items-end">
@@ -156,9 +141,7 @@ const ProductShowcase = () => {
         {/* Leaf catalogue: image + name, straight through to the product page */}
         {leaf && (
           <div className="mt-24 md:mt-32">
-            <GroupLabel count={leaf.products.length} unit="products">
-              {leaf.label}
-            </GroupLabel>
+            <GroupLabel>{leaf.label}</GroupLabel>
             <ul role="list" className="hairline-grid grid grid-cols-2 lg:grid-cols-4">
               {leaf.products.map((product, i) => (
                 <li key={product.slug}>
@@ -168,7 +151,6 @@ const ProductShowcase = () => {
                     name={product.name}
                     short={product.short}
                     index={i}
-                    number={i + 1}
                   />
                 </li>
               ))}
@@ -179,15 +161,12 @@ const ProductShowcase = () => {
         {/* Cigarette formats: no detail pages yet, so each row opens a pre-filled enquiry */}
         {cigarettes && (
           <div className="mt-24 md:mt-32">
-            <GroupLabel count={cigarettes.products.length} unit="formats">
-              {cigarettes.label}
-            </GroupLabel>
+            <GroupLabel>{cigarettes.label}</GroupLabel>
             <ul role="list">
               {cigarettes.products.map((product, i) => (
                 <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
                   <FormatCard
                     layout="row"
-                    number={i + 1}
                     name={product.name}
                     short={product.short}
                     rows={product.specs}
@@ -201,7 +180,7 @@ const ProductShowcase = () => {
 
         {/* The directory's closing row, not a boxed button. */}
         <Reveal className={cn(!cigarettes && 'mt-24 md:mt-32')}>
-          <RowLink to="/products" display meta={`(${two(productCount)})`} className="border-b">
+          <RowLink to="/products" display className="border-b">
             All Products
           </RowLink>
         </Reveal>

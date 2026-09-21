@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Reveal from '@/components/Reveal';
-import SectionMarker from '@/components/SectionMarker';
 import DrawnRule from '@/components/motion/DrawnRule';
 import { cn } from '@/lib/utils';
 
@@ -57,44 +56,36 @@ export const AccentRule = () => (
 );
 
 interface SectionHeadProps {
-  /** The section's place on the page, as printed: "02". */
-  number: string;
   /** Short label — UI microcopy, or an eyebrow from src/content. */
   label: string;
-  /** Right-hand mono note: counts or names taken from src/content, never new facts. */
-  meta?: string;
   /** On the always-dark bands. */
   onInk?: boolean;
   className?: string;
 }
 
 /**
- * How a homepage section opens: a hairline drawn across the full measure, then one
- * mono row — "02 —— What We Export" on the left, a quiet note on the right. The
- * display headline follows underneath, left-aligned.
+ * How a section opens: a hairline drawn across the full measure, then the mono label
+ * under it — nothing else in the row, no number, no count. The display headline
+ * follows underneath, left-aligned.
  */
-export const SectionHead = ({ number, label, meta, onInk = false, className }: SectionHeadProps) => (
+export const SectionHead = ({ label, onInk = false, className }: SectionHeadProps) => (
   <div className={className}>
     <DrawnRule />
-    <div className="flex items-baseline justify-between gap-8 pt-4 md:pt-5">
-      <SectionMarker number={number} onInk={onInk}>
-        {label}
-      </SectionMarker>
-      {meta && (
-        // A phone has room for the marker only.
-        <Reveal as="p" from="none" delay={0.3} className="eyebrow hidden text-right sm:block">
-          {meta}
-        </Reveal>
-      )}
-    </div>
+    {/* Fades in as the rule draws past it. */}
+    <Reveal
+      as="p"
+      from="none"
+      delay={0.15}
+      className={cn('eyebrow pt-4 md:pt-5', onInk && 'text-ink-muted')}
+    >
+      {label}
+    </Reveal>
   </div>
 );
 
 interface RowLinkProps {
   to: string;
   children: ReactNode;
-  /** Small mono note before the arrow: a count, say. */
-  meta?: ReactNode;
   /** Set the label in the display serif, as the closing row of a directory. */
   display?: boolean;
   /** data-lead value, for enquiry links. */
@@ -105,7 +96,7 @@ interface RowLinkProps {
 }
 
 /** A link as a ruled row instead of a boxed button. */
-export const RowLink = ({ to, children, meta, display = false, lead, cursor = 'open', className }: RowLinkProps) => (
+export const RowLink = ({ to, children, display = false, lead, cursor = 'open', className }: RowLinkProps) => (
   <Link
     to={to}
     data-lead={lead}
@@ -120,14 +111,11 @@ export const RowLink = ({ to, children, meta, display = false, lead, cursor = 'o
     <span
       className={cn(
         'transition-transform motion-safe:group-hover:translate-x-2 motion-safe:group-focus-visible:translate-x-2',
-        display ? 'display-sm' : 'font-mono text-[12px] font-medium uppercase leading-normal tracking-[0.18em]'
+        display ? 'display-sm' : 'mono-label'
       )}
     >
       {children}
     </span>
-    <span className="flex shrink-0 items-center gap-5 md:gap-8">
-      {meta && <span className="index-num">{meta}</span>}
-      <TravelArrow className="transition-colors group-hover:text-accent group-focus-visible:text-accent" />
-    </span>
+    <TravelArrow className="transition-colors group-hover:text-accent group-focus-visible:text-accent" />
   </Link>
 );

@@ -37,8 +37,7 @@ const SHORT_QUERY = '(max-height: 540px)';
 const NUMERAL_TYPE =
   'pointer-events-none select-none font-display text-[length:clamp(10rem,26vw,24rem)] font-normal leading-none tracking-[-0.04em] text-border';
 // A directory row, not a button: ruled off above, label left, arrow right.
-const ROW_LINK =
-  'group relative flex w-full items-center justify-between gap-6 border-t font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-foreground';
+const ROW_LINK = 'mono-label group relative flex w-full items-center justify-between gap-6 border-t text-foreground';
 const ON_ROW = 'group-hover:scale-x-100 group-focus-visible:scale-x-100';
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
@@ -90,15 +89,13 @@ const StageCopy = ({ stage, index, phase, compact = false, labelSize }: StageCop
 
   return (
     <>
-      <p className="index-num flex items-center gap-3" style={soft(0)}>
-        <span aria-hidden="true" className="text-foreground">
-          {numeral(index)}
-        </span>
-        <span aria-hidden="true" className="h-px w-8 bg-border" />
-        <span aria-hidden="true">{STAGE_TOTAL}</span>
-        <span className="sr-only">
-          Stage {index + 1} of {stages.length}
-        </span>
+      {/* Which stage of seven: the one sequence on the page that is numbered. Seen
+          only — the list (or, in the scroller, the rail's aria-current) already tells a
+          screen reader, and a hidden "Stage 3 of 7" twin would show up in copied text. */}
+      <p aria-hidden="true" className="index-num flex items-center gap-3" style={soft(0)}>
+        <span className="text-foreground">{numeral(index)}</span>
+        <span className="h-px w-8 bg-border" />
+        <span>{STAGE_TOTAL}</span>
       </p>
       {/* The masks carry the display size too, so their em padding is measured in the
           type's own em and keeps the descenders; the margin gives the space back. */}
@@ -112,10 +109,11 @@ const StageCopy = ({ stage, index, phase, compact = false, labelSize }: StageCop
           {stage.title}
         </p>
       </div>
+      {/* 16px even where room is short: the clamp gives up lines, never size. */}
       <p
         className={cn(
-          'leading-relaxed text-muted-foreground',
-          compact ? 'mt-2 line-clamp-3 text-sm' : 'mt-5 max-w-md text-base'
+          'text-base leading-relaxed text-muted-foreground',
+          compact ? 'mt-2 line-clamp-3' : 'mt-5 max-w-md'
         )}
         style={soft(3)}
       >
@@ -213,7 +211,8 @@ const StageScroller = () => {
     activeIndex: 0,
     /** The current stage's copy has been sent out ahead of the next photograph. */
     leaving: false,
-    /** The scroller has come into view once: plays the first stage's entrance. */
+    /** The scroller is on screen: plays the first stage's entrance, and takes it back
+        when the visitor scrolls up off the track again — every time, like every reveal. */
     arrived: false,
     /** The pinned viewport is what the visitor is looking at: the rail can take focus. */
     engaged: false,
@@ -291,20 +290,23 @@ const StageScroller = () => {
       // Reaches each tick as that stage takes over, and Smoke as the last one does.
       railRef.current?.style.setProperty('--journey-progress', clamp01(raw / LAST).toFixed(4));
 
-      const nextState = {
-        activeIndex: index,
-        leaving: index < LAST && progress > COPY_OUT_AT,
-        arrived: rect.top < viewport * 0.7,
-        engaged: rect.top < viewport * 0.5 && rect.bottom > viewport * 0.5,
-      };
-      setScrollState((prev) =>
-        prev.activeIndex === nextState.activeIndex &&
-        prev.leaving === nextState.leaving &&
-        (prev.arrived || !nextState.arrived) &&
-        prev.engaged === nextState.engaged
+      setScrollState((prev) => {
+        const next = {
+          activeIndex: index,
+          leaving: index < LAST && progress > COPY_OUT_AT,
+          // In once the track is 30% up the screen; out only once it has dropped out
+          // of the active zone (lib/motion: the screen less its bottom 8%). The gap
+          // between the two lines keeps it from flickering on either.
+          arrived: rect.top < viewport * (prev.arrived ? 0.92 : 0.7),
+          engaged: rect.top < viewport * 0.5 && rect.bottom > viewport * 0.5,
+        };
+        return prev.activeIndex === next.activeIndex &&
+          prev.leaving === next.leaving &&
+          prev.arrived === next.arrived &&
+          prev.engaged === next.engaged
           ? prev
-          : { ...nextState, arrived: prev.arrived || nextState.arrived }
-      );
+          : next;
+      });
     };
 
     let frame = 0;
@@ -485,7 +487,8 @@ const StageScroller = () => {
                       tabIndex={engaged ? undefined : -1}
                       aria-current={current ? 'step' : undefined}
                       className={cn(
-                        'group relative flex h-full w-full font-mono text-[11px] font-medium uppercase tracking-[0.14em] transition-colors hover:text-foreground lg:tracking-[0.18em]',
+                        // 13px at 0.14em: "Manufacture", the longest stage, still clears the 8rem rail.
+                        'mono-label group relative flex h-full w-full tracking-[0.14em] transition-colors hover:text-foreground',
                         side ? 'items-center' : 'flex-col items-center',
                         current ? 'text-foreground' : 'text-muted-foreground'
                       )}
@@ -530,7 +533,7 @@ const ProcessSection = () => {
       <div className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 md:pt-32 lg:pt-36">
         {/* Opens as every homepage section does: the drawn rule, one mono row, then the
             headline left over the wide cell with its note and onward row over the narrow one. */}
-        <SectionHead number="04" label={journeyIntro.eyebrow} meta={`${STAGE_TOTAL} Stages`} />
+        <SectionHead label={journeyIntro.eyebrow} />
 
         <div className="mt-12 grid gap-y-10 pb-14 md:mt-16 md:pb-20 lg:mt-20 lg:grid-cols-12 lg:items-end">
           <SplitReveal
@@ -542,7 +545,7 @@ const ProcessSection = () => {
           />
           <Reveal delay={0.15} className="lg:col-span-5 lg:pl-8">
             <p className="display-xs max-w-[26ch] pb-8 text-foreground">{hero.subtitle}</p>
-            <RowLink to="/journey" meta={`(${STAGE_TOTAL})`} className="border-b">
+            <RowLink to="/journey" className="border-b">
               All stages
             </RowLink>
           </Reveal>

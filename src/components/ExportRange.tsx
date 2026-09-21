@@ -10,19 +10,11 @@ import {
   TEXT_LINK,
   WRAP,
 } from '@/components/PageHeader';
-import {
-  allProducts,
-  categories,
-  productsIntro,
-  type Product,
-  type ProductCategory,
-} from '@/content/products';
-import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
+import { categories, productsIntro, type Product, type ProductCategory } from '@/content/products';
+import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 interface ExportRangeProps {
-  /** The section's place on the page, as printed in its marker. */
-  number?: string;
   className?: string;
 }
 
@@ -35,19 +27,18 @@ const productHref = (category: ProductCategory, product: Product) =>
     ? `/products/${category.slug}/${product.slug}`
     : `/products/${category.slug}`;
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
 /** Seconds between one row's hairline starting to draw and the next. */
 const LINE_STAGGER = 0.06;
 
 const ARROW = 'self-center text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent';
 
 /**
- * One category as a ruled directory: mono index, the product's name in the display
- * serif, a travelling arrow. The row IS the link; on hover or focus the rule above it
- * is redrawn in the accent and the name steps 8px along. Each row carries the
- * hairline under it (the category's own rule is the first row's top), and they draw
- * in one after another the first time the list is seen.
+ * One category as a ruled directory: the product's name in the display serif and a
+ * travelling arrow — no index numeral, the list's order is not information. The row
+ * IS the link; on hover or focus the rule above it is redrawn in the accent and the
+ * name steps 8px along. Each row carries the hairline under it (the category's own
+ * rule is the first row's top), and they draw in one after another each time the
+ * list comes on screen, and all back out at once as it leaves.
  */
 const RangeList = ({ category }: { category: ProductCategory }) => {
   const [still] = useState(isStill);
@@ -66,7 +57,7 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
           <Link
             to={productHref(category, product)}
             data-cursor="open"
-            className="group relative flex min-h-11 items-baseline gap-5 py-5 text-foreground md:gap-8 md:py-6 lg:pl-8"
+            className="group relative flex min-h-11 items-baseline gap-6 py-5 text-foreground md:gap-8 md:py-6 lg:pl-8"
           >
             <span aria-hidden="true" className={ROW_LINE} />
             <span
@@ -77,13 +68,10 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
                   ? undefined
                   : {
                       transform: shown ? 'none' : 'scaleX(0)',
-                      transition: `transform 1.1s ${EASE.expoOut} ${(i * LINE_STAGGER).toFixed(2)}s`,
+                      transition: revealTransition(shown, 'transform', 1.1, i * LINE_STAGGER),
                     }
               }
             />
-            <span aria-hidden="true" className="index-num w-6 shrink-0">
-              {pad(i + 1)}
-            </span>
             <span className={cn('display-sm min-w-0 flex-1', ROW_SHIFT)}>{product.name}</span>
             <ArrowTravel className={ARROW} />
           </Link>
@@ -99,13 +87,11 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
  * Each category is a ruled 4/8 split: its name, line and onward links hold in the
  * narrow cell while the directory scrolls past in the wide one.
  */
-const ExportRange = ({ number = '01', className }: ExportRangeProps) => (
+const ExportRange = ({ className }: ExportRangeProps) => (
   <section aria-labelledby="export-range-heading" className={cn('bg-secondary/40', className)}>
     <div className={cn(WRAP, 'py-24 md:py-36')}>
       <SectionHead
-        number={number}
         label={productsIntro.eyebrow}
-        meta={`${pad(categories.length)} Categories · ${pad(allProducts.length)} Products`}
         title={productsIntro.heading}
         italicWords={['Our']}
         id="export-range-heading"
@@ -120,12 +106,10 @@ const ExportRange = ({ number = '01', className }: ExportRangeProps) => (
           {/* Holds beside its list while the rows scroll past. Below lg its bottom
               rule is the first row's top. */}
           <Reveal className="border-b border-border pb-8 pt-6 lg:sticky lg:top-24 lg:col-span-4 lg:self-start lg:border-b-0 lg:pb-12 lg:pr-8 lg:pt-8">
-            <p className="eyebrow">{category.eyebrow}</p>
-            {/* Not a link: "View …" below goes to the same page with a full-size target. */}
-            <h3 className="display-sm mt-5 text-foreground">{category.title}</h3>
-            <p className="mt-4 max-w-[44ch] text-sm leading-relaxed text-muted-foreground md:text-base">
-              {category.short}
-            </p>
+            {/* No "Category 01" eyebrow: the numbering was decoration, and the name says it.
+                Not a link: "View …" below goes to the same page with a full-size target. */}
+            <h3 className="display-sm text-foreground">{category.title}</h3>
+            <p className="mt-4 max-w-[44ch] text-secondary text-muted-foreground">{category.short}</p>
             <div className="mt-4 flex flex-col items-start">
               <Link to={`/products/${category.slug}`} data-cursor="open" className={TEXT_LINK}>
                 <span className={GROUP_UNDERLINE}>View {category.label}</span>
@@ -158,12 +142,7 @@ const ExportRange = ({ number = '01', className }: ExportRangeProps) => (
         >
           <span aria-hidden="true" className={ROW_LINE} />
           <span className={cn('display-sm', ROW_SHIFT)}>View the full product line</span>
-          <span className="flex shrink-0 items-center gap-5 md:gap-8">
-            <span aria-hidden="true" className="index-num">
-              ({pad(allProducts.length)})
-            </span>
-            <ArrowTravel className={ARROW} />
-          </span>
+          <ArrowTravel className={ARROW} />
         </Link>
       </Reveal>
     </div>

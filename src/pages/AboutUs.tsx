@@ -21,7 +21,7 @@ import Parallax from '@/components/motion/Parallax';
 import SplitReveal from '@/components/motion/SplitReveal';
 import { site } from '@/content/site';
 import { about, facts, formatFact, type Fact } from '@/content/about';
-import { journey, journeyBySlug, journeyIntro } from '@/content/journey';
+import { journeyBySlug, journeyIntro } from '@/content/journey';
 import { journeyImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
@@ -32,13 +32,11 @@ const route = ROUTE_BY_PATH['/about-us'];
 const STORY_STAGE = 'harvest';
 const PAIR_STAGES = ['process', 'manufacture'];
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
 /** Pairs a journey stage with its cover photo; drops the slug if either is missing. */
 const stageWithCover = (slug: string) => {
   const stage = journeyBySlug(slug);
   const cover = journeyImages[slug]?.[0];
-  return stage && cover ? [{ stage, cover, number: journey.indexOf(stage) + 1 }] : [];
+  return stage && cover ? [{ stage, cover }] : [];
 };
 
 // Final values, no count-up: the homepage animates these figures, here they are read.
@@ -87,16 +85,17 @@ const AboutUs = () => {
 
   return (
     <PageLayout>
-      <PageHeader breadcrumbs={route.breadcrumbs} eyebrow={about.heading} title={site.name} meta={site.country} />
+      <PageHeader breadcrumbs={route.breadcrumbs} eyebrow={about.heading} title={site.name} />
 
-      {/* 1 — The About copy, verbatim. Its first paragraph hangs from the masthead's
+      {/* The About copy, verbatim. Its first paragraph hangs from the masthead's
           closing rule as a display pull-quote that rises line by line; the rest reads
           in the wide cell of a ruled 5/7 split, foot-aligned with the photograph. */}
       <section aria-label={about.heading} className={cn(WRAP, 'pb-24 md:pb-36')}>
-        {/* data-enter: on a desktop the quote shares the first screen with the masthead
-            (see index.css); it still plays on view, so a phone sees it too. */}
-        <div data-enter="" className="pb-16 pt-5 md:pb-28">
-          <SectionMarker number="01">Profile</SectionMarker>
+        {/* data-enter="view": on a desktop the quote shares the first screen with the
+            masthead, so the prerendered copy waits unpainted for the app (index.css);
+            unlike the masthead it plays on view, both ways, every time. */}
+        <div data-enter="view" className="pb-16 pt-5 md:pb-28">
+          <SectionMarker>Profile</SectionMarker>
           <SplitReveal
             as="p"
             by="line"
@@ -127,9 +126,7 @@ const AboutUs = () => {
                 </Parallax>
               </ImageReveal>
               <figcaption className="flex min-h-14 flex-wrap items-center justify-between gap-x-6 border-t border-border py-1.5 lg:pr-8">
-                <span className="index-num uppercase leading-normal">
-                  {pad(story.number)} · {story.stage.label}
-                </span>
+                <span className="eyebrow">{story.stage.label}</span>
                 <Link to={`/journey/${story.stage.slug}`} data-cursor="open" className={TEXT_LINK}>
                   <span className={GROUP_UNDERLINE}>{story.stage.title}</span>
                   <ArrowTravel direction="up-right" />
@@ -153,8 +150,8 @@ const AboutUs = () => {
         </div>
       </section>
 
-      {/* 2 — Facts, as one ruled row on ink. Label first, figure second: the labels end
-          in "since", so this is the order they read in (and the order a screen reader
+      {/* Facts, as one ruled row on ink. Label first, figure second: the labels end in
+          "since", so this is the order they read in (and the order a screen reader
           gets). Inside bg-ink the hairlines take the ink rule by themselves. */}
       <section
         aria-labelledby="about-facts-heading"
@@ -168,9 +165,7 @@ const AboutUs = () => {
           </h2>
           <DrawnRule />
           <div aria-hidden="true" className="pt-4 md:pt-5">
-            <SectionMarker number="02" onInk>
-              At a Glance
-            </SectionMarker>
+            <SectionMarker onInk>At a Glance</SectionMarker>
           </div>
 
           <dl
@@ -178,18 +173,23 @@ const AboutUs = () => {
             style={{ '--fact-columns': FACT_COLUMNS } as CSSProperties}
           >
             {facts.map((fact, i) => (
+              // Label and figure are one unit, the label set straight above its figure and
+              // both at the head of the cell: pushed to opposite ends, "since" and its
+              // year read as two things with a hole between them. The cells still stretch,
+              // so the vertical hairlines run the full height of the row.
               <div
                 key={fact.label}
                 className={cn(
-                  'flex min-w-0 flex-col gap-8 py-9 lg:gap-16 lg:py-10 lg:pr-8',
+                  'flex min-w-0 flex-col gap-3 py-9 lg:py-10 lg:pr-8',
                   i > 0 && 'border-t border-border lg:border-l lg:border-t-0 lg:pl-8'
                 )}
               >
-                <Reveal as="dt" from="none" delay={i * 0.09} className="eyebrow max-w-[28ch] leading-relaxed">
+                <Reveal as="dt" from="none" delay={i * 0.09} className="eyebrow max-w-[28ch]">
                   {fact.label}
                 </Reveal>
-                {/* mt-auto keeps the figures on one line when a label wraps. */}
-                <dd className="display-xl mt-auto text-ink-foreground">
+                {/* leading-[0.85]: the line box hugs the numerals, so the space above them
+                    is the gap that is set, not the serif's tall ascender room. */}
+                <dd className="display-xl leading-[0.85] text-ink-foreground">
                   <SplitReveal as="span" text={figure(fact)} delay={i * 0.09} />
                 </dd>
               </div>
@@ -198,19 +198,13 @@ const AboutUs = () => {
         </div>
       </section>
 
-      {/* 3 */}
-      <HeritageTimeline number="03" />
+      <HeritageTimeline />
 
-      {/* 4 — The pair: a ruled 7/5 split, both photographs flush to the rules and of
+      {/* The pair: a ruled 7/5 split, both photographs flush to the rules and of
           one height. Captions are the journey stages' own titles. */}
       {pair.length > 0 && (
         <section aria-labelledby="about-pair-heading" className={cn(WRAP, 'pb-24 md:pb-36')}>
-          <SectionHead
-            number="04"
-            label={journeyIntro.eyebrow}
-            title="Processing and Manufacturing"
-            id="about-pair-heading"
-          >
+          <SectionHead label={journeyIntro.eyebrow} title="Processing and Manufacturing" id="about-pair-heading">
             <Link to="/journey" data-cursor="open" className={TEXT_LINK}>
               <span className={GROUP_UNDERLINE}>{journeyIntro.heading}</span>
               <ArrowTravel />
@@ -222,7 +216,7 @@ const AboutUs = () => {
               aria-hidden="true"
               className="absolute inset-y-0 left-[58.333333%] z-10 hidden w-px bg-border lg:block"
             />
-            {pair.map(({ stage, cover, number }, i) => {
+            {pair.map(({ stage, cover }, i) => {
               const shape = PAIR_SHAPES[i % PAIR_SHAPES.length];
               return (
                 <Link
@@ -255,9 +249,7 @@ const AboutUs = () => {
                     )}
                   >
                     <div>
-                      <p className="index-num uppercase leading-normal">
-                        {pad(number)} · {stage.label}
-                      </p>
+                      <p className="eyebrow">{stage.label}</p>
                       <h3 className="display-sm mt-4 text-foreground">
                         <span className={GROUP_UNDERLINE}>{stage.title}</span>
                       </h3>
@@ -274,8 +266,7 @@ const AboutUs = () => {
         </section>
       )}
 
-      {/* 5 */}
-      <ExportRange number="05" />
+      <ExportRange />
     </PageLayout>
   );
 };

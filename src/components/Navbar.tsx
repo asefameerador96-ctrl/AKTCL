@@ -28,7 +28,7 @@ const LINKS = [
   { to: '/contact', label: 'Contact' },
 ] as const;
 
-// The full-screen menu has room for the way back as well, and numbers its rows.
+// The full-screen menu has room for the way back as well.
 const MENU_LINKS = [{ to: '/', label: 'Home' }, ...LINKS] as const;
 
 // Matches the `lg:` breakpoint the desktop links appear at — four links, the toggle,
@@ -47,8 +47,7 @@ const MENU_CLOSE_MS = 500;
  * flips while the line has no width, so the flip is never seen). Transform only. The
  * page you are on keeps its line, in the accent — sage over the photograph.
  */
-const NAV_LINK =
-  'group inline-flex min-h-11 items-center rounded-sm px-1 font-mono text-[12px] font-medium uppercase tracking-[0.18em] transition-colors';
+const NAV_LINK = 'mono-label group inline-flex min-h-11 items-center rounded-sm px-1 transition-colors';
 const NAV_LINE =
   'relative py-1.5 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-right after:scale-x-0 after:bg-current after:transition-transform after:duration-300 after:ease-expo-out group-focus-visible:after:origin-left group-focus-visible:after:scale-x-100 [@media(hover:hover)]:group-hover:after:origin-left [@media(hover:hover)]:group-hover:after:scale-x-100';
 const NAV_LINE_CURRENT = 'after:origin-left after:scale-x-100';
@@ -304,7 +303,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
         {/*
          * Mobile menu: a full-screen ink sheet that drops from under the bar and lifts
          * away again, the same curtain the age gate and the route change use. Inside it
-         * is a directory: ruled rows, a mono index, the page names in the display serif.
+         * is a directory: ruled rows, the page names in the display serif, an arrow.
          * `hidden` (not opacity) takes the closed links out of the tab order and the
          * accessibility tree. No display utility on this element — it would override
          * [hidden]. CSS animations, not transitions: they are what runs when an
@@ -340,9 +339,6 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
                       // Inset ring: the row is as wide as the screen, an outer one would be cut off.
                       className="group mx-auto flex min-h-[4.75rem] max-w-7xl items-center gap-5 px-4 py-3 ring-inset sm:px-6"
                     >
-                      <span aria-hidden="true" className={cn('index-num w-7 shrink-0', current && 'text-sage')}>
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
                       {/* Mask for the rising label; the padding keeps descenders inside it. */}
                       <span className="-my-[0.12em] block min-w-0 flex-1 overflow-hidden py-[0.12em]">
                         <span

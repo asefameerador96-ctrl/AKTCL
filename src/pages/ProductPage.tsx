@@ -17,8 +17,6 @@ const LEAF_LABELS = ['Type', 'Grades', 'Packing', 'Nicotine', 'Sugar', 'Crop Yea
 const PROCESSED_LABELS = ['Form', 'Cut Width', 'Moisture', 'Filling Value', 'Packing', 'Minimum Order'];
 const LEAF_SLUGS = new Set(['virginia-flue-cured', 'burley', 'scrap']);
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
 /** /products/:category/:slug — only for products flagged hasDetailPage. */
 const ProductPage = () => {
   const params = useParams<{ category: string; slug: string }>();
@@ -45,9 +43,8 @@ const ProductPage = () => {
           { name: product.name, path },
         ]
       }
+      // No "03 / 08" counter: a product's place in the list is not information.
       eyebrow={category.label}
-      // Its place in the range, in the masthead's mono index.
-      counter={`${pad(index + 1)} / ${pad(siblings.length)}`}
       title={product.name}
       lead={product.short}
       body={product.long ? [product.long] : []}
@@ -64,13 +61,7 @@ const ProductPage = () => {
       related={
         others.length > 0 && (
           <section aria-labelledby="more-products-heading">
-            <SectionHead
-              number="02"
-              label="Product Range"
-              meta={`${pad(others.length)} Products`}
-              title={`More ${category.label}`}
-              id="more-products-heading"
-            />
+            <SectionHead label="Product Range" title={`More ${category.label}`} id="more-products-heading" />
             <ul role="list" className="hairline-grid mt-14 grid grid-cols-2 md:mt-20 lg:grid-cols-4">
               {others.map((other, i) => (
                 <li key={other.slug} className="min-w-0">
@@ -81,8 +72,6 @@ const ProductPage = () => {
                     short={other.short}
                     // Only the column matters: the stagger restarts on every row of the grid.
                     index={i}
-                    // Its number in the full range, so a product keeps it from page to page.
-                    number={siblings.indexOf(other) + 1}
                   />
                 </li>
               ))}
@@ -92,9 +81,8 @@ const ProductPage = () => {
                 <Link
                   to={categoryPath}
                   data-cursor="open"
-                  className="group relative flex h-full min-h-40 flex-col justify-between gap-10 px-3.5 pb-6 pt-4 text-foreground transition-colors hover:text-accent focus-visible:z-10 focus-visible:text-accent sm:px-5 sm:pb-7 sm:pt-5"
+                  className="group relative flex h-full min-h-40 flex-col justify-end px-3.5 pb-6 pt-4 text-foreground transition-colors hover:text-accent focus-visible:z-10 focus-visible:text-accent sm:px-5 sm:pb-7 sm:pt-5"
                 >
-                  <span className="index-num uppercase">{pad(category.products.length)} Products</span>
                   <span className="flex items-end justify-between gap-4">
                     <span className="display-xs">All {category.label}</span>
                     <ArrowTravel className="mb-1.5" />

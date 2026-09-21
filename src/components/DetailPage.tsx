@@ -28,7 +28,10 @@ interface DetailPageProps {
   containImages?: boolean;
   /** Data sheet slot (<SpecCard>), set under the copy. Brings its own <h2>. */
   specs?: ReactNode;
-  /** Position in a sequence, e.g. "03 / 07": the mono index opposite the eyebrow. */
+  /**
+   * Position in a sequence whose order carries meaning — a journey stage's "03 / 07" —
+   * set opposite the eyebrow. Left out where the order is only a list's (products).
+   */
   counter?: string;
   prev?: DetailPageLink;
   next?: DetailPageLink;
@@ -82,7 +85,7 @@ const PagerRow = ({ direction, label, to }: PagerRowProps) => (
       className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-3 border-t border-border py-9 md:py-12 lg:grid-cols-12 lg:gap-x-0"
     >
       <span aria-hidden="true" className={ROW_LINE} />
-      <span className="index-num col-span-2 uppercase leading-normal lg:col-span-3">{direction}</span>
+      <span className="eyebrow col-span-2 lg:col-span-3">{direction}</span>
       <span className={cn('display-md text-foreground lg:col-span-8', ROW_SHIFT)}>{label}</span>
       <ArrowTravel
         direction={direction === 'Previous' ? 'left' : 'right'}
@@ -154,7 +157,7 @@ const DetailPage = ({
                   {/* The standfirst is display type, not a large sans lead: the sans stays at body size. */}
                   <p className="display-xs max-w-[30ch] leading-[1.18] text-foreground">{lead}</p>
                   {body.map((paragraph, i) => (
-                    <p key={i} className={cn(BODY, 'mt-6')}>
+                    <p key={i} className={`${BODY} mt-6`}>
                       {paragraph}
                     </p>
                   ))}

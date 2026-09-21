@@ -1,6 +1,6 @@
-import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
+import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
 
 export interface SplitRevealProps {
   /** Verbatim copy from src/content — this component never alters the words. */
@@ -13,7 +13,7 @@ export interface SplitRevealProps {
   delay?: number;
   /** Seconds between pieces (60–90 ms reads best). Long text is compressed to fit 0.6 s. */
   stagger?: number;
-  /** 'view': the first time it scrolls into view. 'enter': page-load choreography. */
+  /** 'view': every time it scrolls on screen, back down as it leaves. 'enter': page-load choreography, once. */
   trigger?: 'view' | 'enter';
   /** Words set in the display italic — typographic emphasis only, e.g. ['to']. */
   italicWords?: string[];
@@ -28,9 +28,11 @@ const stripPunctuation = (word: string) => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}
 
 /**
  * Masked slide-up reveal: every word sits in its own clipped inline-block and rises
- * into place with expo-out. Words stay ordinary inline boxes with real spaces between
- * them, so the text wraps, balances and tracks exactly as plain text would — which is
- * also why swapping the prerendered plain heading for this one shifts nothing.
+ * into place with expo-out — each time the line comes on screen, sinking back into
+ * its masks (all at once, quicker) as it leaves. Words stay ordinary inline boxes
+ * with real spaces between them, so the text wraps, balances and tracks exactly as
+ * plain text would — which is also why swapping the prerendered plain heading for
+ * this one shifts nothing.
  *
  * Read out once: headings carry the full string as aria-label; a <p>/<span> (where
  * aria-label is not allowed) gets a screen-reader-only copy. The animated pieces are
@@ -58,6 +60,11 @@ const SplitReveal = ({
 
   const inView = useInView(ref, { skip: still || trigger === 'enter' });
   const shown = useReveal(trigger === 'enter' || inView);
+  // Unmasked only at rest: the moment the words start back down, the masks are on again.
+  const masked = !shown || !settled;
+  useEffect(() => {
+    if (!shown) setSettled(false);
+  }, [shown]);
 
   // Line breaks are only known after layout. Measured before the first paint, and
   // again if the column changes width while the text is still waiting to appear.
@@ -109,17 +116,17 @@ const SplitReveal = ({
   const pieces = words.map((word, i) => (
     <span key={i} aria-hidden={isHeading ? true : undefined}>
       {i > 0 && ' '}
-      <span data-split-word="" className={cn('inline-block', !settled && 'split-mask')}>
+      <span data-split-word="" className={cn('inline-block', masked && 'split-mask')}>
         <span
           className="inline-block will-change-transform"
           style={{
             transform: shown ? 'none' : 'translate3d(0, calc(100% + 0.3em), 0)',
-            transition: `transform ${DURATION_S}s ${EASE.expoOut} ${(delay + order(i) * step).toFixed(3)}s`,
-            willChange: settled ? 'auto' : undefined,
+            transition: revealTransition(shown, 'transform', DURATION_S, delay + order(i) * step),
+            willChange: masked ? undefined : 'auto',
           }}
           // The mask would shave a swash or an italic overhang at rest; once the
-          // last word has landed it has done its job.
-          onTransitionEnd={i === words.length - 1 ? () => setSettled(true) : undefined}
+          // last word has landed it has done its job. (Not on the way out.)
+          onTransitionEnd={shown && i === words.length - 1 ? () => setSettled(true) : undefined}
         >
           {renderWord(word)}
         </span>
