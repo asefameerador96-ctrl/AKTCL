@@ -9,8 +9,11 @@ on:
   workflow_dispatch:
 
 # A newer push to the same branch or PR supersedes a build that is still running.
+# PR runs are keyed by PR number, not github.ref: when a PR closes, GitHub reports its
+# ref as the base branch, so the "close staging" run used to share main's group and
+# cancel the production deploy the merge had just started.
 concurrency:
-  group: swa-${{ github.ref }}
+  group: swa-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.ref }}
   cancel-in-progress: true
 
 jobs:
