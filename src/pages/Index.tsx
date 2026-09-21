@@ -3,6 +3,7 @@ import PageLayout from '@/components/PageLayout';
 import HeroCarousel from '@/components/HeroCarousel';
 import WhoWeAre from '@/components/WhoWeAre';
 import ProductShowcase from '@/components/ProductShowcase';
+import SizesBand from '@/components/SizesBand';
 import FactsFigures from '@/components/FactsFigures';
 import ProcessSection from '@/components/ProcessSection';
 import PrivateLabelBand from '@/components/PrivateLabelBand';
@@ -77,8 +78,9 @@ const ProductMarquee = () => (
 // Shah Agro's homepage order — hero, products, figures, journey, gallery — with the
 // two Orchid blocks slotted in: the company blurb after the hero and the private
 // label band after the journey. Between the blurb and the catalogue runs the product
-// marquee. The rhythm alternates: a breathing section, then a dense one. PageLayout
-// supplies the navbar, the closing "Request a Quote" band and the footers.
+// marquee; straight after the catalogue, the cigarette sizes drawn to one scale. The
+// rhythm alternates: a breathing section, then a dense one. PageLayout supplies the
+// navbar, the closing "Request a Quote" band and the footers.
 //
 // This page is the only one bundled eagerly (see App.tsx), so every section is a
 // plain import with no heavy dependency behind it; nothing here is worth a Suspense
@@ -89,6 +91,7 @@ const Index = () => (
     <WhoWeAre />
     <ProductMarquee />
     <ProductShowcase />
+    <SizesBand />
     <FactsFigures />
     <ProcessSection />
     <PrivateLabelBand />

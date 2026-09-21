@@ -21,6 +21,8 @@ const JourneyStage = lazy(() => import('./pages/JourneyStage.tsx'));
 const ProductsIndex = lazy(() => import('./pages/ProductsIndex.tsx'));
 const CategoryPage = lazy(() => import('./pages/CategoryPage.tsx'));
 const ProductPage = lazy(() => import('./pages/ProductPage.tsx'));
+const SizesIndex = lazy(() => import('./pages/SizesIndex.tsx'));
+const SizePage = lazy(() => import('./pages/SizePage.tsx'));
 const Contact = lazy(() => import('./pages/Contact.tsx'));
 const Privacy = lazy(() => import('./pages/Privacy.tsx'));
 const Terms = lazy(() => import('./pages/Terms.tsx'));
@@ -53,6 +55,8 @@ const App = () => (
         <Route path="/products" element={<ProductsIndex />} />
         <Route path="/products/:category" element={<CategoryPage />} />
         <Route path="/products/:category/:slug" element={<ProductPage />} />
+        <Route path="/cigarette-sizes" element={<SizesIndex />} />
+        <Route path="/cigarette-sizes/:slug" element={<SizePage />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />

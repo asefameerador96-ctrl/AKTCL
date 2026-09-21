@@ -19,7 +19,7 @@ F Long Description · G VISUAL (empty).
 | 3–9 | PROCESS — Seed, Harvest, Cure, Buying, Process, Manufacture, Smoke | Home sticky "Our Journey" section, `/journey`, `/journey/<stage>` ×7 | `journey.ts` |
 | 10 | PRODUCT intro | Home product showcase, `/products` | `products.ts` → `productsIntro` |
 | 11–20 | Category 01 Leaf Tobacco + 8 products | `/products/leaf-tobacco` and 8 product pages | `products.ts` |
-| 21–27 | Category 02 Finished Cigarettes + 6 entries | `/products/finished-cigarettes` (cards only), home private-label band | `products.ts` |
+| 21–27 | Category 02 Finished Cigarettes + 6 entries | `/products/finished-cigarettes` (cards only), home private-label band, line names on `/cigarette-sizes/<format>` | `products.ts` (names read by `sizes.ts`) |
 | 28 | ABOUT US (3 paragraphs) | `/about-us`, facts strip, heritage timeline, Organization JSON-LD | `about.ts` |
 
 Corrections made to the workbook text (please confirm):
@@ -63,7 +63,7 @@ names do not say so.
 Honest note on provenance: the field, curing and product images have the dimensions and
 finish of AI-generated imagery; the threshing/manufacturing floor shots and two of the
 buying-centre shots look like real photographs. The brief asks for authentic factory and
-farm photography where possible — see gaps 6 and 7.
+farm photography where possible — see gaps 6 and 8.
 
 ## 3. Gap list — needed from AKTCL
 
@@ -95,21 +95,54 @@ hidden or shows an honest "on request" state.
    width, moisture, filling value, packing, MOQ. Cigarettes: length, circumference,
    filter, pack format, sticks/pack, packs/outer, outers/master case, cases per 20'/40'
    container, MOQ. Spec cards show the labels with "On request" until filled
-   (`products.ts → specs`).
+   (`products.ts → specs`; per cigarette format, see gap 7).
 6. **Finished cigarettes** — one line of copy each and one shared pack shot. Need long
    descriptions and a pack shot per format (Premium King Size, King Size Filter, Super
    Slim, NANO, AKT Signature Collection) before they get their own pages
    (`hasDetailPage: true`). **SCRAP** also has only one line.
-7. **Real photography** — GLT plant, cigarette factory, buying centres, farmer network,
+7. **Cigarette size specifications** (`/cigarette-sizes`, added 2026-09-22). The owner
+   asked for a "Cigarette Sizes" segment laid out like five infographics he supplied
+   (King Size, 100s, Slim, Super Slim, Nano — "Packaging & Logistics Specifications").
+   Those infographics are **Orchid Cigarettes' artwork showing Orchid's production
+   figures**: they cannot be reused on this site (image rights) and their numbers are not
+   AKTCL's. The segment is built; its format names and nominal rod lengths (King Size
+   84 mm, 100s 100 mm, Slim 100–120 mm, Super Slim 100 mm, Nano 84–100 mm) are industry
+   format definitions, and every AKTCL figure shows "On request" until supplied. Values
+   go into `src/content/sizes.ts → specs({ … })`; nothing else changes. Needed:
+   - **First:** does AKTCL make 100s and Slim at all? The workbook lists King Size
+     (Premium King Size, King Size Filter), Super Slim and NANO lines only.
+   - **Per format, rod:** rod length, circumference, diameter, filter length, tobacco
+     weight per stick, tobacco type/blend, moisture content, filter options, pack
+     formats (soft pack, box, …).
+   - **Per format, packaging structure:** cigarettes per pack, packs per outer, outers
+     per master carton, packs per master carton, cigarettes per master carton.
+   - **Per format, dimensions & weights:** pack, outer and master carton dimensions
+     (L × W × H, mm), master carton gross weight, pallet configuration.
+   - **Per format, logistics & MOQ:** master cartons per 40' HC container, master
+     cartons per 20' container, minimum order.
+   - Which values are nominal ("typical") rather than guaranteed.
+   - **Copy:** a trade-toned one-line summary per format. There is none for 100s or
+     Slim, and the workbook's Super Slim line ("Elegant super slim cigarettes with modern
+     styling.") is consumer-styled, so it is shown only as a line name.
+   - **Optional:** an infographic or pack shot per format that AKTCL owns the rights to
+     (`infographic` in `sizes.ts`; renders only when present).
+
+   The reference figures cannot simply be adapted either — some labels look swapped.
+   The Nano and Super Slim sheets give a "master carton size" of about 105 × 55 × 95 mm
+   and 105 × 60 × 100 mm: a pack- or outer-scale box (about ten soft packs), not a master
+   carton holding 500 packs. Their "outer carton size" of about 540 × 275 × 110 mm and
+   540 × 280 × 115 mm is master-carton scale, yet at ~16–17 litres it could not hold 50 of
+   the ~0.55–0.63-litre boxes either. AKTCL must supply its own verified figures.
+8. **Real photography** — GLT plant, cigarette factory, buying centres, farmer network,
    plus a second image for the Smoke stage. Video (hero loop, factory) if available.
 
 **Would strengthen credibility (Sopariwala "proof layer")**
 
-8. Heritage milestones beyond 1953 and 1997 (the timeline is built to take more).
-9. Leadership names/roles/photos; Abul Khair Group context paragraph.
-10. Certifications and standards (ISO etc.), awards, press.
-11. Export markets/regions — enables the world map section and region pages that the
+9. Heritage milestones beyond 1953 and 1997 (the timeline is built to take more).
+10. Leadership names/roles/photos; Abul Khair Group context paragraph.
+11. Certifications and standards (ISO etc.), awards, press.
+12. Export markets/regions — enables the world map section and region pages that the
     Shah Agro layout and Orchid both have. Omitted for now.
-12. Capacity figures (GLT throughput, cigarette output), brochures/catalogues (PDF) for
+13. Capacity figures (GLT throughput, cigarette output), brochures/catalogues (PDF) for
     "Download" buttons, CSR/sustainability content.
-13. Social/profile links (LinkedIn etc.) for the footer and JSON-LD.
+14. Social/profile links (LinkedIn etc.) for the footer and JSON-LD.
