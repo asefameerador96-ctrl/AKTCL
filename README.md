@@ -74,6 +74,7 @@ A new URL needs two things: an entry in `src/seo/routeMeta.ts` and a `<Route>` i
 | `npm run build:nopre` / `npm run preview` | Plain Vite build / preview, without prerendering |
 | `npm run images:import -- "<folder>"` | Import content photography (above) |
 | `npm run og-image` | Regenerate `public/og-image.jpg`, the 1200×630 link-preview card |
+| `npm run brand-assets` | Rebuild favicon, app icons, `logo.png`/`logo.svg` and the manifest from the AKT logo vector (`scripts/lib/brand.mjs`) |
 | `cd api && npm test` | Enquiry API tests |
 
 ## Deployment

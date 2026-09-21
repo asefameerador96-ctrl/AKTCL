@@ -184,6 +184,18 @@ export const ORGANIZATION_JSONLD: Record<string, unknown> = {
   legalName: site.legalName,
   alternateName: site.shortName,
   url: SITE,
+  // What Google shows beside the site in results and knowledge panels. The supplied
+  // mark, as supplied (grey on white) — public/logo.png, built by `npm run brand-assets`.
+  logo: {
+    '@type': 'ImageObject',
+    '@id': `${SITE}/#logo`,
+    url: `${SITE}/logo.png`,
+    contentUrl: `${SITE}/logo.png`,
+    width: 1024,
+    height: 1024,
+    caption: site.name,
+  },
+  image: { '@id': `${SITE}/#logo` },
   foundingDate: '1953',
   parentOrganization: { '@type': 'Organization', name: site.parent },
   address: { '@type': 'PostalAddress', addressCountry: 'BD' },
@@ -198,6 +210,21 @@ export const ORGANIZATION_JSONLD: Record<string, unknown> = {
       }
     : {}),
   ...(site.sameAs.length ? { sameAs: [...site.sameAs] } : {}),
+};
+
+/**
+ * Homepage only: tells Google the site's own name ("AKTCL") for the label above search
+ * results, instead of leaving it to guess from the domain or the <title>.
+ */
+export const WEBSITE_JSONLD: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${SITE}/#website`,
+  url: `${SITE}/`,
+  name: site.shortName,
+  alternateName: [site.name, site.legalName],
+  publisher: { '@id': `${SITE}/#organization` },
+  inLanguage: 'en',
 };
 
 export function breadcrumbJsonLd(route: RouteMeta): Record<string, unknown> {

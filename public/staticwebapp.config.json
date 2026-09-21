@@ -23,6 +23,38 @@
       "headers": { "Cache-Control": "public, max-age=86400" }
     },
     {
+      "route": "/favicon.ico",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
+      "route": "/favicon-96x96.png",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
+      "route": "/apple-touch-icon.png",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
+      "route": "/icon-192.png",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
+      "route": "/icon-512.png",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
+      "route": "/logo.png",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
+      "route": "/logo.svg",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
+      "route": "/site.webmanifest",
+      "headers": { "Cache-Control": "public, max-age=86400" }
+    },
+    {
       "route": "/sitemap.xml",
       "headers": { "Cache-Control": "public, max-age=3600" }
     },

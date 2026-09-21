@@ -15,7 +15,8 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm run test",
     "images:import": "node scripts/import-content-images.mjs",
-    "og-image": "node scripts/make-og-image.mjs"
+    "og-image": "node scripts/make-og-image.mjs",
+    "brand-assets": "node scripts/make-brand-assets.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.2.5",

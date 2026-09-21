@@ -4,6 +4,7 @@ import Seo from './Seo';
 import {
   ORGANIZATION_JSONLD,
   ROUTE_BY_PATH,
+  WEBSITE_JSONLD,
   breadcrumbJsonLd,
   normalisePath,
   productJsonLd,
@@ -22,6 +23,7 @@ export default function RouteSeo() {
   const jsonLd = useMemo(() => {
     if (!route) return undefined;
     const blocks: Record<string, unknown>[] = [ORGANIZATION_JSONLD];
+    if (route.path === '/') blocks.push(WEBSITE_JSONLD);
     if (route.breadcrumbs.length) blocks.push(breadcrumbJsonLd(route));
     const product = productJsonLd(route);
     if (product) blocks.push(product);
