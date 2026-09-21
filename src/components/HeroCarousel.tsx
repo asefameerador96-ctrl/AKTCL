@@ -201,27 +201,28 @@ const HeroCarousel = () => {
         );
       })}
 
-      {/* Legibility, in washes rather than panels — measured, not guessed: with the text
-          hidden, the brightest pixel behind the lead still has to leave it 4.5:1 on
-          both photographs. An even veil (heavier below lg, where the copy runs the height
+      {/* Legibility, in washes rather than panels, and always in Black (scrim): the Slate
+          ink of the light theme greys a photograph instead of darkening it. Measured, not
+          guessed: with the text hidden, the brightest pixel behind the lead still has to
+          leave it 4.5:1 on both photographs. An even veil (heavier below lg, where the copy runs the height
           of the screen); a lean to the left, where the headline stands; from lg its
           mirror on the right, behind the narrow column; and a foot that closes to solid
-          ink, because the figures and the controls have no surface of their own. */}
+          black, because the figures and the controls have no surface of their own. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[4] bg-gradient-to-t from-ink/60 via-ink/50 to-ink/45 lg:via-ink/30 lg:to-ink/40"
+        className="pointer-events-none absolute inset-0 z-[4] bg-gradient-to-t from-scrim/60 via-scrim/50 to-scrim/45 lg:via-scrim/30 lg:to-scrim/40"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[4] bg-gradient-to-r from-ink/50 via-ink/10 to-transparent"
+        className="pointer-events-none absolute inset-0 z-[4] bg-gradient-to-r from-scrim/50 via-scrim/10 to-transparent"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 z-[4] hidden w-1/2 bg-gradient-to-l from-ink/60 via-ink/45 to-transparent lg:block"
+        className="pointer-events-none absolute inset-y-0 right-0 z-[4] hidden w-1/2 bg-gradient-to-l from-scrim/60 via-scrim/45 to-transparent lg:block"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-[70%] bg-gradient-to-t from-ink via-ink/75 to-transparent lg:h-[60%]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-[70%] bg-gradient-to-t from-scrim via-scrim/75 to-transparent lg:h-[60%]"
       />
 
       <div className="relative z-10 flex flex-1 flex-col justify-end pt-24 lg:pt-28">

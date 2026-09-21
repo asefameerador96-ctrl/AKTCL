@@ -191,7 +191,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
           <span
             aria-hidden="true"
             className={cn(
-              'pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 bg-gradient-to-b from-ink/70 to-transparent transition-opacity duration-300',
+              'pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 bg-gradient-to-b from-scrim/70 to-transparent transition-opacity duration-300',
               onInk && !menuUp ? 'opacity-100' : 'opacity-0'
             )}
           />
