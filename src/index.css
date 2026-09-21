@@ -1,6 +1,17 @@
-/* Fonts are self-hosted (bundled by Vite from @fontsource) — no third-party requests. */
-@import '@fontsource-variable/fraunces/index.css';
-@import '@fontsource-variable/inter/index.css';
+/*
+ * Fonts are self-hosted (bundled by Vite from @fontsource) — no third-party requests.
+ *
+ * Fraunces comes in its wght+opsz build, not the wght-only default: the optical-size
+ * axis is what gives the big display settings their fine, high-contrast cut, and the
+ * browser drives it from font-size by itself (font-optical-sizing: auto). The full
+ * build (SOFT and WONK too) is 121 + 150 KB for latin alone; this one is 67 + 81 KB.
+ * The italic is only ever fetched by a page that sets a word in it. With Instrument
+ * Sans (30 KB) a latin visitor downloads under 180 KB of type; the latin-ext and
+ * vietnamese files ship too but unicode-range means nobody on this copy fetches them.
+ */
+@import '@fontsource-variable/fraunces/opsz.css';
+@import '@fontsource-variable/fraunces/opsz-italic.css';
+@import '@fontsource-variable/instrument-sans/index.css';
 
 @tailwind base;
 @tailwind components;
@@ -69,6 +80,15 @@
     --ring: 33 72% 30%;
 
     --radius: 0.375rem;
+
+    /*
+     * The only curves UI motion uses (mirrored as EASE in src/lib/motion.ts and as
+     * ease-expo-out / ease-quart-out / ease-expo-in-out in Tailwind). Never `ease`
+     * or `linear` — the one exception is the marquee, whose loop has to be uniform.
+     */
+    --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-quart-out: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-expo-in-out: cubic-bezier(0.87, 0, 0.13, 1);
   }
 
   .dark {
@@ -121,13 +141,17 @@
   }
 
   html {
+    /* Native fallback. With Lenis running (motion/SmoothScroll) the wheel is eased
+       there instead; Lenis always scrolls with behavior "instant", so the two never
+       stack, and scrollTo() calls made elsewhere still glide. */
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--foreground) / 0.28) transparent;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: 'cv11', 'ss01';
   }
 
   h1,
@@ -135,7 +159,8 @@
   h3,
   h4 {
     @apply font-display;
-    /* Fraunces: optical sizing on, the "wonky" alternates off for a sober tone. */
+    /* Fraunces: optical sizing on (automatic), the "wonky" alternates off for a
+       sober tone — a no-op on the opsz build, kept in case the full build returns. */
     font-variation-settings: 'SOFT' 0, 'WONK' 0;
     text-wrap: balance;
   }
@@ -163,6 +188,73 @@
 }
 .age-pending #root {
   visibility: hidden;
+}
+
+/*
+ * Entrance choreography without a double play.
+ *
+ * The prerendered HTML paints first, then the app re-renders it (no hydration — see
+ * main.tsx). Anything with an entrance animation would be seen, vanish, and animate
+ * back in. So: index.html puts "js" on <html> (never in the prerenderer's snapshot),
+ * elements that take part in the page-load sequence carry data-enter, and they stay
+ * unpainted until main.tsx adds "app-live" — from then on each component holds its
+ * own hidden state and plays exactly once (after the age gate: useEntered()).
+ *
+ * No JavaScript, or a crawler: no "js" class, so nothing is ever hidden. Reduced
+ * motion: the rule does not apply at all. Bundle blocked or very slow: the failsafe
+ * shows the static page after 4 s rather than leaving a hole where the headline is.
+ * Never put data-enter on the hero image — a hidden image cannot be the LCP element.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html.js:not(.app-live) [data-enter] {
+    opacity: 0;
+    animation: enter-failsafe 1ms step-end 4s forwards;
+  }
+  /* The hero photograph opens slightly enlarged and settles as the headline rises
+     (HeroCarousel). The prerendered copy holds the same scale, so the hand-over to
+     the app is not a jump. Scaled, never hidden: it is the LCP element. */
+  html.js:not(.app-live) [data-hero-settle] {
+    transform: scale(1.06);
+  }
+}
+@keyframes enter-failsafe {
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Lenis (motion/SmoothScroll). Its stock stylesheet also sets overflow on a stopped
+ * <html>; here that is limited to the case where <body> is not already carrying the
+ * lock. The age gate and the lightbox lock <body>, and moving the lock up to <html>
+ * would turn <body> into the scroll container and un-stick every sticky section
+ * behind the overlay.
+ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+html.lenis-stopped:not(:has(> body[style*='overflow'])) {
+  overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* Legacy WebKit scrollbars; everything current takes scrollbar-color on <html>. */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid hsl(var(--background));
+    border-radius: 999px;
+    background: hsl(var(--foreground) / 0.28);
+  }
 }
 
 @layer components {
@@ -194,6 +286,76 @@
   /* The tile is light in both themes, so on it the cut-outs keep blending in. */
   .dark .bg-tile .product-shot {
     mix-blend-mode: multiply;
+  }
+
+  /*
+   * Text link underline that is drawn, not switched: grows from the left on hover or
+   * keyboard focus, and leaves to the right. The anchor flips while the rule has no
+   * width, so the flip itself is never seen. Follows the link's own colour.
+   */
+  .link-underline {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position: 100% 100%;
+    background-size: 0% 1px;
+    transition: background-size 0.6s var(--ease-expo-out);
+  }
+  .link-underline:hover,
+  .link-underline:focus-visible {
+    background-position: 0% 100%;
+    background-size: 100% 1px;
+  }
+
+  /*
+   * Outlined display type (marquee, the journey's giant numerals): no fill, a
+   * hairline stroke in the element's own text colour — so text-foreground,
+   * text-ink-foreground, text-gold all just work. -ink is the ready-made pairing for
+   * the always-dark bands. Without text-stroke support the type stays solid.
+   * Careful with cn(): tailwind-merge takes "text-outline" for a text colour and
+   * keeps only the later of the two. Write the pair as a plain string, or put the
+   * colour on the parent.
+   */
+  @supports (-webkit-text-stroke: 1px currentColor) {
+    .text-outline,
+    .text-outline-ink {
+      -webkit-text-fill-color: transparent;
+      -webkit-text-stroke: 1px currentColor;
+    }
+  }
+  .text-outline-ink {
+    color: hsl(var(--ink-foreground));
+  }
+
+  /* Focus ring for controls on ink bands and photography: the default is tuned for ivory. */
+  .focus-ink {
+    @apply focus-visible:ring-gold focus-visible:ring-offset-ink;
+  }
+
+  /*
+   * SplitReveal's per-word mask. A clip-path, not overflow:hidden: an inline-block
+   * with overflow sits on its bottom edge instead of its baseline, which would move
+   * every line. The negative insets leave room for descenders, accents and the
+   * italic's overhang; the word itself starts a full line below, out of the window.
+   */
+  .split-mask {
+    clip-path: inset(-0.1em -0.12em -0.16em -0.12em);
+  }
+
+  /* Marquee: the track holds two identical halves and travels exactly one of them. */
+  .marquee-track {
+    animation: marquee var(--marquee-duration, 60s) linear infinite;
+  }
+  .marquee:hover .marquee-track,
+  .marquee-track:focus-within,
+  .marquee[data-paused] .marquee-track,
+  .marquee[data-offscreen] .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
   }
 }
 

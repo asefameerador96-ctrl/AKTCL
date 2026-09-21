@@ -1,12 +1,18 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { EASE, ENTERED_EVENT, holdEntrancesUntil, isStill } from '@/lib/motion';
 import { site } from '@/content/site';
 import Logo from './Logo';
 
 // index.html repeats the key and the validity in its pre-paint script — change both together.
 const STORAGE_KEY = 'aktcl-age-ok';
 const VALID_FOR_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** The gate leaves the way the route curtain does: lifted off the top, expo-in-out. */
+const LIFT_MS = 600;
+/** The page's entrance starts this far into the lift, as the sheet clears the headline. */
+const ENTRANCE_LEAD_MS = 260;
 
 function hasConfirmed() {
   try {
@@ -31,16 +37,42 @@ const BUTTON =
  *
  * Deliberately not dismissable: no close button, Escape and backdrop clicks do
  * nothing, and "No" leaves no way in.
+ *
+ * On "Yes" the page is released at once — no longer inert, scroll unlocked — and the
+ * sheet, by then only a picture, lifts away over it ("leaving"). It never stands
+ * between the visitor and the page: it takes no pointer events and is hidden from
+ * assistive tech while it goes. Under isStill() it is simply gone.
  */
 const AgeGate = () => {
-  const [state, setState] = useState<'passed' | 'asking' | 'refused'>(() =>
-    window.__PRERENDER__ || hasConfirmed() ? 'passed' : 'asking'
-  );
+  const [state, setState] = useState<'passed' | 'asking' | 'leaving' | 'refused'>(() => {
+    const passed = window.__PRERENDER__ || hasConfirmed();
+    // Entrance choreography (useEntered in lib/motion) reads this. Set here, ahead of
+    // the pages' first render, so a returning visitor's hero starts without a beat lost.
+    if (passed) window.__aktclEntered = true;
+    return passed ? 'passed' : 'asking';
+  });
+  const sheetRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const liftTimer = useRef<number>();
   const titleId = useId();
   const textId = useId();
-  const open = state !== 'passed';
+  const leaving = state === 'leaving';
+  // Asking or refused: the gate is a modal. Leaving: it is only an animation.
+  const open = state === 'asking' || state === 'refused';
+
+  useEffect(() => () => window.clearTimeout(liftTimer.current), []);
+
+  // Layout effect: the lift starts on the same frame the page behind is released.
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    if (!leaving || !sheet || typeof sheet.animate !== 'function') return;
+    const lift = sheet.animate(
+      { clipPath: ['inset(0% 0% 0% 0%)', 'inset(0% 0% 100% 0%)'] },
+      { duration: LIFT_MS, easing: EASE.expoInOut, fill: 'both' }
+    );
+    return () => lift.cancel();
+  }, [leaving]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,6 +83,9 @@ const AgeGate = () => {
     const previousOverflow = document.body.style.overflow;
     app?.setAttribute('inert', '');
     document.body.style.overflow = 'hidden';
+    // SmoothScroll also watches the body lock; saying it outright keeps the gate
+    // correct whichever of the two mounts first.
+    window.__lenis?.stop();
 
     // Tab loop for browsers without `inert`, and for focus arriving from the
     // browser's own UI. With no buttons left ("refused") focus stays on the dialog.
@@ -71,6 +106,7 @@ const AgeGate = () => {
     return () => {
       app?.removeAttribute('inert');
       document.body.style.overflow = previousOverflow;
+      window.__lenis?.start();
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open]);
@@ -87,24 +123,44 @@ const AgeGate = () => {
     if (state === 'refused') dialogRef.current?.focus();
   }, [state]);
 
-  if (!open) return null;
+  if (!open && !leaving) return null;
 
   const confirm = () => {
+    // Enter held down on the focused button must not confirm twice.
+    if (state !== 'asking') return;
+    confirmRef.current?.blur();
     try {
       window.localStorage.setItem(STORAGE_KEY, String(Date.now()));
     } catch {
       // Not remembered; the visitor is simply asked again next time.
     }
-    setState('passed');
+    const lifts = !isStill();
+    setState(lifts ? 'leaving' : 'passed');
+    if (lifts) {
+      liftTimer.current = window.setTimeout(() => setState('passed'), LIFT_MS);
+      // Seen, not spent under the sheet: the same hand-off the route curtain uses.
+      holdEntrancesUntil(performance.now() + ENTRANCE_LEAD_MS);
+    }
+    // The page behind the gate has been holding its entrance for this.
+    window.__aktclEntered = true;
+    window.dispatchEvent(new Event(ENTERED_EVENT));
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] overflow-y-auto overscroll-contain bg-ink/95 backdrop-blur-md animate-in fade-in duration-500">
+    <div
+      ref={sheetRef}
+      aria-hidden={leaving || undefined}
+      className={cn(
+        'fixed inset-0 z-[200] overflow-y-auto overscroll-contain bg-ink/95 backdrop-blur-md animate-in fade-in duration-500 ease-quart-out',
+        leaving && 'pointer-events-none'
+      )}
+    >
       <div className="flex min-h-full items-center justify-center px-4 py-10">
         <div
           ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
+          // A sheet on its way out is no longer a dialog anyone has to answer.
+          role={leaving ? undefined : 'dialog'}
+          aria-modal={leaving ? undefined : true}
           aria-labelledby={titleId}
           aria-describedby={state === 'asking' ? textId : undefined}
           tabIndex={-1}
@@ -112,7 +168,7 @@ const AgeGate = () => {
         >
           <Logo variant="onDark" size="md" className="items-center" />
 
-          {state === 'asking' ? (
+          {state !== 'refused' ? (
             <>
               <h2 id={titleId} className="mt-10 text-3xl font-medium sm:text-4xl">
                 Are you of legal age?
@@ -127,6 +183,7 @@ const AgeGate = () => {
                   ref={confirmRef}
                   type="button"
                   onClick={confirm}
+                  tabIndex={leaving ? -1 : undefined}
                   className={cn(BUTTON, 'bg-gold text-ink hover:bg-gold/90')}
                 >
                   Yes, I am {site.legalAge} or over
@@ -134,6 +191,7 @@ const AgeGate = () => {
                 <button
                   type="button"
                   onClick={() => setState('refused')}
+                  tabIndex={leaving ? -1 : undefined}
                   className={cn(BUTTON, 'border border-ink-foreground/30 text-ink-foreground hover:bg-ink-foreground/10')}
                 >
                   No

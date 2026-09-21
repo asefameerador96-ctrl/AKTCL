@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FocusEvent } from 'react';
+import type { FocusEvent, ReactNode } from 'react';
 import Autoplay from 'embla-carousel-autoplay';
 import { Pause, Play } from 'lucide-react';
 import {
@@ -11,7 +11,8 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import LazyImage from '@/components/LazyImage';
-import { prefersReducedMotion } from '@/hooks/useMediaQuery';
+import ImageReveal from '@/components/motion/ImageReveal';
+import { EASE, isStill } from '@/lib/motion';
 import type { SiteImage } from '@/content/images';
 import { cn } from '@/lib/utils';
 
@@ -31,18 +32,34 @@ interface ImageCarouselProps {
   sizes?: string;
   /** Accessible name of the carousel region. */
   label?: string;
+  /**
+   * Unmasks the frame the first time it is seen (ImageReveal). For a carousel in the
+   * first screen: the frame is marked data-enter, so the prerendered photograph is
+   * not painted, dropped and then revealed — it arrives once.
+   */
+  reveal?: boolean;
 }
 
 const AUTOPLAY_DELAY = 5000;
 
-const ARROW_CLASS =
-  'top-1/2 h-11 w-11 -translate-y-1/2 border-border bg-background/80 text-foreground backdrop-blur-sm hover:bg-background hover:text-foreground';
+// Round controls under the photograph, never over it. The fill rises from the foot of
+// the button on hover; the icon and border turn with it. `relative` also overrides the
+// absolute placement CarouselPrevious/Next carry for the over-the-image layout.
+const CONTROL = [
+  'relative isolate left-auto right-auto top-auto h-11 w-11 shrink-0 translate-y-0 overflow-hidden rounded-full',
+  'border border-foreground/25 bg-transparent text-foreground transition-colors duration-500 ease-expo-out',
+  'hover:border-foreground hover:bg-transparent hover:text-background disabled:opacity-30',
+  'before:absolute before:inset-0 before:-z-10 before:origin-bottom before:scale-y-0 before:rounded-full before:bg-foreground',
+  'before:transition-transform before:duration-500 before:ease-expo-out hover:before:scale-y-100',
+].join(' ');
+
+const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
  * Autoplay is decoration: it is skipped for visitors who ask for reduced motion and
  * in the prerender snapshot, which should always capture the first slide.
  */
-const autoplayAllowed = () => !window.__PRERENDER__ && !prefersReducedMotion();
+const autoplayAllowed = () => !isStill();
 
 interface FrameProps {
   item: SiteImage;
@@ -58,11 +75,7 @@ interface FrameProps {
 
 const Frame = ({ item, aspect, ratio, contain, sizes, priority, eager }: FrameProps) => (
   <div
-    className={cn(
-      'relative overflow-hidden rounded-lg',
-      aspect,
-      contain ? 'bg-tile' : 'bg-secondary'
-    )}
+    className={cn('relative overflow-hidden rounded-lg', aspect, contain ? 'bg-tile' : 'bg-secondary')}
     style={aspect ? undefined : { aspectRatio: ratio }}
   >
     {/* Absolutely placed so the frame, not the file's own ratio, sets the size. */}
@@ -83,9 +96,21 @@ const Frame = ({ item, aspect, ratio, contain, sizes, priority, eager }: FramePr
   </div>
 );
 
+/** The frame's entrance, when asked for. The mask takes the frame's own rounding. */
+const Unmask = ({ on, children }: { on: boolean; children: ReactNode }) =>
+  on ? (
+    <div data-enter="">
+      <ImageReveal className="rounded-lg">{children}</ImageReveal>
+    </div>
+  ) : (
+    <>{children}</>
+  );
+
 /**
  * Photo carousel for the detail pages: Embla with a 5 s autoplay that stops while
- * the pointer or keyboard focus is inside it, and can be paused outright.
+ * the pointer or keyboard focus is inside it, and can be paused outright. Under the
+ * frame sit a numbered index ("01 / 04"), a hairline that fills as the set advances,
+ * and the controls.
  *
  * Every slide is in the DOM from the first render (prerender-safe); <LazyImage>
  * defers the files of the slides that are still clipped out of view.
@@ -96,6 +121,7 @@ const ImageCarousel = ({
   contain = false,
   sizes = '(min-width: 1280px) 576px, (min-width: 768px) 50vw, calc(100vw - 32px)',
   label = 'Image gallery',
+  reveal = false,
 }: ImageCarouselProps) => {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
@@ -123,7 +149,7 @@ const ImageCarousel = ({
               delay: AUTOPLAY_DELAY,
               stopOnInteraction: false,
               stopOnMouseEnter: true,
-              // Hovering the arrows or the dots counts as hovering the carousel.
+              // Hovering the controls counts as hovering the carousel.
               rootNode: (emblaRoot) =>
                 emblaRoot.closest<HTMLElement>('[aria-roledescription="carousel"]'),
             }),
@@ -147,7 +173,11 @@ const ImageCarousel = ({
   if (images.length === 0) return null;
 
   if (images.length === 1) {
-    return <Frame item={images[0]} {...frame} priority />;
+    return (
+      <Unmask on={reveal}>
+        <Frame item={images[0]} {...frame} priority />
+      </Unmask>
+    );
   }
 
   // The plugin's own focus handling only watches the slides, which hold nothing
@@ -160,71 +190,74 @@ const ImageCarousel = ({
   return (
     <Carousel
       setApi={setApi}
-      opts={{ loop: true, align: 'start' }}
+      // duration: Embla's scroll is a spring, not a curve; 32 gives it the same
+      // unhurried settle as the site's expo-out.
+      opts={{ loop: true, align: 'start', duration: 32 }}
       plugins={plugins}
       aria-label={label}
       onFocusCapture={stopForFocus}
       onBlurCapture={resumeAfterFocus}
       className="w-full"
     >
-      <div className="relative">
-        <CarouselContent>
-          {images.map((item, i) => (
-            <CarouselItem key={item.image.img.src} aria-label={`${i + 1} of ${images.length}`}>
-              {/* Embla's viewport clips the waiting slides out of LazyImage's sight,
-                  so the one after the current slide is asked for ahead of time. */}
-              <Frame
-                item={item}
-                {...frame}
-                priority={i === 0}
-                eager={i === (selected + 1) % images.length}
-              />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious aria-label="Previous image" className={cn('left-3', ARROW_CLASS)} />
-        <CarouselNext aria-label="Next image" className={cn('right-3', ARROW_CLASS)} />
-      </div>
-
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <div role="group" aria-label="Choose image" className="flex flex-wrap items-center">
-          {images.map((item, i) => (
-            <button
-              key={item.image.img.src}
-              type="button"
-              aria-label={`Show image ${i + 1} of ${images.length}`}
-              aria-current={i === selected ? 'true' : undefined}
-              onClick={() => api?.scrollTo(i)}
-              // A 44px hit area around a hairline; bars start flush with the photo's edge.
-              className="group flex h-11 w-11 items-center rounded-sm md:w-10"
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'w-7 rounded-full transition-colors duration-300',
-                  i === selected
-                    ? 'h-0.5 bg-accent'
-                    : 'h-px bg-foreground/50 group-hover:bg-foreground'
-                )}
-              />
-            </button>
-          ))}
+      <Unmask on={reveal}>
+        <div data-cursor="drag" className="cursor-grab active:cursor-grabbing">
+          <CarouselContent>
+            {images.map((item, i) => (
+              <CarouselItem key={item.image.img.src} aria-label={`${i + 1} of ${images.length}`}>
+                {/* Embla's viewport clips the waiting slides out of LazyImage's sight,
+                    so the one after the current slide is asked for ahead of time. */}
+                <Frame
+                  item={item}
+                  {...frame}
+                  priority={i === 0}
+                  eager={i === (selected + 1) % images.length}
+                />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
         </div>
+      </Unmask>
 
-        {allowed && (
-          <button
-            type="button"
-            aria-label={paused ? 'Play slideshow' : 'Pause slideshow'}
-            onClick={() => setPaused((p) => !p)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {paused ? (
-              <Play className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <Pause className="h-4 w-4" aria-hidden="true" />
-            )}
-          </button>
-        )}
+      <div className="mt-4 flex items-center gap-3 sm:gap-5">
+        <p className="shrink-0 font-display text-base tabular-nums text-foreground">
+          <span className="sr-only">
+            Image {selected + 1} of {images.length}
+          </span>
+          <span aria-hidden="true">
+            {pad(selected + 1)}
+            <span className="text-muted-foreground"> / {pad(images.length)}</span>
+          </span>
+        </p>
+
+        {/* Progress through the set. Decorative: the index beside it says the same. */}
+        <span aria-hidden="true" className="relative h-px min-w-0 flex-1 bg-foreground/15">
+          <span
+            className="absolute inset-0 origin-left bg-accent"
+            style={{
+              transform: `scaleX(${(selected + 1) / images.length})`,
+              transition: `transform 0.9s ${EASE.expoOut}`,
+            }}
+          />
+        </span>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {allowed && (
+            <button
+              type="button"
+              aria-label={paused ? 'Play slideshow' : 'Pause slideshow'}
+              onClick={() => setPaused((p) => !p)}
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-300 ease-expo-out hover:text-foreground"
+            >
+              {paused ? (
+                <Play className="h-3.5 w-3.5" aria-hidden="true" />
+              ) : (
+                <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+            </button>
+          )}
+          <CarouselPrevious aria-label="Previous image" className={CONTROL} />
+          <CarouselNext aria-label="Next image" className={CONTROL} />
+        </div>
       </div>
     </Carousel>
   );

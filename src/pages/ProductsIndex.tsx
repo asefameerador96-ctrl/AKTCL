@@ -1,10 +1,18 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import PageLayout from '@/components/PageLayout';
-import PageHeader from '@/components/PageHeader';
+import PageHeader, {
+  ArrowTravel,
+  DISPLAY_H2,
+  DrawnRule,
+  GROUP_UNDERLINE,
+  LABEL,
+  TEXT_LINK,
+} from '@/components/PageHeader';
 import ProductCard from '@/components/ProductCard';
 import FormatCard from '@/components/FormatCard';
 import Reveal from '@/components/Reveal';
+import Parallax from '@/components/motion/Parallax';
+import SplitReveal from '@/components/motion/SplitReveal';
 import { categories, productsIntro, type ProductCategory } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
@@ -12,8 +20,7 @@ import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 // Same gutters as the navbar and footer, so page content lines up with the chrome.
 const WRAP = 'mx-auto max-w-7xl px-4 sm:px-6';
 
-const TEXT_LINK =
-  'group inline-flex min-h-11 items-center gap-2 text-sm font-medium uppercase tracking-[0.15em] text-accent transition-colors hover:text-foreground';
+const pad = (n: number) => String(n).padStart(2, '0');
 
 const enquiryHref = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
@@ -51,7 +58,8 @@ const CategoryGrid = ({ category }: { category: ProductCategory }) => {
           image={productImages[product.slug]?.[0] ?? categoryImages[category.slug]}
           name={product.name}
           short={product.short}
-          index={i}
+          // The stagger restarts on every desktop row: a row is what comes into view.
+          index={i % 4}
         />
       ))}
     </div>
@@ -65,56 +73,79 @@ const ProductsIndex = () => (
       breadcrumbs={ROUTE_BY_PATH['/products']?.breadcrumbs ?? [{ name: 'Products', path: '/products' }]}
       eyebrow={productsIntro.eyebrow}
       title={productsIntro.heading}
+      italicWords={['Our']}
+      meta={`${pad(categories.length)} Categories`}
       lead={productsIntro.short}
     />
 
-    <div className={`${WRAP} pb-16 md:pb-24`}>
-      <Reveal as="p" className="max-w-3xl text-base/relaxed text-muted-foreground md:text-lg/relaxed">
-        {productsIntro.long}
+    {/* The long introduction, set in two columns like a magazine's opening paragraph.
+        data-enter: it can share the first screen with the masthead (see index.css). */}
+    <div data-enter="" className={`${WRAP} pb-20 md:pb-28`}>
+      <Reveal className="grid gap-x-16 gap-y-6 lg:grid-cols-12">
+        <p className={`${LABEL} lg:col-span-3`}>Overview</p>
+        <p className="text-base/[1.75] text-muted-foreground md:text-[1.0625rem]/[1.75] lg:col-span-9 lg:columns-2 lg:gap-x-16">
+          {productsIntro.long}
+        </p>
       </Reveal>
     </div>
 
-    {categories.map((category) => (
+    {categories.map((category, i) => (
       <section
         key={category.slug}
         aria-labelledby={`${category.slug}-heading`}
-        className="border-t border-border py-16 md:py-24"
+        className="overflow-x-clip border-t border-border py-20 md:py-28"
       >
         <div className={WRAP}>
-          <Reveal className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
-            <div className="max-w-2xl">
-              <p className="eyebrow">{category.eyebrow}</p>
-              <h2
-                id={`${category.slug}-heading`}
-                className="mt-4 font-display text-3xl/tight font-medium text-foreground md:text-4xl/tight lg:text-5xl/tight"
-              >
-                {category.title}
-              </h2>
-              <div className="rule mt-6" aria-hidden="true" />
-              <p className="mt-6 text-base/relaxed text-muted-foreground md:text-lg/relaxed">
-                {category.short}
-              </p>
+          <div className="relative grid items-end gap-x-16 gap-y-8 lg:grid-cols-12">
+            {/* The category's number, outlined and adrift behind the header: decoration. */}
+            <div aria-hidden="true" className="pointer-events-none absolute -top-6 right-0 hidden md:block lg:-top-10">
+              <Parallax speed={0.06}>
+                <p className="font-display text-[length:clamp(8rem,17vw,15rem)] font-normal leading-[0.8] tracking-[-0.04em] text-outline text-accent opacity-40">
+                  {pad(i + 1)}
+                </p>
+              </Parallax>
             </div>
-            <div className="flex shrink-0 flex-wrap gap-x-8 gap-y-1">
-              <Link to={`/products/${category.slug}`} className={TEXT_LINK}>
-                View {category.label}
-                <ArrowRight
-                  aria-hidden="true"
-                  className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                />
+
+            <div className="relative lg:col-span-7">
+              <Reveal as="p" from="none" className="eyebrow">
+                {category.eyebrow}
+              </Reveal>
+              <SplitReveal
+                as="h2"
+                id={`${category.slug}-heading`}
+                text={category.title}
+                className={`mt-4 ${DISPLAY_H2}`}
+              />
+            </div>
+          </div>
+
+          <DrawnRule className="mt-8 md:mt-12" delay={0.15} />
+
+          <Reveal delay={0.2} className="mt-6 grid gap-x-16 gap-y-4 md:mt-8 lg:grid-cols-12">
+            <p className="max-w-2xl text-base/relaxed text-muted-foreground md:text-lg/relaxed lg:col-span-6 lg:col-start-7">
+              {category.short}
+            </p>
+            <div className="flex flex-wrap gap-x-10 gap-y-1 lg:col-span-6 lg:col-start-7">
+              <Link to={`/products/${category.slug}`} data-cursor="open" className={TEXT_LINK}>
+                <span className={GROUP_UNDERLINE}>View {category.label}</span>
+                <ArrowTravel />
               </Link>
               <Link
                 to={enquiryHref(category.label)}
                 data-lead={`products-enquire-${category.slug}`}
+                data-cursor="enquire"
                 className={TEXT_LINK}
               >
-                Enquire
-                <span className="sr-only"> about {category.label}</span>
+                <span className={GROUP_UNDERLINE}>
+                  Enquire
+                  <span className="sr-only"> about {category.label}</span>
+                </span>
+                <ArrowTravel direction="up-right" />
               </Link>
             </div>
           </Reveal>
 
-          <div className="mt-10 md:mt-14">
+          <div className="mt-12 md:mt-16">
             <CategoryGrid category={category} />
           </div>
         </div>

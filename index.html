@@ -36,7 +36,10 @@
             before the app boots and raises the gate. Until a visitor has confirmed
             (same key and 30-day validity as src/components/AgeGate.tsx), "age-pending"
             keeps #root unpainted (see index.css); AgeGate removes the class as soon
-            as it is on screen. Never applied to the prerenderer's snapshot. -->
+            as it is on screen. Never applied to the prerenderer's snapshot.
+         3. "js": scripting is on, so elements with an entrance animation (data-enter)
+            may wait unpainted for the app instead of showing and then replaying; see
+            index.css. Not in the snapshot either, so no-JS readers see everything. -->
     <script>
       (function () {
         var root = document.documentElement;
@@ -44,6 +47,7 @@
           if (localStorage.getItem("theme") === "dark") root.classList.add("dark");
         } catch (e) {}
         if (window.__PRERENDER__) return;
+        root.classList.add("js");
         var confirmedAt = 0;
         try {
           confirmedAt = Number(localStorage.getItem("aktcl-age-ok")) || 0;

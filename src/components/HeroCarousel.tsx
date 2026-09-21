@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom';
 import { Pause, Play } from 'lucide-react';
 import HeroStats from '@/components/HeroStats';
 import LazyImage from '@/components/LazyImage';
-import { prefersReducedMotion } from '@/hooks/useMediaQuery';
+import Reveal from '@/components/Reveal';
+import DrawnRule from '@/components/motion/DrawnRule';
+import Magnetic from '@/components/motion/Magnetic';
+import SplitReveal from '@/components/motion/SplitReveal';
+import { EASE, isStill, useReveal } from '@/lib/motion';
 import { heroImages } from '@/content/images';
 import { hero, site } from '@/content/site';
 
@@ -23,8 +27,22 @@ const WIPE_TO = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
  */
 const HERO_SIZES = '(max-aspect-ratio: 1/1) 179vh, 100vw';
 
+/**
+ * The headline at the scale of the window. Below lg it is held to two lines by an em
+ * measure — "From Seed" fits, "From Seed to" does not, in Fraunces and in the Georgia
+ * fallback alike — and from lg it is one unbroken line across the grid. Either way the
+ * line count is fixed before the webfont lands, so its arrival shifts nothing. Sized
+ * by width AND height, so a short laptop window shrinks the type rather than pushing
+ * the stat strip below the fold.
+ */
+const HEADLINE =
+  'max-w-[5.1em] font-display text-[length:clamp(3.25rem,min(18.5vw,17vh),9.5rem)] font-normal leading-[0.94] tracking-[-0.035em] text-ink-foreground lg:max-w-none lg:whitespace-nowrap lg:text-[length:clamp(5rem,min(9.6vw,21vh),8.625rem)]';
+
+/** Seconds into the load choreography: label, headline, rule, lead, buttons, figures. */
+const AT = { eyebrow: 0.1, headline: 0.2, rule: 0.55, lead: 0.65, actions: 0.75, stats: 0.9, dots: 1.1 } as const;
+
 const CTA =
-  'inline-flex min-h-12 items-center justify-center rounded-md px-7 text-[13px] font-semibold uppercase tracking-[0.18em] transition-colors duration-300 focus-visible:ring-gold focus-visible:ring-offset-ink';
+  'inline-flex min-h-12 items-center justify-center rounded-md px-7 text-[13px] font-semibold uppercase tracking-[0.18em] transition-colors duration-300 ease-quart-out focus-visible:ring-gold focus-visible:ring-offset-ink';
 const CONTROL =
   'flex h-11 min-w-11 items-center justify-center rounded-full focus-visible:ring-gold focus-visible:ring-offset-ink';
 
@@ -39,6 +57,12 @@ const CONTROL =
  *
  * min-h (not h) so a short landscape phone grows the hero instead of clipping the
  * headline; on every ordinary viewport it is exactly one screen.
+ *
+ * Load choreography (once, after the age gate): the photograph settles from 1.06 while
+ * the label fades in, the headline rises word by word, the gold rule draws across,
+ * then the lead, the buttons and the figures follow. Every piece is data-enter, so
+ * the prerendered copy waits unpainted for the app instead of showing and replaying
+ * (index.css). The photograph is never hidden — it is the LCP element.
  */
 const HeroCarousel = () => {
   const [current, setCurrent] = useState(0);
@@ -48,7 +72,9 @@ const HeroCarousel = () => {
   const [focusWithin, setFocusWithin] = useState(false);
   // Read once per mount: the prerender snapshot and reduced-motion visitors get a
   // still hero — no autoplay, and the dots cut straight to the slide.
-  const [still] = useState(() => window.__PRERENDER__ === true || prefersReducedMotion());
+  const [still] = useState(isStill);
+  // The opening photograph eases back as the words arrive. Scale only: see above.
+  const settled = useReveal(true);
   // Slide 0 is the LCP image. The rest mount after window load so they never
   // compete with it for bandwidth.
   const [restMounted, setRestMounted] = useState(
@@ -91,10 +117,7 @@ const HeroCarousel = () => {
     if (!wiping) return;
     const el = slideRefs.current[current];
     if (!el || typeof el.animate !== 'function') return;
-    const wipe = el.animate(
-      { clipPath: [WIPE_FROM, WIPE_TO] },
-      { duration: WIPE_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
-    );
+    const wipe = el.animate({ clipPath: [WIPE_FROM, WIPE_TO] }, { duration: WIPE_MS, easing: EASE.expoInOut });
     return () => wipe.cancel();
   }, [current, wiping]);
 
@@ -134,10 +157,16 @@ const HeroCarousel = () => {
             ref={(el) => {
               slideRefs.current[i] = el;
             }}
+            // index.css holds the prerendered copy of the first slide at the same 1.06
+            // until the app is live, so the hand-over is not a jump.
+            data-hero-settle={i === 0 ? '' : undefined}
             className="absolute inset-0"
             style={{
               zIndex: isActive ? 3 : isPrev ? 2 : 1,
               visibility: isActive || isPrev ? 'visible' : 'hidden',
+              ...(i === 0 && !still
+                ? { transform: settled ? 'none' : 'scale(1.06)', transition: `transform 1.2s ${EASE.expoOut}` }
+                : null),
             }}
           >
             <LazyImage
@@ -162,86 +191,106 @@ const HeroCarousel = () => {
         className="pointer-events-none absolute inset-0 z-[4] bg-gradient-to-r from-ink/55 via-ink/10 to-transparent"
       />
 
-      {/* No entrance animation on the copy: the prerendered HTML paints first and
-          is then re-rendered, which would play any fade-in twice. */}
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-end px-4 pb-3 pt-24 sm:px-6 lg:pt-28">
         <div>
           {/* .eyebrow is dark gold for ivory pages; over the photo it needs the bright gold.
               From sm up only: on a phone the logo lockup sits directly above and
               already spells the company name out, so the line would read twice. */}
-          <p className="eyebrow hidden text-gold sm:block">{site.name}</p>
-          {/* Sized by width AND height (11vh), so on a short laptop window the
-              headline shrinks rather than pushing the stat strip below the fold. */}
-          <h1
+          <Reveal as="p" trigger="enter" from="none" delay={AT.eyebrow} className="eyebrow hidden text-gold sm:block">
+            {site.name}
+          </Reveal>
+          {/* The italic is typographic only: the words are hero.title, untouched. */}
+          <SplitReveal
+            as="h1"
             id="hero-heading"
-            className="font-display text-[length:clamp(2.5rem,min(6.4vw,11vh),5.75rem)] font-medium uppercase leading-[1.04] tracking-wide text-ink-foreground sm:mt-5"
-          >
-            {hero.title}
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-foreground/90 md:mt-6 md:text-xl">
-            {hero.subtitle}
-          </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row md:mt-10">
-            <Link
-              to="/contact"
-              data-lead="hero-request-quote"
-              className={`${CTA} bg-accent text-accent-foreground hover:bg-accent/90`}
+            trigger="enter"
+            delay={AT.headline}
+            stagger={0.09}
+            text={hero.title}
+            italicWords={['to']}
+            className={`${HEADLINE} sm:mt-4`}
+          />
+          <DrawnRule trigger="enter" delay={AT.rule} className="mt-5 md:mt-7" />
+          {/* Lead to the left, the two ways on to the right; the rule ties them together. */}
+          <div className="mt-5 grid gap-y-6 md:mt-6 lg:grid-cols-12 lg:items-end lg:gap-x-16">
+            <Reveal
+              as="p"
+              trigger="enter"
+              delay={AT.lead}
+              className="max-w-xl text-base/relaxed text-ink-foreground/90 md:text-xl/relaxed lg:col-span-6"
             >
-              Request a Quote
-            </Link>
-            <Link
-              to="/products"
-              className={`${CTA} border border-ink-foreground/50 text-ink-foreground backdrop-blur-sm hover:border-ink-foreground hover:bg-ink-foreground/10`}
+              {hero.subtitle}
+            </Reveal>
+            {/* No backdrop blur on the outline button: inside a wrapper that is fading
+                in, a backdrop filter has nothing behind it and pops on at the end. */}
+            <Reveal
+              trigger="enter"
+              delay={AT.actions}
+              className="flex flex-col gap-3 sm:flex-row lg:col-span-6 lg:justify-end"
             >
-              Explore Products
-            </Link>
+              <Magnetic>
+                <Link
+                  to="/contact"
+                  data-lead="hero-request-quote"
+                  data-cursor="enquire"
+                  className={`${CTA} bg-accent text-accent-foreground hover:bg-accent/90`}
+                >
+                  Request a Quote
+                </Link>
+              </Magnetic>
+              <Link
+                to="/products"
+                className={`${CTA} border border-ink-foreground/50 bg-ink/25 text-ink-foreground hover:border-ink-foreground hover:bg-ink-foreground/10`}
+              >
+                Explore Products
+              </Link>
+            </Reveal>
           </div>
         </div>
 
-        <div className="mt-8 md:mt-14">
-          <HeroStats />
+        <div className="mt-8 md:mt-12">
+          <HeroStats delay={AT.stats} />
         </div>
 
         {slides.length > 1 && (
-          <div
-            role="group"
-            aria-label="Hero photographs"
-            className="mt-2 flex items-center justify-center"
-          >
-            {slides.map((slide, i) => (
-              <button
-                key={slide.alt}
-                type="button"
-                onClick={() => goTo(i)}
-                aria-label={`Show photograph ${i + 1} of ${slides.length}`}
-                aria-current={i === current ? 'true' : undefined}
-                className={CONTROL}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`block h-2 rounded-full transition-all duration-500 ${
-                    i === current ? 'w-8 bg-gold' : 'w-2 bg-ink-foreground/40'
-                  }`}
-                />
-              </button>
-            ))}
-            {/* Hover and focus already pause the rotation; this is the explicit
-                control WCAG 2.2.2 asks for. Pointless when nothing auto-advances. */}
-            {!still && (
-              <button
-                type="button"
-                onClick={() => setUserPaused((paused) => !paused)}
-                aria-label={userPaused ? 'Resume photograph rotation' : 'Pause photograph rotation'}
-                className={`${CONTROL} text-ink-foreground/70 transition-colors hover:text-ink-foreground`}
-              >
-                {userPaused ? (
-                  <Play aria-hidden="true" className="h-3.5 w-3.5" />
-                ) : (
-                  <Pause aria-hidden="true" className="h-3.5 w-3.5" />
-                )}
-              </button>
-            )}
-          </div>
+          <Reveal trigger="enter" from="none" delay={AT.dots} className="mt-2">
+            <div role="group" aria-label="Hero photographs" className="flex items-center justify-center">
+              {slides.map((slide, i) => (
+                <button
+                  key={slide.alt}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Show photograph ${i + 1} of ${slides.length}`}
+                  aria-current={i === current ? 'true' : undefined}
+                  className={CONTROL}
+                >
+                  {/* A hairline that lengthens for the slide on show: scaled, never resized. */}
+                  <span
+                    aria-hidden="true"
+                    className={`block h-0.5 w-8 rounded-full transition-[transform,background-color] duration-700 ease-expo-out ${
+                      i === current ? 'bg-gold' : 'scale-x-[0.3] bg-ink-foreground/50'
+                    }`}
+                  />
+                </button>
+              ))}
+              {/* Hover and focus already pause the rotation; this is the explicit
+                  control WCAG 2.2.2 asks for. Pointless when nothing auto-advances. */}
+              {!still && (
+                <button
+                  type="button"
+                  onClick={() => setUserPaused((paused) => !paused)}
+                  aria-label={userPaused ? 'Resume photograph rotation' : 'Pause photograph rotation'}
+                  className={`${CONTROL} text-ink-foreground/70 transition-colors duration-300 ease-quart-out hover:text-ink-foreground`}
+                >
+                  {userPaused ? (
+                    <Play aria-hidden="true" className="h-3.5 w-3.5" />
+                  ) : (
+                    <Pause aria-hidden="true" className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              )}
+            </div>
+          </Reveal>
         )}
       </div>
     </section>

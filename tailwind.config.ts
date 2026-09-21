@@ -17,7 +17,14 @@ export default {
       fontFamily: {
         // Set once here; components use font-display / font-sans, never a literal family.
         display: ['"Fraunces Variable"', "Georgia", "serif"],
-        sans: ['"Inter Variable"', "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        sans: ['"Instrument Sans Variable"', "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+      },
+      // The site's three motion curves (see --ease-* in src/index.css and EASE in
+      // src/lib/motion.ts): ease-expo-out, ease-quart-out, ease-expo-in-out.
+      transitionTimingFunction: {
+        "expo-out": "var(--ease-expo-out)",
+        "quart-out": "var(--ease-quart-out)",
+        "expo-in-out": "var(--ease-expo-in-out)",
       },
       colors: {
         border: "hsl(var(--border) / <alpha-value>)",

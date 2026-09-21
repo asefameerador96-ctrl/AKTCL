@@ -11,6 +11,12 @@ Same pattern as shahagro.com. Everything below was created on 2026-09-21 in
 | DNS zone | `aktcl.com` (in `rg-aktcl`) |
 | GitHub repo | `asefameerador96-ctrl/AKTCL`, branch `main` |
 | Repo secret | `AZURE_STATIC_WEB_APPS_API_TOKEN` (the SWA deployment token) |
+| Enquiry storage | storage account `staktcl76353` → table `enquiries` (app setting `ENQUIRY_STORAGE_CONNECTION_STRING`) |
+
+**Status (2026-09-21): live.** Nameservers were switched at GoDaddy, `www.aktcl.com` and
+`aktcl.com` are bound with Azure-managed certificates, and `www` is the default domain — the
+apex and the `azurestaticapps.net` host 301 to it. Sections 1–3 under DNS below are kept as a
+record of how it was done and for rebuilding from scratch.
 
 ## How a deploy works
 
@@ -79,10 +85,14 @@ az staticwebapp hostname show -n aktcl-web -g rg-aktcl --hostname aktcl.com --qu
 az network dns record-set txt add-record -g rg-aktcl -z aktcl.com -n "@" -v "<token>"
 ```
 
-Then in the portal (Static Web App → Custom domains) set **`www.aktcl.com` as the default**
-so the apex and the `azurestaticapps.net` host redirect to it — canonical URLs, the
+Then set **`www.aktcl.com` as the default** (portal: Static Web App → Custom domains → Set
+default; or the API call below) so the apex and the `azurestaticapps.net` host redirect to it — canonical URLs, the
 sitemap and Open Graph tags all use `https://www.aktcl.com`. TLS certificates are issued
 and renewed by Azure automatically.
+
+```bash
+az rest --method put --url "https://management.azure.com$(az staticwebapp show -n aktcl-web -g rg-aktcl --query id -o tsv)/customDomains/www.aktcl.com?api-version=2023-12-01" --body '{"properties":{"isDefault":true}}'
+```
 
 ## Application settings (enquiry form)
 
