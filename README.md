@@ -12,7 +12,7 @@ before changing anything.
 ## Stack
 
 Vite · React 18 · TypeScript · Tailwind CSS 3 · a small shadcn/ui subset · react-router 6.
-Fonts (Fraunces, Inter) are self-hosted. The app is client-rendered; the build then opens every
+Fonts (Instrument Serif, Plus Jakarta Sans, JetBrains Mono) are self-hosted. The app is client-rendered; the build then opens every
 route in headless Chromium (Playwright) and writes static HTML for it, so crawlers and link
 previews get real pages. The only server code is `api/` — an Azure Static Web Apps managed
 Function that receives the enquiry form.

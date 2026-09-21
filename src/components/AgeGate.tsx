@@ -1,12 +1,20 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EASE, ENTERED_EVENT, holdEntrancesUntil, isStill } from '@/lib/motion';
 import { site } from '@/content/site';
+import Grain from '@/components/motion/Grain';
 import Logo from './Logo';
 
 // index.html repeats the key and the validity in its pre-paint script — change both together.
 const STORAGE_KEY = 'aktcl-age-ok';
 const VALID_FOR_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** The gate leaves the way the route curtain does: lifted off the top, expo-in-out. */
+const LIFT_MS = 600;
+/** The page's entrance starts this far into the lift, as the sheet clears the headline. */
+const ENTRANCE_LEAD_MS = 260;
 
 function hasConfirmed() {
   try {
@@ -18,11 +26,20 @@ function hasConfirmed() {
   }
 }
 
-const BUTTON =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-md px-6 font-sans text-sm font-semibold uppercase tracking-[0.16em] transition-colors focus-visible:ring-gold focus-visible:ring-offset-ink';
+/**
+ * The column every band of the gate is set in: one measure, ruled off left and right
+ * from sm up, so the three bands read as a single drawn column standing the full
+ * height of the screen. On a phone the column IS the screen and the side rules go.
+ */
+const COLUMN = 'mx-auto w-full max-w-xl px-5 sm:border-x sm:border-ink-border sm:px-10';
 
 /**
  * Legal-age gate, mounted once in App.tsx.
+ *
+ * Not a card floating on a dimmed page: a full-bleed ink sheet, drawn like a plan.
+ * Three bands parted by hairlines that run edge to edge — the lockup, the question,
+ * the health warning — and one centred column whose side rules cross them. The sheet
+ * is opaque, so nothing of the page behind is hinted at before the answer.
  *
  * Skipped for the prerenderer, so crawlers and link previews get the real page, and
  * for visitors who confirmed within the last 30 days. That check runs inside the
@@ -31,16 +48,42 @@ const BUTTON =
  *
  * Deliberately not dismissable: no close button, Escape and backdrop clicks do
  * nothing, and "No" leaves no way in.
+ *
+ * On "Yes" the page is released at once — no longer inert, scroll unlocked — and the
+ * sheet, by then only a picture, lifts away over it ("leaving"). It never stands
+ * between the visitor and the page: it takes no pointer events and is hidden from
+ * assistive tech while it goes. Under isStill() it is simply gone.
  */
 const AgeGate = () => {
-  const [state, setState] = useState<'passed' | 'asking' | 'refused'>(() =>
-    window.__PRERENDER__ || hasConfirmed() ? 'passed' : 'asking'
-  );
+  const [state, setState] = useState<'passed' | 'asking' | 'leaving' | 'refused'>(() => {
+    const passed = window.__PRERENDER__ || hasConfirmed();
+    // Entrance choreography (useEntered in lib/motion) reads this. Set here, ahead of
+    // the pages' first render, so a returning visitor's hero starts without a beat lost.
+    if (passed) window.__aktclEntered = true;
+    return passed ? 'passed' : 'asking';
+  });
+  const sheetRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const liftTimer = useRef<number>();
   const titleId = useId();
   const textId = useId();
-  const open = state !== 'passed';
+  const leaving = state === 'leaving';
+  // Asking or refused: the gate is a modal. Leaving: it is only an animation.
+  const open = state === 'asking' || state === 'refused';
+
+  useEffect(() => () => window.clearTimeout(liftTimer.current), []);
+
+  // Layout effect: the lift starts on the same frame the page behind is released.
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    if (!leaving || !sheet || typeof sheet.animate !== 'function') return;
+    const lift = sheet.animate(
+      { clipPath: ['inset(0% 0% 0% 0%)', 'inset(0% 0% 100% 0%)'] },
+      { duration: LIFT_MS, easing: EASE.expoInOut, fill: 'both' }
+    );
+    return () => lift.cancel();
+  }, [leaving]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,6 +94,9 @@ const AgeGate = () => {
     const previousOverflow = document.body.style.overflow;
     app?.setAttribute('inert', '');
     document.body.style.overflow = 'hidden';
+    // SmoothScroll also watches the body lock; saying it outright keeps the gate
+    // correct whichever of the two mounts first.
+    window.__lenis?.stop();
 
     // Tab loop for browsers without `inert`, and for focus arriving from the
     // browser's own UI. With no buttons left ("refused") focus stays on the dialog.
@@ -71,6 +117,7 @@ const AgeGate = () => {
     return () => {
       app?.removeAttribute('inert');
       document.body.style.overflow = previousOverflow;
+      window.__lenis?.start();
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open]);
@@ -87,68 +134,113 @@ const AgeGate = () => {
     if (state === 'refused') dialogRef.current?.focus();
   }, [state]);
 
-  if (!open) return null;
+  if (!open && !leaving) return null;
 
   const confirm = () => {
+    // Enter held down on the focused button must not confirm twice.
+    if (state !== 'asking') return;
+    confirmRef.current?.blur();
     try {
       window.localStorage.setItem(STORAGE_KEY, String(Date.now()));
     } catch {
       // Not remembered; the visitor is simply asked again next time.
     }
-    setState('passed');
+    const lifts = !isStill();
+    setState(lifts ? 'leaving' : 'passed');
+    if (lifts) {
+      liftTimer.current = window.setTimeout(() => setState('passed'), LIFT_MS);
+      // Seen, not spent under the sheet: the same hand-off the route curtain uses.
+      holdEntrancesUntil(performance.now() + ENTRANCE_LEAD_MS);
+    }
+    // The page behind the gate has been holding its entrance for this.
+    window.__aktclEntered = true;
+    window.dispatchEvent(new Event(ENTERED_EVENT));
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] overflow-y-auto overscroll-contain bg-ink/95 backdrop-blur-md animate-in fade-in duration-500">
-      <div className="flex min-h-full items-center justify-center px-4 py-10">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={state === 'asking' ? textId : undefined}
-          tabIndex={-1}
-          className="w-full max-w-lg border border-ink-border bg-ink px-6 py-10 text-center text-ink-foreground shadow-2xl shadow-ink focus-visible:ring-0 focus-visible:ring-offset-0 sm:px-12 sm:py-14"
-        >
-          <Logo variant="onDark" size="md" className="items-center" />
+    <div
+      ref={sheetRef}
+      aria-hidden={leaving || undefined}
+      // bg-ink: the ink context (index.css) gives everything inside the ink hairline
+      // and the sage focus ring.
+      className={cn(
+        'fixed inset-0 z-[200] overflow-y-auto overscroll-contain bg-ink text-ink-foreground animate-in fade-in duration-500 ease-quart-out',
+        leaving && 'pointer-events-none'
+      )}
+    >
+      <div
+        ref={dialogRef}
+        // A sheet on its way out is no longer a dialog anyone has to answer.
+        role={leaving ? undefined : 'dialog'}
+        aria-modal={leaving ? undefined : true}
+        aria-labelledby={titleId}
+        aria-describedby={state === 'asking' ? textId : undefined}
+        tabIndex={-1}
+        className="relative isolate flex min-h-full flex-col focus-visible:ring-0 focus-visible:ring-offset-0"
+      >
+        <Grain className="-z-10" />
 
-          {state === 'asking' ? (
-            <>
-              <h2 id={titleId} className="mt-10 text-3xl font-medium sm:text-4xl">
-                Are you of legal age?
+        <div className="border-b border-ink-border">
+          <div className={cn(COLUMN, 'flex items-center justify-between gap-6 py-5 sm:py-6')}>
+            <Logo variant="onDark" size="sm" />
+            {/* The one signal on the sheet: a mono mark, sage, no box around it. */}
+            <p className="eyebrow-signal tabular-nums">{site.legalAge}+</p>
+          </div>
+        </div>
+
+        <div className="flex flex-1">
+          <div className={cn(COLUMN, 'flex flex-col justify-center py-10 sm:py-20')}>
+            <p className="eyebrow">Age verification</p>
+            {state !== 'refused' ? (
+              <>
+                {/* The italic is typographic only; the question reads as one sentence. */}
+                <h2 id={titleId} className="display-md mt-6 max-w-[11ch]">
+                  Are you of <em className="italic">legal</em> age?
+                </h2>
+                <p id={textId} className="mt-6 max-w-[52ch] text-sm leading-relaxed text-ink-muted">
+                  This website contains information about tobacco products and is intended for tobacco
+                  trade professionals. You must be at least {site.legalAge} years old, or of legal age in
+                  your country, to enter.
+                </p>
+                {/* Seventy / thirty: the way in is the wide one. */}
+                <div className="mt-10 grid gap-3 sm:grid-cols-[minmax(0,1fr)_8.5rem]">
+                  <button
+                    ref={confirmRef}
+                    type="button"
+                    onClick={confirm}
+                    tabIndex={leaving ? -1 : undefined}
+                    // The gate opens with focus already here. .btn-ink keeps its fill under
+                    // keyboard focus (index.css); the sage ring says where the keyboard is.
+                    className="btn btn-lg btn-ink justify-between"
+                  >
+                    Yes, I am {site.legalAge} or over
+                    <ArrowRight aria-hidden="true" className="btn-arrow" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setState('refused')}
+                    tabIndex={leaving ? -1 : undefined}
+                    className="btn btn-lg btn-outline-ink"
+                  >
+                    No
+                  </button>
+                </div>
+              </>
+            ) : (
+              <h2 id={titleId} className="display-sm mt-6 max-w-[22ch]">
+                Sorry — you must be of legal age to view this website.
               </h2>
-              <p id={textId} className="mt-5 text-sm leading-relaxed text-ink-muted sm:text-base">
-                This website contains information about tobacco products and is intended for tobacco
-                trade professionals. You must be at least {site.legalAge} years old, or of legal age in
-                your country, to enter.
-              </p>
-              <div className="mt-8 flex flex-col gap-3">
-                <button
-                  ref={confirmRef}
-                  type="button"
-                  onClick={confirm}
-                  className={cn(BUTTON, 'bg-gold text-ink hover:bg-gold/90')}
-                >
-                  Yes, I am {site.legalAge} or over
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setState('refused')}
-                  className={cn(BUTTON, 'border border-ink-foreground/30 text-ink-foreground hover:bg-ink-foreground/10')}
-                >
-                  No
-                </button>
-              </div>
-            </>
-          ) : (
-            <h2 id={titleId} className="mt-10 text-2xl font-medium leading-snug sm:text-3xl">
-              Sorry — you must be of legal age to view this website.
-            </h2>
-          )}
+            )}
+          </div>
+        </div>
 
-          <p className="mt-10 border-t border-ink-border pt-6 text-xs leading-relaxed text-ink-muted">
-            {site.compliance.healthWarning}
-          </p>
+        <div className="border-t border-ink-border">
+          <div className={cn(COLUMN, 'py-5 sm:py-6')}>
+            {/* Boxed and in full chalk: the warning is never the small print. */}
+            <p className="border border-ink-foreground/30 px-4 py-3.5 font-mono text-xs leading-relaxed text-ink-foreground">
+              {site.compliance.healthWarning}
+            </p>
+          </div>
         </div>
       </div>
     </div>,

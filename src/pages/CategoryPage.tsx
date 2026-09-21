@@ -1,20 +1,20 @@
 import { Fragment } from 'react';
 import { useParams } from 'react-router-dom';
 import PageLayout from '@/components/PageLayout';
-import PageHeader from '@/components/PageHeader';
+import PageHeader, { BODY, SectionHead, WRAP } from '@/components/PageHeader';
 import ProductCard from '@/components/ProductCard';
 import FormatCard from '@/components/FormatCard';
 import LazyImage from '@/components/LazyImage';
 import Reveal from '@/components/Reveal';
+import SectionMarker from '@/components/SectionMarker';
+import ImageReveal from '@/components/motion/ImageReveal';
 import NotFound from '@/pages/NotFound';
-import { categoryBySlug } from '@/content/products';
+import { categories, categoryBySlug } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
+import { cn } from '@/lib/utils';
 
-// Same gutters as the navbar and footer, so page content lines up with the chrome.
-const WRAP = 'mx-auto max-w-7xl px-4 sm:px-6';
-
-const LONG_COPY = 'text-base/relaxed text-muted-foreground md:text-lg/relaxed';
+const pad = (n: number) => String(n).padStart(2, '0');
 
 const enquiryHref = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
@@ -27,12 +27,14 @@ const CategoryPage = () => {
   const path = `/products/${category.slug}`;
   const cover = categoryImages[category.slug];
   // The cigarette formats have no pages or photography of their own: one shared pack
-  // shot stands beside the copy and each format card leads straight to an enquiry.
+  // shot sits beside the overview and each format row leads straight to an enquiry.
+  // (The leaf cover is the first cell of the grid below, so it is not shown twice.)
   const isFormats = category.slug === 'finished-cigarettes';
+  const showCover = isFormats && Boolean(cover);
 
   return (
     <PageLayout enquiryProduct={category.label}>
-      {/* Keyed so moving between the two categories replays the reveals. */}
+      {/* Keyed so moving between the two categories replays the entrances. */}
       <Fragment key={category.slug}>
         <PageHeader
           breadcrumbs={
@@ -43,82 +45,95 @@ const CategoryPage = () => {
           }
           eyebrow={category.eyebrow}
           title={category.title}
+          meta={`${pad(categories.indexOf(category) + 1)} / ${pad(categories.length)}`}
           lead={category.short}
         />
 
-        {isFormats && cover ? (
-          <div className={`${WRAP} grid items-center gap-10 pb-16 md:grid-cols-[7fr_5fr] md:gap-14 md:pb-24 lg:gap-20`}>
-            <Reveal as="p" className={LONG_COPY}>
-              {category.long}
+        {/* The overview hangs from the masthead's closing rule: a ruled split with the
+            long copy in the wide cell. With a cover, the pack shot fills the narrow
+            cell flush to the rules, on the tile (light in both themes). */}
+        <section aria-label="Overview" data-enter="" className={WRAP}>
+          <div className="relative grid border-b border-border lg:grid-cols-12">
+            <span
+              aria-hidden="true"
+              className={cn(
+                'absolute inset-y-0 hidden w-px bg-border lg:block',
+                showCover ? 'left-[58.333333%]' : 'left-[41.666667%]'
+              )}
+            />
+
+            <Reveal
+              className={cn(
+                'grid gap-y-5 pb-12 pt-6 lg:pt-10',
+                // Beside the tall pack shot the marker holds the head of the cell and
+                // the copy its foot.
+                showCover ? 'content-between lg:col-span-7 lg:pb-10 lg:pr-8' : 'content-start lg:col-span-12 lg:grid-cols-12 lg:pb-24'
+              )}
+            >
+              <SectionMarker number="01" className={cn(!showCover && 'lg:col-span-5')}>
+                Overview
+              </SectionMarker>
+              <p className={cn(BODY, !showCover && 'lg:col-span-7 lg:pl-8')}>{category.long}</p>
             </Reveal>
-            <Reveal delay={0.15} className="mx-auto w-full max-w-sm md:max-w-none">
-              {/* The frame takes the cut-out's own ratio, so no hairline of tile shows beside it. */}
-              <div
-                className="relative overflow-hidden rounded-lg bg-tile"
-                style={{ aspectRatio: `${cover.image.img.w} / ${cover.image.img.h}` }}
-              >
+
+            {showCover && cover && (
+              // The pack shot is a portrait: the frame keeps enough of its height that
+              // neither the open pack nor the packs' feet are cropped.
+              <ImageReveal direction="left" className="aspect-square bg-tile sm:aspect-[4/3] lg:col-span-5 lg:aspect-[4/5]">
                 <LazyImage
                   image={cover.image}
                   alt={cover.alt}
-                  sizes="(min-width: 1280px) 480px, (min-width: 768px) 40vw, (min-width: 432px) 384px, calc(100vw - 32px)"
+                  sizes="(min-width: 1280px) 514px, (min-width: 1024px) 42vw, calc(100vw - 32px)"
                   priority
                   className="product-shot absolute inset-0 h-full w-full object-cover"
                 />
-              </div>
-            </Reveal>
+              </ImageReveal>
+            )}
           </div>
-        ) : (
-          <div className={`${WRAP} pb-16 md:pb-24`}>
-            <Reveal as="p" className={`max-w-3xl ${LONG_COPY}`}>
-              {category.long}
-            </Reveal>
-          </div>
-        )}
+        </section>
 
-        <section
-          aria-labelledby="range-heading"
-          className="border-t border-border py-16 md:py-24"
-        >
-          <div className={WRAP}>
-            <Reveal>
-              <p className="eyebrow">{category.label}</p>
-              <h2
-                id="range-heading"
-                className="mt-4 font-display text-3xl/tight font-medium text-foreground md:text-4xl/tight"
-              >
-                Product Range
-              </h2>
-              <div className="rule mt-6" aria-hidden="true" />
-            </Reveal>
+        <section aria-labelledby="range-heading" className={cn(WRAP, 'pb-24 pt-24 md:pb-36 md:pt-36')}>
+          <SectionHead
+            number="02"
+            label={category.label}
+            meta={`${pad(category.products.length)} ${isFormats ? 'Formats' : 'Products'}`}
+            title="Product Range"
+            id="range-heading"
+          />
 
-            {isFormats ? (
-              <ul role="list" className="mt-10 grid gap-5 sm:grid-cols-2 md:mt-14 lg:grid-cols-3 lg:gap-6">
-                {category.products.map((product, i) => (
-                  <Reveal as="li" key={product.slug} delay={(i % 3) * 0.08} className="h-full">
-                    <FormatCard
-                      name={product.name}
-                      short={product.short}
-                      rows={product.specs}
-                      to={enquiryHref(product.name)}
-                    />
-                  </Reveal>
-                ))}
-              </ul>
-            ) : (
-              <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:mt-14 lg:grid-cols-4">
-                {category.products.map((product, i) => (
+          {isFormats ? (
+            // Each row draws its own top hairline; the list closes the last one.
+            <ul role="list" className="mt-14 border-b border-border md:mt-20">
+              {category.products.map((product, i) => (
+                <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
+                  <FormatCard
+                    layout="row"
+                    number={i + 1}
+                    name={product.name}
+                    short={product.short}
+                    rows={product.specs}
+                    to={enquiryHref(product.name)}
+                  />
+                </Reveal>
+              ))}
+            </ul>
+          ) : (
+            <ul role="list" className="hairline-grid mt-14 grid grid-cols-2 md:mt-20 lg:grid-cols-4">
+              {category.products.map((product, i) => (
+                <li key={product.slug} className="min-w-0">
                   <ProductCard
-                    key={product.slug}
                     to={product.hasDetailPage ? `${path}/${product.slug}` : undefined}
                     image={productImages[product.slug]?.[0] ?? cover}
                     name={product.name}
                     short={product.short}
+                    // Only the column matters: the stagger restarts on every row of the grid.
                     index={i}
+                    number={i + 1}
                   />
-                ))}
-              </div>
-            )}
-          </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </Fragment>
     </PageLayout>

@@ -10,7 +10,7 @@ import { statSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { root } from "./lib/site.mjs";
-import { GOLD, INK, IVORY, markGroup } from "./lib/brand.mjs";
+import { INK, IVORY, SAGE, markGroup } from "./lib/brand.mjs";
 
 const WIDTH = 1200;
 const HEIGHT = 630;
@@ -25,10 +25,11 @@ const NAME = "Abul Khair Tobacco Co. Ltd.";
 // The AKT monogram, 300px wide, sitting where the wordmark text used to.
 const mark = markGroup({ x: 82, y: 150, width: 300, fill: IVORY });
 
-// Fraunces is not installed on build machines, so the card uses the closest serif
-// the machine has; librsvg falls back along the list.
-const SERIF = "Georgia, 'Times New Roman', 'DejaVu Serif', serif";
-const SANS = "'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif";
+// The site's faces (Instrument Serif, JetBrains Mono) are web fonts, not installed on
+// build machines, so the card uses the closest serif and mono the machine has; librsvg
+// falls back along each list.
+const SERIF = "'Instrument Serif', Georgia, 'Times New Roman', 'DejaVu Serif', serif";
+const MONO = "'JetBrains Mono', Consolas, 'DejaVu Sans Mono', 'Courier New', monospace";
 
 const overlay = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
@@ -47,9 +48,9 @@ const overlay = `
   <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#side)"/>
 
   ${mark.fragment}
-  <rect x="84" y="372" width="96" height="3" fill="${GOLD}"/>
+  <rect x="84" y="372" width="1032" height="1.5" fill="${IVORY}" fill-opacity="0.35"/>
   <text x="82" y="450" font-family="${SERIF}" font-size="58" fill="${IVORY}">${TAGLINE}</text>
-  <text x="84" y="540" font-family="${SANS}" font-size="26" font-weight="600" letter-spacing="7" fill="${GOLD}">${NAME.toUpperCase()}</text>
+  <text x="84" y="540" font-family="${MONO}" font-size="22" font-weight="500" letter-spacing="6" fill="${SAGE}">${NAME.toUpperCase()}</text>
 </svg>`;
 
 await sharp(source)

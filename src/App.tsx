@@ -3,6 +3,9 @@ import { Suspense, lazy } from 'react';
 import ScrollToTop from '@/components/ScrollToTop';
 import RouteSeo from '@/components/RouteSeo';
 import AgeGate from '@/components/AgeGate';
+import SmoothScroll from '@/components/motion/SmoothScroll';
+import CursorRing from '@/components/motion/CursorRing';
+import RouteTransition from '@/components/motion/RouteTransition';
 import Index from './pages/Index.tsx';
 
 // Only the homepage is bundled eagerly. Every other route is its own chunk, so a
@@ -30,9 +33,17 @@ const ROUTER_FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true };
 
 const App = () => (
   <BrowserRouter future={ROUTER_FUTURE}>
+    {/* Before ScrollToTop, so Lenis exists by the time the first scroll reset runs. */}
+    <SmoothScroll />
     <ScrollToTop />
     <RouteSeo />
     <AgeGate />
+    <CursorRing />
+    {/* Its own boundary: the curtain holds a navigation by suspending that render
+        (see RouteTransition), and must never blank the page while it does. */}
+    <Suspense fallback={null}>
+      <RouteTransition />
+    </Suspense>
     <Suspense fallback={null}>
       <Routes>
         <Route path="/" element={<Index />} />

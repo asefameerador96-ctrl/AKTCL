@@ -20,3 +20,8 @@ if (window.__PRERENDER__) window.__AKTCL_ROUTES__ = ROUTES;
 // outright is correct and costs one extra render.
 container.replaceChildren();
 createRoot(container).render(<App />);
+
+// The static markup is gone and the app owns every entrance from here on, so the
+// pre-boot hold on [data-enter] (index.css) is released. Not for the prerenderer:
+// the class would be captured into the snapshot and the hold would never apply.
+if (!window.__PRERENDER__) document.documentElement.classList.add('app-live');

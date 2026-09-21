@@ -1,110 +1,169 @@
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import Reveal from '@/components/Reveal';
 import {
+  ArrowTravel,
+  GROUP_UNDERLINE,
+  ROW_LINE,
+  ROW_SHIFT,
+  SectionHead,
+  TEXT_LINK,
+  WRAP,
+} from '@/components/PageHeader';
+import {
+  allProducts,
   categories,
   productsIntro,
   type Product,
   type ProductCategory,
 } from '@/content/products';
+import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 interface ExportRangeProps {
+  /** The section's place on the page, as printed in its marker. */
+  number?: string;
   className?: string;
 }
 
 /**
  * Products with one line of copy have no page of their own (hasDetailPage: false);
- * their chip goes to the category page, which is where they are described.
+ * their row goes to the category page, which is where they are described.
  */
 const productHref = (category: ProductCategory, product: Product) =>
   product.hasDetailPage
     ? `/products/${category.slug}/${product.slug}`
     : `/products/${category.slug}`;
 
-const TEXT_LINK =
-  'inline-flex min-h-11 items-center gap-2 text-sm font-medium uppercase tracking-[0.15em] text-accent transition-colors hover:text-foreground';
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/** Seconds between one row's hairline starting to draw and the next. */
+const LINE_STAGGER = 0.06;
+
+const ARROW = 'self-center text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent';
+
+/**
+ * One category as a ruled directory: mono index, the product's name in the display
+ * serif, a travelling arrow. The row IS the link; on hover or focus the rule above it
+ * is redrawn in the accent and the name steps 8px along. Each row carries the
+ * hairline under it (the category's own rule is the first row's top), and they draw
+ * in one after another the first time the list is seen.
+ */
+const RangeList = ({ category }: { category: ProductCategory }) => {
+  const [still] = useState(isStill);
+  const listRef = useRef<HTMLUListElement>(null);
+  const shown = useReveal(useInView(listRef, { skip: still }));
+
+  return (
+    <ul
+      ref={listRef}
+      // Preflight strips the markers, and with them the list role in Safari.
+      role="list"
+      aria-label={`${category.label} range`}
+    >
+      {category.products.map((product, i) => (
+        <li key={product.slug}>
+          <Link
+            to={productHref(category, product)}
+            data-cursor="open"
+            className="group relative flex min-h-11 items-baseline gap-5 py-5 text-foreground md:gap-8 md:py-6 lg:pl-8"
+          >
+            <span aria-hidden="true" className={ROW_LINE} />
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 bottom-0 h-px origin-left bg-border"
+              style={
+                still
+                  ? undefined
+                  : {
+                      transform: shown ? 'none' : 'scaleX(0)',
+                      transition: `transform 1.1s ${EASE.expoOut} ${(i * LINE_STAGGER).toFixed(2)}s`,
+                    }
+              }
+            />
+            <span aria-hidden="true" className="index-num w-6 shrink-0">
+              {pad(i + 1)}
+            </span>
+            <span className={cn('display-sm min-w-0 flex-1', ROW_SHIFT)}>{product.name}</span>
+            <ArrowTravel className={ARROW} />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 /**
  * "What We Export" — the About copy names the export range in a sentence; this
  * turns the same list into crawlable links, straight from src/content/products.ts.
+ * Each category is a ruled 4/8 split: its name, line and onward links hold in the
+ * narrow cell while the directory scrolls past in the wide one.
  */
-const ExportRange = ({ className }: ExportRangeProps) => (
-  <section
-    aria-labelledby="export-range-heading"
-    className={cn('bg-secondary/50 py-20 md:py-28', className)}
-  >
-    <div className="mx-auto max-w-7xl px-4 sm:px-6">
-      <Reveal className="max-w-3xl">
-        <p className="eyebrow">{productsIntro.eyebrow}</p>
-        <h2
-          id="export-range-heading"
-          className="mt-4 text-3xl/tight font-medium md:text-4xl/tight lg:text-5xl/tight"
-        >
-          {productsIntro.heading}
-        </h2>
-        <div className="rule mt-6" aria-hidden="true" />
-        <p className="mt-8 text-base/relaxed text-muted-foreground md:text-lg/relaxed">
-          {productsIntro.short}
-        </p>
-      </Reveal>
+const ExportRange = ({ number = '01', className }: ExportRangeProps) => (
+  <section aria-labelledby="export-range-heading" className={cn('bg-secondary/40', className)}>
+    <div className={cn(WRAP, 'py-24 md:py-36')}>
+      <SectionHead
+        number={number}
+        label={productsIntro.eyebrow}
+        meta={`${pad(categories.length)} Categories · ${pad(allProducts.length)} Products`}
+        title={productsIntro.heading}
+        italicWords={['Our']}
+        id="export-range-heading"
+      >
+        <p className="lead">{productsIntro.short}</p>
+      </SectionHead>
 
-      <div className="mt-12 grid gap-6 md:mt-16 lg:grid-cols-2 lg:gap-8">
-        {categories.map((category, i) => (
-          <Reveal
-            as="article"
-            key={category.slug}
-            delay={i * 0.12}
-            className="flex flex-col rounded-lg border border-border bg-card p-6 sm:p-8 lg:p-10"
-          >
+      {categories.map((category) => (
+        <article key={category.slug} className="relative mt-16 grid border-t border-border md:mt-24 lg:grid-cols-12">
+          <span aria-hidden="true" className="absolute inset-y-0 left-[33.333333%] hidden w-px bg-border lg:block" />
+
+          {/* Holds beside its list while the rows scroll past. Below lg its bottom
+              rule is the first row's top. */}
+          <Reveal className="border-b border-border pb-8 pt-6 lg:sticky lg:top-24 lg:col-span-4 lg:self-start lg:border-b-0 lg:pb-12 lg:pr-8 lg:pt-8">
             <p className="eyebrow">{category.eyebrow}</p>
             {/* Not a link: "View …" below goes to the same page with a full-size target. */}
-            <h3 className="mt-3 text-2xl/snug font-medium md:text-3xl/snug">{category.title}</h3>
-            <p className="mt-4 leading-relaxed text-muted-foreground">{category.short}</p>
-
-            <ul
-              // Preflight strips the markers, and with them the list role in Safari.
-              role="list"
-              aria-label={`${category.label} range`}
-              className="mt-8 flex flex-wrap gap-2.5"
-            >
-              {category.products.map((product) => (
-                <li key={product.slug}>
-                  <Link
-                    to={productHref(category, product)}
-                    className="inline-flex min-h-11 items-center rounded-full border border-border bg-background px-4 text-sm font-medium transition-colors hover:border-accent hover:text-accent"
-                  >
-                    {product.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-
-            {/* Stacked, not wrapped: the two labels differ in length per card, and
-                wrapping would break the cards' footers at different widths. */}
-            <div className="mt-auto pt-8">
-              <div className="flex flex-col items-start border-t border-border pt-4">
-                <Link to={`/products/${category.slug}`} className={TEXT_LINK}>
-                  View {category.label}
-                  <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                </Link>
-                <Link
-                  to={`/contact?product=${encodeURIComponent(category.label)}`}
-                  data-lead={`about-enquire-${category.slug}`}
-                  className={TEXT_LINK}
-                >
-                  Enquire about {category.label}
-                </Link>
-              </div>
+            <h3 className="display-sm mt-5 text-foreground">{category.title}</h3>
+            <p className="mt-4 max-w-[44ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+              {category.short}
+            </p>
+            <div className="mt-4 flex flex-col items-start">
+              <Link to={`/products/${category.slug}`} data-cursor="open" className={TEXT_LINK}>
+                <span className={GROUP_UNDERLINE}>View {category.label}</span>
+                <ArrowTravel />
+              </Link>
+              <Link
+                to={`/contact?product=${encodeURIComponent(category.label)}`}
+                data-lead={`about-enquire-${category.slug}`}
+                data-cursor="enquire"
+                className={TEXT_LINK}
+              >
+                <span className={GROUP_UNDERLINE}>Enquire about {category.label}</span>
+                <ArrowTravel direction="up-right" />
+              </Link>
             </div>
           </Reveal>
-        ))}
-      </div>
 
-      <Reveal className="mt-10 md:mt-12">
-        <Link to="/products" className={TEXT_LINK}>
-          View the full product line
-          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          <div className="lg:col-span-8">
+            <RangeList category={category} />
+          </div>
+        </article>
+      ))}
+
+      {/* The directory's closing row, not a boxed button. */}
+      <Reveal className="mt-16 md:mt-24">
+        <Link
+          to="/products"
+          data-cursor="open"
+          className="group relative flex min-h-20 items-center justify-between gap-6 border-y border-border py-5 text-foreground md:min-h-24"
+        >
+          <span aria-hidden="true" className={ROW_LINE} />
+          <span className={cn('display-sm', ROW_SHIFT)}>View the full product line</span>
+          <span className="flex shrink-0 items-center gap-5 md:gap-8">
+            <span aria-hidden="true" className="index-num">
+              ({pad(allProducts.length)})
+            </span>
+            <ArrowTravel className={ARROW} />
+          </span>
         </Link>
       </Reveal>
     </div>

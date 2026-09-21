@@ -17,7 +17,7 @@ One page. Read with `docs/content-inventory.md` (what we have, what is missing) 
 Vite + React 18 + TypeScript + Tailwind 3 + shadcn/ui subset + react-router. Client-rendered,
 then every route is prerendered to static HTML by headless Chromium (`scripts/prerender.mjs`)
 and smoke-tested (`scripts/verify-build.mjs`). Hosted on Azure Static Web Apps (Free) with a
-managed Function for the enquiry form. Fonts self-hosted (Fraunces + Inter).
+managed Function for the enquiry form. Fonts self-hosted (Instrument Serif + Plus Jakarta Sans + JetBrains Mono).
 
 Differences from the reference, on purpose: content is data-driven (`src/content/*.ts`)
 instead of hard-coded per component; routes/SEO/sitemap come from one list

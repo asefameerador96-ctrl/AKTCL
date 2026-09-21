@@ -1,117 +1,170 @@
-/* Fonts are self-hosted (bundled by Vite from @fontsource) — no third-party requests. */
-@import '@fontsource-variable/fraunces/index.css';
-@import '@fontsource-variable/inter/index.css';
+/*
+ * Fonts are self-hosted (bundled by Vite from @fontsource) — the CSP allows no
+ * third-party origin, so no Google Fonts or CDN links, ever.
+ *
+ *   Instrument Serif     display. ONE weight (400) and its italic, latin only: 21 + 22 KB.
+ *                        There is no bold — never ask for one (font-synthesis is off on
+ *                        everything set in it, so a stray font-semibold cannot smear it).
+ *   Plus Jakarta Sans    body and UI, variable 200–800: 27 KB latin.
+ *   JetBrains Mono       labels, indices and data, variable 100–800: 40 KB latin.
+ *
+ * The two variable packages ship no latin-only stylesheet, so their faces are declared
+ * by hand in fonts.css from the packages' own files (the why is in that file). Italics
+ * of the sans and the mono are not loaded: nothing uses them.
+ */
+@import '@fontsource/instrument-serif/latin-400.css';
+@import '@fontsource/instrument-serif/latin-400-italic.css';
+@import './fonts.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- * AKTCL design tokens.
+ * AKTCL design tokens — ONE palette, held strictly.
  *
- * Palette is drawn from the photography: ivory paper, cured-leaf gold, deep
- * tobacco brown and field green. Every colour in the app must come from these
- * variables (through the Tailwind names in tailwind.config.ts) so light/dark and
- * any future re-skin are controlled from this one file. Values are "H S% L%" so
- * Tailwind's <alpha-value> syntax works: bg-primary/40 etc.
+ *   light   "Warm Editorial Ivory"      paper #FBF9F5 · surface #F2EFE9 · hairline #E2DED5
+ *                                       espresso #1A1917 · olive-grey #6E6C64
+ *   dark    "Warm Architectural Dark"   charcoal #10100E · surface #181816 · hairline #282824
+ *                                       chalk #EDECE8 · grey #9C9B94
+ *   ink     the always-dark bands (hero, facts, enquiry band, footer, menu, age gate):
+ *           the dark palette in BOTH themes — #10100E, and #0B0B0C under .dark so the
+ *           bands still step down from the page.
+ *   accent  Deep British Racing Green #0A3622. Surgical: under 5% of any viewport — a
+ *           tick, a node, a hover, a selection. Never a band, never a big fill. In the
+ *           dark theme it is a lifted tint of the same green (#88BFA0).
+ *   sage    #A8C7B6, a light tint of the accent, for small signals ON INK only
+ *           (signal eyebrows, active ticks, focus rings). Never a fill, never on paper.
  *
- * Contrast (WCAG, computed against --background; AA needs 4.5:1 for body text):
- *   light: foreground 15.2 · muted-foreground 6.7 · accent 6.1 · destructive 6.3
- *   dark:  foreground 16.4 · muted-foreground 8.8 · accent 8.1 · destructive 4.9
- * --gold is DECORATIVE ONLY on light backgrounds (2.4:1 — never use it for text
- * there); on --ink it is 7.2:1 and may carry text. ink-muted on ink is 9.0:1.
+ * Every colour in the app comes from these variables through the Tailwind names in
+ * tailwind.config.ts. Values are "H S% L%" (decimals where the hex needs them) so
+ * Tailwind's <alpha-value> syntax works: bg-ink/40 etc.
+ *
+ * Contrast (WCAG 2.1 relative luminance, computed — not estimated; AA text needs 4.5:1,
+ * non-text UI 3:1). "a / b" = on --background / on the surface (--card, --secondary):
+ *   light  foreground 16.7 / 15.3 · muted-foreground 5.0 / 4.6 · accent 12.8 / 11.7
+ *          destructive 7.4 / 6.8 · input (field rule) 3.4 · border 1.3 (decorative)
+ *          primary-foreground on primary 16.7 · accent-foreground on accent 12.8
+ *   dark   foreground 16.1 / 15.0 · muted-foreground 6.8 / 6.4 · accent 9.1 / 8.5
+ *          destructive 6.1 / 5.7 · input 3.5 · border 1.3 (decorative)
+ *          primary-foreground on primary 16.1 · accent-foreground on accent 9.1
+ *   ink    ink-foreground 16.1 (16.6 under .dark) · ink-muted 6.8 (7.1) · sage 10.4 (10.8)
+ *          ink on ink-foreground (the chalk button) 16.1 · ink-border 1.3 (decorative)
+ *   tile   tile-foreground 15.3 (13.5 under .dark, where the tile stays light)
+ * muted-foreground is already at the floor on the surface (4.6) — never lighten it, and
+ * never set it under 11px. On bg-tile use text-tile-foreground: the themed text colours
+ * flip with the theme and the tile does not.
  */
 @layer base {
   :root {
-    --background: 40 38% 96%; /* ivory #F9F6F0 */
-    --foreground: 26 32% 12%; /* tobacco brown-black #281D15 */
+    --background: 40 42.9% 97.3%; /* #FBF9F5 */
+    --foreground: 40 6.1% 9.6%; /* #1A1917 */
 
-    --card: 40 40% 98%;
-    --card-foreground: 26 32% 12%;
+    /* The one surface tone. "Cards" are regions ruled off with hairlines, not boxes. */
+    --card: 40 26% 93%; /* #F2EFE9 */
+    --card-foreground: 40 6.1% 9.6%;
 
-    --popover: 40 40% 98%;
-    --popover-foreground: 26 32% 12%;
+    --popover: 40 26% 93%;
+    --popover-foreground: 40 6.1% 9.6%;
 
-    --primary: 26 32% 14%;
-    --primary-foreground: 40 38% 96%;
+    /* Buttons: solid espresso, ivory label. */
+    --primary: 40 6.1% 9.6%; /* #1A1917 */
+    --primary-foreground: 40 42.9% 97.3%; /* #FBF9F5 */
 
-    --secondary: 38 28% 90%;
-    --secondary-foreground: 26 32% 14%;
+    --secondary: 40 26% 93%; /* #F2EFE9 */
+    --secondary-foreground: 40 6.1% 9.6%;
 
-    --muted: 38 22% 88%;
-    --muted-foreground: 26 14% 34%;
+    --muted: 40 26% 93%; /* #F2EFE9 */
+    --muted-foreground: 48 4.8% 41.2%; /* #6E6C64 */
 
-    /* Accent = dark cured gold, safe for text and buttons on ivory. */
-    --accent: 33 72% 30%;
-    --accent-foreground: 40 38% 96%;
+    --accent: 152.7 68.8% 12.5%; /* #0A3622 British Racing Green */
+    --accent-foreground: 40 42.9% 97.3%; /* #FBF9F5 */
 
-    /* Bright leaf gold: rules, dots, icons, and text on dark bands. */
-    --gold: 38 62% 52%;
-    /* Field green: secondary brand colour for quiet highlights. */
-    --leaf: 142 28% 24%;
-    --leaf-foreground: 40 38% 96%;
+    /* Light tint of the accent: small signals on ink. The same value in both themes. */
+    --sage: 146 22% 72%; /* #A8C7B6 */
 
-    /* Always-dark band (hero overlay, facts strip, footer) in both themes. */
-    --ink: 24 30% 8%;
-    --ink-foreground: 40 38% 94%;
-    --ink-muted: 36 16% 70%;
-    --ink-border: 30 18% 22%;
+    /* Always-dark bands, in both themes. */
+    --ink: 60 7% 6%; /* #10100E */
+    --ink-foreground: 48 12% 92%; /* #EDECE8 */
+    --ink-muted: 52.5 3.9% 59.6%; /* #9C9B94 */
+    --ink-border: 60 5% 15%; /* #282824 */
 
-    /* Light tile behind the white-background product cut-outs — light in BOTH themes. */
-    --tile: 40 30% 95%;
-    --tile-foreground: 26 32% 12%;
+    /* Tile behind the white-background product cut-outs — light in BOTH themes. */
+    --tile: 40 26% 93%; /* #F2EFE9 */
+    --tile-foreground: 40 6.1% 9.6%; /* #1A1917 */
 
-    --destructive: 4 70% 40%;
-    --destructive-foreground: 40 38% 96%;
+    --destructive: 6 62% 36%; /* #952E23 */
+    --destructive-foreground: 40 42.9% 97.3%;
 
-    --border: 36 20% 80%;
-    --input: 36 20% 70%;
-    --ring: 33 72% 30%;
+    --border: 42 18% 86%; /* #E2DED5 hairline */
+    /* The rule a form field is written on: a control boundary, so it clears 3:1. */
+    --input: 45 4.9% 51.8%; /* #8A877E */
+    --ring: 152.7 68.8% 12.5%; /* = accent */
 
-    --radius: 0.375rem;
+    --radius: 0.125rem;
+
+    /*
+     * The only curves UI motion uses (mirrored as EASE in src/lib/motion.ts and as
+     * ease-expo-out / ease-quart-out / ease-expo-in-out in Tailwind). expo-out is the
+     * house curve and Tailwind's default here: a bare `transition-colors` is already
+     * 300ms expo-out. Never `ease` or `linear` — the one exception is the marquee,
+     * whose loop has to be uniform.
+     */
+    --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-quart-out: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-expo-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+    --duration-ui: 300ms;
   }
 
   .dark {
-    --background: 24 30% 7%;
-    --foreground: 40 38% 93%;
+    --background: 60 7% 6%; /* #10100E */
+    --foreground: 48 12% 92%; /* #EDECE8 */
 
-    --card: 24 26% 10%;
-    --card-foreground: 40 38% 93%;
+    --card: 60 4% 9%; /* #181816 */
+    --card-foreground: 48 12% 92%;
 
-    --popover: 24 26% 10%;
-    --popover-foreground: 40 38% 93%;
+    --popover: 60 4% 9%;
+    --popover-foreground: 48 12% 92%;
 
-    --primary: 40 38% 93%;
-    --primary-foreground: 24 30% 8%;
+    /* Buttons: solid chalk, charcoal label. */
+    --primary: 48 12% 92%; /* #EDECE8 */
+    --primary-foreground: 60 7% 6%; /* #10100E */
 
-    --secondary: 26 22% 14%;
-    --secondary-foreground: 40 38% 93%;
+    --secondary: 60 4% 9%; /* #181816 */
+    --secondary-foreground: 48 12% 92%;
 
-    --muted: 26 18% 16%;
-    --muted-foreground: 36 16% 68%;
+    --muted: 60 4% 9%; /* #181816 */
+    --muted-foreground: 52.5 3.9% 59.6%; /* #9C9B94 */
 
-    /* On dark the bright gold is the accessible accent (7.6:1). */
-    --accent: 38 62% 56%;
-    --accent-foreground: 24 30% 8%;
+    /* The same green, lifted until it reads on charcoal. Never orange, never lime. */
+    --accent: 146 30% 64%; /* #88BFA0 */
+    --accent-foreground: 60 7% 6%; /* #10100E */
 
-    --gold: 38 62% 56%;
-    --leaf: 142 26% 38%;
-    --leaf-foreground: 40 38% 96%;
+    --ink: 240 4.3% 4.5%; /* #0B0B0C */
+    --ink-foreground: 48 12% 92%;
+    --ink-muted: 52.5 3.9% 59.6%;
+    --ink-border: 60 5% 15%;
 
-    --ink: 24 32% 5%;
-    --ink-foreground: 40 38% 94%;
-    --ink-muted: 36 16% 70%;
-    --ink-border: 30 18% 20%;
+    --tile: 42 15.6% 87.5%; /* #E4E1DA — a step under the light tile, so it does not glare */
+    --tile-foreground: 40 6.1% 9.6%;
 
-    --tile: 40 24% 90%;
-    --tile-foreground: 26 32% 12%;
+    --destructive: 6 72% 64%; /* #E56E61 */
+    --destructive-foreground: 60 7% 6%;
 
-    --destructive: 4 70% 58%;
-    --destructive-foreground: 24 30% 8%;
+    --border: 60 5% 15%; /* #282824 hairline */
+    --input: 52.5 3.9% 40.4%; /* #6B6A63 */
+    --ring: 146 30% 64%;
+  }
 
-    --border: 30 18% 22%;
-    --input: 30 18% 30%;
-    --ring: 38 62% 56%;
+  /*
+   * Ink context. Anything inside an always-dark band — it carries bg-ink, or on-ink
+   * where the dark comes from photography or a parent — gets the ink hairline as its
+   * default border and the sage focus ring without every component saying so.
+   * :where() keeps this at zero specificity, so any utility still wins.
+   */
+  :where(.bg-ink, .on-ink) {
+    --border: var(--ink-border);
+    --ring: var(--sage);
   }
 }
 
@@ -121,35 +174,58 @@
   }
 
   html {
+    /* Native fallback. With Lenis running (motion/SmoothScroll) the wheel is eased
+       there instead; Lenis always scrolls with behavior "instant", so the two never
+       stack, and scrollTo() calls made elsewhere still glide. */
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--foreground) / 0.28) transparent;
   }
 
+  /* Understated body: 16px, relaxed leading. Scale contrast is the display type's job. */
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    @apply bg-background font-sans text-base leading-relaxed text-foreground antialiased;
   }
 
+  /*
+   * Instrument Serif has one weight. font-synthesis: none on everything set in it
+   * (headings, and any element carrying font-display) so no browser fakes a bold or a
+   * slant; the real italic is imported above.
+   */
   h1,
   h2,
   h3,
   h4 {
-    @apply font-display;
-    /* Fraunces: optical sizing on, the "wonky" alternates off for a sober tone. */
-    font-variation-settings: 'SOFT' 0, 'WONK' 0;
+    @apply font-display font-normal;
+    font-synthesis: none;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+  .font-display {
+    font-synthesis: none;
   }
 
   p {
     text-wrap: pretty;
   }
 
+  /* One 2px ring everywhere: accent on paper, sage on ink (--ring is remapped there). */
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
+  :where(.bg-ink, .on-ink) :focus-visible {
+    --tw-ring-offset-color: hsl(var(--ink));
+  }
 
   ::selection {
-    background-color: hsl(var(--gold) / 0.35);
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+  :where(.bg-ink, .on-ink) ::selection {
+    background-color: hsl(var(--sage));
+    color: hsl(var(--ink));
   }
 }
 
@@ -165,20 +241,286 @@
   visibility: hidden;
 }
 
+/*
+ * Entrance choreography without a double play.
+ *
+ * The prerendered HTML paints first, then the app re-renders it (no hydration — see
+ * main.tsx). Anything with an entrance animation would be seen, vanish, and animate
+ * back in. So: index.html puts "js" on <html> (never in the prerenderer's snapshot),
+ * elements that take part in the page-load sequence carry data-enter, and they stay
+ * unpainted until main.tsx adds "app-live" — from then on each component holds its
+ * own hidden state and plays exactly once (after the age gate: useEntered()).
+ *
+ * No JavaScript, or a crawler: no "js" class, so nothing is ever hidden. Reduced
+ * motion: the rule does not apply at all. Bundle blocked or very slow: the failsafe
+ * shows the static page after 4 s rather than leaving a hole where the headline is.
+ * Never put data-enter on the hero image — a hidden image cannot be the LCP element.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html.js:not(.app-live) [data-enter] {
+    opacity: 0;
+    animation: enter-failsafe 1ms step-end 4s forwards;
+  }
+  /* The hero photograph opens slightly enlarged and settles as the headline rises
+     (HeroCarousel). The prerendered copy holds the same scale, so the hand-over to
+     the app is not a jump. Scaled, never hidden: it is the LCP element. */
+  html.js:not(.app-live) [data-hero-settle] {
+    transform: scale(1.06);
+  }
+}
+@keyframes enter-failsafe {
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Lenis (motion/SmoothScroll). Its stock stylesheet also sets overflow on a stopped
+ * <html>; here that is limited to the case where <body> is not already carrying the
+ * lock. The age gate and the lightbox lock <body>, and moving the lock up to <html>
+ * would turn <body> into the scroll container and un-stick every sticky section
+ * behind the overlay.
+ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+html.lenis-stopped:not(:has(> body[style*='overflow'])) {
+  overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* Legacy WebKit scrollbars; everything current takes scrollbar-color on <html>. */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid hsl(var(--background));
+    background: hsl(var(--foreground) / 0.28);
+  }
+}
+
 @layer components {
-  /* Small uppercase label above headings: "CATEGORY 01", "FROM SEED TO SMOKE". */
-  .eyebrow {
-    @apply font-sans text-xs font-medium uppercase tracking-[0.3em] text-accent;
+  /*
+   * ---- Fluid display type ------------------------------------------------------------
+   * Every headline on the site takes one of these five — never a stepped text-4xl /
+   * md:text-6xl ladder. Instrument Serif, 400, tight. Component layer, so a utility
+   * beside it (leading-none, tracking-…, italic, a colour) still wins.
+   *   display-xl   hero / page mastheads          52 → 144px
+   *   display-lg   section headlines              44 → 96px
+   *   display-md   sub-section headlines          36 → 64px
+   *   display-sm   row titles, column heads       28 → 44px
+   *   display-xs   names inside a narrow cell     24 → 32px
+   */
+  .display-xl,
+  .display-lg,
+  .display-md,
+  .display-sm,
+  .display-xs {
+    @apply font-display font-normal;
+    font-synthesis: none;
+    letter-spacing: -0.03em;
+  }
+  .display-xl {
+    font-size: clamp(3.25rem, 9.5vw, 9rem);
+    line-height: 0.95;
+  }
+  .display-lg {
+    font-size: clamp(2.75rem, 6.5vw, 6rem);
+    line-height: 0.98;
+  }
+  .display-md {
+    font-size: clamp(2.25rem, 4.5vw, 4rem);
+    line-height: 1.02;
+  }
+  .display-sm {
+    font-size: clamp(1.75rem, 3vw, 2.75rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+  .display-xs {
+    font-size: clamp(1.5rem, 1.15rem + 0.9vw, 2rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
   }
 
-  /* Glass pill used by the top navigation over photography. */
-  .nav-pill {
-    @apply inline-flex items-center rounded-md border px-4 py-2 font-sans text-[13px] font-semibold uppercase tracking-[0.18em] backdrop-blur-xl transition-colors duration-300;
+  /* Lead paragraph: the largest the sans ever gets. Tight, understated, short measure. */
+  .lead {
+    /* rem, not ch: Plus Jakarta Sans has a wide zero (1ch is 0.73em), so "60ch" runs to
+       some 90 characters. 38rem is about 72 at 16px and 68 at 17px. */
+    @apply max-w-[38rem] text-base leading-relaxed text-muted-foreground md:text-[17px];
   }
 
-  /* Short gold rule under headings. */
+  /*
+   * ---- Mono labels -------------------------------------------------------------------
+   * .eyebrow       the small label over a heading: mono, uppercase, wide, MUTED.
+   * .eyebrow-signal  the same label as a signal: accent on paper, sage on ink. Sparingly.
+   * .index-num     the 01 / 02 numerals of list rows and section markers.
+   * On ink (inside bg-ink / on-ink) they switch to the ink palette by themselves.
+   */
+  .eyebrow,
+  .eyebrow-signal {
+    @apply font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em] text-muted-foreground;
+  }
+  .eyebrow-signal {
+    @apply text-accent;
+  }
+  .index-num {
+    @apply font-mono text-[11px] font-medium tabular-nums leading-none tracking-[0.2em] text-muted-foreground;
+  }
+  :where(.bg-ink, .on-ink) .eyebrow,
+  :where(.bg-ink, .on-ink) .index-num {
+    color: hsl(var(--ink-muted));
+  }
+  :where(.bg-ink, .on-ink) .eyebrow-signal {
+    color: hsl(var(--sage));
+  }
+
+  /*
+   * ---- Hairlines ---------------------------------------------------------------------
+   * Structure is drawn, not boxed: regions are ruled off with 1px neutral lines like a
+   * plan drawing. Never the accent — a hairline is --border (or --ink-border on ink,
+   * which the ink context above swaps in by itself).
+   * .rule            short neutral rule under a heading.
+   * .hairline        a 1px fill for drawn / animated lines (DrawnRule, timeline threads).
+   * .hairline-grid   a grid whose cells SHARE their 1px borders: the container draws the
+   *                  bottom and right edges, every cell its top and left. No gap.
+   * .hairline-rows   directory rows: a line above every row and one under the last.
+   */
   .rule {
-    @apply h-px w-16 bg-gold/70;
+    @apply h-px w-16 bg-border;
+  }
+  .hairline {
+    @apply bg-border;
+  }
+  .hairline-grid {
+    @apply border-b border-r border-border;
+  }
+  .hairline-grid > * {
+    @apply border-l border-t border-border;
+  }
+  .hairline-rows > * {
+    @apply border-t border-border;
+  }
+  .hairline-rows > *:last-child {
+    @apply border-b;
+  }
+
+  /*
+   * ---- Buttons -----------------------------------------------------------------------
+   * One label everywhere: mono, 12px, uppercase, tracked 0.18em. Square-ish (2px),
+   * solid high-contrast fills, 300ms expo-out, and the only thing hover changes is
+   * colour and border — nothing scales, lifts, glows or bounces.
+   *   .btn-solid        espresso fill, ivory label (chalk / charcoal in the dark theme);
+   *                     hover turns it racing green — the accent's one button moment.
+   *   .btn-ink          chalk fill, charcoal label, for ink bands and photography;
+   *                     hover empties it to its own outline (keyboard focus does not).
+   *   .btn-outline      1px hairline that darkens on hover (paper).
+   *   .btn-outline-ink  the same on ink.
+   *   .btn-link         no box: the label with a drawn underline.
+   *   .btn-lg / .btn-icon   sizes. Nothing under 44px: every size is a touch target.
+   *   .btn-arrow        on a trailing icon: it moves 4px on hover, nothing more.
+   * ui/button.tsx wraps the same classes for <Button>; on a <Link> write them directly.
+   */
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-3 whitespace-nowrap rounded-sm border border-transparent px-6 font-mono text-[12px] font-medium uppercase leading-none tracking-[0.18em];
+    transition:
+      color var(--duration-ui) var(--ease-expo-out),
+      background-color var(--duration-ui) var(--ease-expo-out),
+      border-color var(--duration-ui) var(--ease-expo-out),
+      opacity var(--duration-ui) var(--ease-expo-out);
+  }
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    @apply pointer-events-none opacity-50;
+  }
+  /* :where() — an icon's own size utility must still win. */
+  :where(.btn) svg {
+    @apply pointer-events-none h-4 w-4 shrink-0;
+  }
+  .btn-lg {
+    @apply min-h-12 px-8;
+  }
+  .btn-icon {
+    @apply h-11 w-11 min-w-11 px-0;
+  }
+  .btn-solid {
+    @apply border-primary bg-primary text-primary-foreground;
+  }
+  .btn-ink {
+    @apply border-ink-foreground bg-ink-foreground text-ink;
+  }
+  .btn-outline {
+    @apply border-foreground/25 bg-transparent text-foreground;
+  }
+  .btn-outline-ink {
+    @apply border-ink-foreground/30 bg-transparent text-ink-foreground;
+  }
+  .btn-link {
+    @apply border-0 px-0 text-foreground;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    /* The line sits under the label, not at the foot of the 44px target. */
+    background-position: 100% calc(50% + 0.95em);
+    background-size: 0% 1px;
+    transition:
+      background-size var(--duration-ui) var(--ease-expo-out),
+      color var(--duration-ui) var(--ease-expo-out);
+  }
+  :where(.bg-ink, .on-ink) .btn-link {
+    color: hsl(var(--ink-foreground));
+  }
+  .btn-arrow {
+    transition: transform var(--duration-ui) var(--ease-expo-out);
+  }
+
+  /* Keyboard focus always answers; hover only where there is a real pointer, so a
+     tap never leaves a button stuck in its hover colours. */
+  .btn-solid:focus-visible {
+    @apply border-accent bg-accent text-accent-foreground;
+  }
+  /* .btn-ink keeps its fill under keyboard focus: a primary button that opens focused
+     (the age gate's "Yes") must not first be seen hollow. The sage ring marks it. */
+  .btn-outline:focus-visible {
+    @apply border-foreground;
+  }
+  .btn-outline-ink:focus-visible {
+    @apply border-ink-foreground;
+  }
+  .btn-link:focus-visible {
+    background-position: 0% calc(50% + 0.95em);
+    background-size: 100% 1px;
+  }
+  .btn:focus-visible .btn-arrow {
+    transform: translate3d(0.25rem, 0, 0);
+  }
+  @media (hover: hover) {
+    .btn-solid:hover {
+      @apply border-accent bg-accent text-accent-foreground;
+    }
+    .btn-ink:hover {
+      @apply bg-transparent text-ink-foreground;
+    }
+    .btn-outline:hover {
+      @apply border-foreground;
+    }
+    .btn-outline-ink:hover {
+      @apply border-ink-foreground;
+    }
+    .btn-link:hover {
+      background-position: 0% calc(50% + 0.95em);
+      background-size: 100% 1px;
+    }
+    .btn:hover .btn-arrow {
+      transform: translate3d(0.25rem, 0, 0);
+    }
   }
 
   /*
@@ -194,6 +536,80 @@
   /* The tile is light in both themes, so on it the cut-outs keep blending in. */
   .dark .bg-tile .product-shot {
     mix-blend-mode: multiply;
+  }
+
+  /*
+   * Text link underline that is drawn, not switched: grows from the left on hover or
+   * keyboard focus, and leaves to the right. The anchor flips while the rule has no
+   * width, so the flip itself is never seen. Follows the link's own colour.
+   */
+  .link-underline {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position: 100% 100%;
+    background-size: 0% 1px;
+    transition: background-size var(--duration-ui) var(--ease-expo-out);
+  }
+  .link-underline:hover,
+  .link-underline:focus-visible {
+    background-position: 0% 100%;
+    background-size: 100% 1px;
+  }
+
+  /*
+   * Outlined display type (marquee, the journey's giant numerals): no fill, a
+   * hairline stroke in the element's own text colour — so text-foreground,
+   * text-ink-foreground, text-sage all just work. -ink is the ready-made pairing for
+   * the always-dark bands. Without text-stroke support the type stays solid.
+   * Careful with cn(): tailwind-merge takes "text-outline" for a text colour and
+   * keeps only the later of the two. Write the pair as a plain string, or put the
+   * colour on the parent.
+   */
+  @supports (-webkit-text-stroke: 1px currentColor) {
+    .text-outline,
+    .text-outline-ink {
+      -webkit-text-fill-color: transparent;
+      -webkit-text-stroke: 1px currentColor;
+    }
+  }
+  .text-outline-ink {
+    color: hsl(var(--ink-foreground));
+  }
+
+  /*
+   * Focus ring for a control that sits on ink or photography but is not INSIDE a
+   * bg-ink / on-ink element (the navbar's links and buttons while the bar is
+   * transparent over the hero photograph). Inside one, the ink context already does this.
+   */
+  .focus-ink {
+    @apply focus-visible:ring-sage focus-visible:ring-offset-ink;
+  }
+
+  /*
+   * SplitReveal's per-word mask. A clip-path, not overflow:hidden: an inline-block
+   * with overflow sits on its bottom edge instead of its baseline, which would move
+   * every line. The negative insets leave room for descenders, accents and the
+   * italic's overhang; the word itself starts a full line below, out of the window.
+   */
+  .split-mask {
+    clip-path: inset(-0.1em -0.12em -0.16em -0.12em);
+  }
+
+  /* Marquee: the track holds two identical halves and travels exactly one of them. */
+  .marquee-track {
+    animation: marquee var(--marquee-duration, 60s) linear infinite;
+  }
+  .marquee:hover .marquee-track,
+  .marquee-track:focus-within,
+  .marquee[data-paused] .marquee-track,
+  .marquee[data-offscreen] .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
   }
 }
 

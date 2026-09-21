@@ -25,10 +25,11 @@ export const MARK_PATHS = [
 /** The grey the artwork was supplied in. */
 export const MARK_SUPPLIED_COLOUR = "#727171";
 
-// Brand ink, ivory and gold, as in src/index.css (--ink, --ink-foreground, --gold).
-export const INK = "#1b130e";
-export const IVORY = "#f5f1ea";
-export const GOLD = "#d2a43c";
+// The always-dark palette of src/index.css: --ink, --ink-foreground (chalk) and --sage,
+// the light tint of the racing-green accent that carries small signals on ink.
+export const INK = "#10100e";
+export const IVORY = "#edece8";
+export const SAGE = "#a8c7b6";
 
 /**
  * The mark as an SVG <g>, scaled to `width` and placed with its top-left at (x, y).

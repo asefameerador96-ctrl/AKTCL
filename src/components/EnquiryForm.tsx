@@ -3,8 +3,10 @@ import type { ComponentProps, ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowRight, ChevronDown } from 'lucide-react';
+import Magnetic from '@/components/motion/Magnetic';
+import SplitReveal from '@/components/motion/SplitReveal';
+import { CtaButton } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
@@ -15,7 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { FIELD, FieldRule, Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { site } from '@/content/site';
 import { COUNTRIES } from '@/lib/countries';
@@ -29,6 +31,7 @@ import {
   type EnquiryErrorKind,
   type EnquiryInput,
 } from '@/lib/enquiry';
+import { EASE, useReveal } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 export interface EnquiryFormProps {
@@ -37,17 +40,49 @@ export interface EnquiryFormProps {
   className?: string;
 }
 
-// 16px text on phones so iOS does not zoom the page on focus; a field the form has
-// rejected is outlined as well as labelled.
-const FIELD = 'text-base md:text-sm aria-[invalid=true]:border-destructive';
-// 44px touch target for the single-line controls.
-const CONTROL = `h-11 ${FIELD}`;
+/*
+ * The form is a ruled sheet, not a stack of boxes. Every field is one CELL of a
+ * two-column grid: a hairline above it, the mono label, the rule to write on
+ * (ui/input), then help and error text. The cells share their lines — the right-hand
+ * column draws the one vertical divider, the grid itself the closing rule — and the
+ * left column keeps the page's own left edge, so labels line up with the headline.
+ * `group` lets the label turn to the accent while its field has focus.
+ */
+const CELL = 'group min-w-0 space-y-2 border-t border-border pb-7 pt-5';
+const CELL_LEFT = `${CELL} sm:pr-8`;
+const CELL_RIGHT = `${CELL} sm:border-l sm:pl-8`;
+const CELL_WIDE = `${CELL} sm:col-span-2`;
+const HELP = 'pt-1';
+// Validation text is mounted only when there is something to say, so it can arrive.
+const MESSAGE = 'pt-1 animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out';
+const MONO = 'font-mono text-[12px] font-medium uppercase tracking-[0.18em]';
+// A directory row that is a link: the label shifts 8px and the arrow darkens, nothing more.
+const ROW_LINK = `group/row flex min-h-14 w-full items-center justify-between gap-6 text-left text-foreground ${MONO}`;
+const ROW_LABEL = 'transition-transform group-hover/row:translate-x-2 group-focus-visible/row:translate-x-2';
+const ROW_ARROW =
+  'h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover/row:text-accent group-focus-visible/row:text-accent';
 
 const Required = () => (
   <span aria-hidden="true" className="text-accent">
     {' '}
     *
   </span>
+);
+
+/** A numbered part of the form: "01 Your details". The legend names the group to assistive tech. */
+const FieldGroup = ({ index, title, children }: { index: string; title: string; children: ReactNode }) => (
+  // min-w-0: a fieldset is otherwise as wide as its longest <option>, which overflows a phone.
+  <fieldset className="min-w-0">
+    <legend className="w-full pb-6">
+      <span className="flex items-baseline gap-5">
+        <span aria-hidden="true" className="index-num">
+          {index}
+        </span>
+        <span className="display-xs text-foreground">{title}</span>
+      </span>
+    </legend>
+    <div className="grid border-b border-border sm:grid-cols-2">{children}</div>
+  </fieldset>
 );
 
 /**
@@ -61,8 +96,10 @@ const NativeSelect = forwardRef<HTMLSelectElement, ComponentProps<'select'>>(
       <select
         ref={ref}
         className={cn(
-          CONTROL,
-          'w-full appearance-none rounded-md border border-input bg-background pl-3 pr-10 text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+          FIELD,
+          // A real background (the page's): the browser paints the open list with it,
+          // and a transparent one would come out white under the dark theme's light text.
+          'h-12 cursor-pointer appearance-none truncate bg-background pr-9',
           // Placeholder state is muted; the open list stays full-strength.
           props.value === '' && 'text-muted-foreground [&_optgroup]:text-foreground [&_option]:text-foreground',
           className
@@ -71,24 +108,58 @@ const NativeSelect = forwardRef<HTMLSelectElement, ComponentProps<'select'>>(
       >
         {children}
       </select>
+      {/* The site's own chevron in place of the platform's: it dips 2px, it does not bounce. */}
       <ChevronDown
         aria-hidden="true"
-        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        strokeWidth={1.5}
+        className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-[transform,color] peer-hover:translate-y-[calc(-50%+2px)] peer-hover:text-foreground peer-focus-visible:translate-y-[calc(-50%+2px)] peer-focus-visible:text-accent"
       />
+      <FieldRule />
     </div>
   )
 );
 NativeSelect.displayName = 'NativeSelect';
 
+/** A ruled note, not a tinted box: one destructive rule down its side and a mono label. */
 const FormAlert = ({ children }: { children: ReactNode }) => (
   <div
     role="alert"
-    className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm leading-relaxed text-foreground"
+    className="border-l-2 border-destructive py-1 pl-5 animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out"
   >
-    <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-    <div>{children}</div>
+    <p className="font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em] text-destructive">
+      Not sent
+    </p>
+    <div className="mt-2 max-w-prose text-sm leading-relaxed text-foreground">{children}</div>
   </div>
 );
+
+/** The confirmation mark: a square hairline frame settles, then the tick is wiped in the way a pen makes it. */
+const DrawnCheck = () => {
+  const shown = useReveal(true);
+  return (
+    <span aria-hidden="true" className="relative flex h-16 w-16 items-center justify-center text-accent">
+      <span
+        className="absolute inset-0 border border-current"
+        style={{
+          opacity: shown ? 1 : 0,
+          transform: shown ? 'none' : 'scale(0.6)',
+          transition: `opacity 0.7s ${EASE.expoOut}, transform 0.9s ${EASE.expoOut}`,
+        }}
+      />
+      <svg
+        viewBox="0 0 32 32"
+        fill="none"
+        className="h-8 w-8"
+        style={{
+          clipPath: shown ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
+          transition: `clip-path 0.8s ${EASE.expoOut} 0.3s`,
+        }}
+      >
+        <path d="M6 16.8l6.6 6.4L26 9.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" />
+      </svg>
+    </span>
+  );
+};
 
 const ERROR_COPY: Record<EnquiryErrorKind, string> = {
   validation: 'Some details could not be accepted. Please check the highlighted fields and send again.',
@@ -177,29 +248,39 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
         ref={successRef}
         role="status"
         tabIndex={-1}
-        className={cn('scroll-mt-32 rounded-md border border-border bg-secondary/60 p-8 outline-none md:p-10', className)}
+        className={cn('scroll-mt-32 outline-none', className)}
       >
-        <CheckCircle2 aria-hidden="true" className="h-8 w-8 text-accent" />
-        <h3 className="mt-5 text-2xl font-medium text-foreground md:text-3xl">Thank you. Your enquiry has been sent.</h3>
-        <div className="rule mt-5" aria-hidden="true" />
-        <p className="mt-5 max-w-prose leading-relaxed text-muted-foreground">
-          We have received your details and will reply to the email address you provided.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3">
-          <Link
-            to="/products"
-            className="inline-flex min-h-11 items-center text-[13px] font-semibold uppercase tracking-[0.18em] text-accent underline-offset-4 hover:underline"
-          >
-            View our products
-          </Link>
-          <button
-            type="button"
-            onClick={sendAnother}
-            className="inline-flex min-h-11 items-center text-[13px] font-semibold uppercase tracking-[0.18em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Send another enquiry
-          </button>
+        {/* Ruled like the form it replaces: a mono header row, the statement, then row links. */}
+        <p className="eyebrow-signal border-y border-border py-4">Enquiry received</p>
+        <div className="grid gap-x-10 gap-y-8 py-12 sm:grid-cols-[4rem_1fr] md:py-16">
+          <DrawnCheck />
+          <div>
+            <SplitReveal
+              as="h3"
+              by="line"
+              delay={0.25}
+              text="Thank you. Your enquiry has been sent."
+              className="display-md max-w-[14ch] text-foreground"
+            />
+            <p className="mt-8 max-w-[52ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+              We have received your details and will reply to the email address you provided.
+            </p>
+          </div>
         </div>
+        <ul className="hairline-rows">
+          <li>
+            <Link to="/products" className={ROW_LINK}>
+              <span className={ROW_LABEL}>View our products</span>
+              <ArrowRight aria-hidden="true" className={ROW_ARROW} />
+            </Link>
+          </li>
+          <li>
+            <button type="button" onClick={sendAnother} className={ROW_LINK}>
+              <span className={ROW_LABEL}>Send another enquiry</span>
+              <ArrowRight aria-hidden="true" className={ROW_ARROW} />
+            </button>
+          </li>
+        </ul>
       </div>
     );
   }
@@ -218,32 +299,22 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
         name="enquiry-form"
         noValidate
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn('space-y-6', className)}
+        className={cn('space-y-16 md:space-y-20', className)}
       >
-        <p className="text-sm text-muted-foreground">
-          Fields marked <span className="text-accent">*</span> are required.
-        </p>
-
-        <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2">
+        <FieldGroup index="01" title="Your details">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>
                   Full name
                   <Required />
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    autoComplete="name"
-                    aria-required="true"
-                    maxLength={ENQUIRY_LIMITS.name}
-                    className={CONTROL}
-                  />
+                  <Input {...field} autoComplete="name" aria-required="true" maxLength={ENQUIRY_LIMITS.name} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
@@ -252,7 +323,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="company"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className={CELL_RIGHT}>
                 <FormLabel>
                   Company
                   <Required />
@@ -263,10 +334,9 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                     autoComplete="organization"
                     aria-required="true"
                     maxLength={ENQUIRY_LIMITS.company}
-                    className={CONTROL}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
@@ -275,7 +345,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="country"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>
                   Country
                   <Required />
@@ -292,7 +362,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                     ))}
                   </NativeSelect>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
@@ -301,7 +371,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className={CELL_RIGHT}>
                 <FormLabel>
                   Business email
                   <Required />
@@ -314,10 +384,9 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                     autoComplete="email"
                     aria-required="true"
                     maxLength={ENQUIRY_LIMITS.email}
-                    className={CONTROL}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
@@ -326,7 +395,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="phone"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>Phone / WhatsApp</FormLabel>
                 <FormControl>
                   <Input
@@ -335,20 +404,29 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                     inputMode="tel"
                     autoComplete="tel"
                     maxLength={ENQUIRY_LIMITS.phone}
-                    className={CONTROL}
                   />
                 </FormControl>
-                <FormDescription>Optional. Please include the country code.</FormDescription>
-                <FormMessage />
+                <FormDescription className={HELP}>Optional. Please include the country code.</FormDescription>
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
 
+          {/* Five fields leave a sixth cell: it carries the sheet's one footnote, so the
+              divider runs the full height and nothing is left looking unfinished. */}
+          <p className={`${CELL_RIGHT} flex items-end`}>
+            <span className="eyebrow">
+              Fields marked <span className="text-accent">*</span> are required
+            </span>
+          </p>
+        </FieldGroup>
+
+        <FieldGroup index="02" title="Your requirement">
           <FormField
             control={form.control}
             name="product"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>
                   Product of interest
                   <Required />
@@ -370,7 +448,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                     <option value={OTHER_PRODUCT}>{OTHER_PRODUCT}</option>
                   </NativeSelect>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
@@ -379,13 +457,13 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="volume"
             render={({ field }) => (
-              <FormItem className="sm:col-span-2">
+              <FormItem className={CELL_RIGHT}>
                 <FormLabel>Estimated volume</FormLabel>
                 <FormControl>
-                  <Input {...field} autoComplete="off" maxLength={ENQUIRY_LIMITS.volume} className={CONTROL} />
+                  <Input {...field} autoComplete="off" maxLength={ENQUIRY_LIMITS.volume} />
                 </FormControl>
-                <FormDescription>Optional. Quantity per shipment, per month or per year.</FormDescription>
-                <FormMessage />
+                <FormDescription className={HELP}>Optional. Quantity per shipment, per month or per year.</FormDescription>
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
@@ -394,7 +472,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="message"
             render={({ field }) => (
-              <FormItem className="sm:col-span-2">
+              <FormItem className={CELL_WIDE}>
                 <FormLabel>
                   Message
                   <Required />
@@ -402,21 +480,20 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                 <FormControl>
                   <Textarea
                     {...field}
-                    rows={7}
+                    rows={5}
                     autoComplete="off"
                     aria-required="true"
                     maxLength={ENQUIRY_LIMITS.messageMax}
-                    className={cn('min-h-[168px] leading-relaxed', FIELD)}
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className={HELP}>
                   Destination market, packing and any specification requirements help us respond precisely.
                 </FormDescription>
-                <FormMessage />
+                <FormMessage className={MESSAGE} />
               </FormItem>
             )}
           />
-        </div>
+        </FieldGroup>
 
         {/* Honeypot: off-screen, out of the tab order and hidden from assistive tech. */}
         <div aria-hidden="true" className="sr-only">
@@ -424,82 +501,90 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
           <input ref={honeypotRef} id={honeypotId} type="text" name="website" tabIndex={-1} autoComplete="off" />
         </div>
 
-        <FormField
-          control={form.control}
-          name="consent"
-          render={({ field }) => (
-            <FormItem className="flex items-start gap-3 space-y-0 border-t border-border pt-6">
-              {/* The ::before grows the 20px box to a 44px touch target. */}
-              <FormControl>
-                <Checkbox
-                  ref={field.ref}
-                  name={field.name}
-                  checked={field.value}
-                  onCheckedChange={(checked) => field.onChange(checked === true)}
-                  onBlur={field.onBlur}
-                  aria-required="true"
-                  className="relative mt-0.5 h-5 w-5 before:absolute before:-inset-3 before:content-[''] aria-[invalid=true]:border-destructive"
-                />
-              </FormControl>
-              <div className="space-y-1.5">
-                <FormLabel className="block text-sm font-normal leading-relaxed">
-                  I confirm I am a tobacco trade professional of legal age and I agree to {site.shortName}{' '}
-                  contacting me about this enquiry.
-                  <Required />
-                </FormLabel>
-                <FormDescription>
-                  See the{' '}
-                  {/* New tab, so reading the notice does not discard a half-written enquiry. */}
-                  <Link
-                    to="/privacy"
-                    target="_blank"
-                    rel="noopener"
-                    className="font-medium text-accent underline underline-offset-4"
-                  >
-                    Privacy Notice
-                    <span className="sr-only"> (opens in a new tab)</span>
-                  </Link>
-                  .
-                </FormDescription>
-                <FormMessage />
-              </div>
-            </FormItem>
-          )}
-        />
-
-        {hasFieldErrors && status.state !== 'error' && (
-          <FormAlert>Please complete the highlighted fields, then send your enquiry again.</FormAlert>
-        )}
-
-        {status.state === 'error' && (
-          <FormAlert>
-            {ERROR_COPY[status.kind]}
-            {status.kind !== 'validation' && site.contact.email && (
-              <>
-                {' '}
-                You can also email us at{' '}
-                <a
-                  href={`mailto:${site.contact.email}`}
-                  data-lead="enquiry-error-email"
-                  className="font-medium text-accent underline underline-offset-4"
-                >
-                  {site.contact.email}
-                </a>
-                .
-              </>
+        {/* The sheet above closes with its own rule, so this block needs no line of its own. */}
+        <div className="space-y-8">
+          <FormField
+            control={form.control}
+            name="consent"
+            render={({ field }) => (
+              <FormItem className="flex items-start gap-4 space-y-0">
+                {/* The ::before grows the 20px box to a 44px touch target. */}
+                <FormControl>
+                  <Checkbox
+                    ref={field.ref}
+                    name={field.name}
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    onBlur={field.onBlur}
+                    aria-required="true"
+                    className="relative mt-0.5 before:absolute before:-inset-3 before:content-[''] aria-[invalid=true]:border-destructive"
+                  />
+                </FormControl>
+                <div className="max-w-[60ch] space-y-1.5">
+                  {/* A sentence, not a field name: the label's mono caps are set aside here. */}
+                  <FormLabel className="cursor-pointer font-sans text-sm font-normal normal-case leading-relaxed tracking-normal text-foreground">
+                    I confirm I am a tobacco trade professional of legal age and I agree to {site.shortName}{' '}
+                    contacting me about this enquiry.
+                    <Required />
+                  </FormLabel>
+                  <FormDescription>
+                    See the{' '}
+                    {/* New tab, so reading the notice does not discard a half-written enquiry. */}
+                    <Link
+                      to="/privacy"
+                      target="_blank"
+                      rel="noopener"
+                      // Underlined at rest: inside a sentence, colour alone must not carry the link.
+                      className="rounded-sm font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent"
+                    >
+                      Privacy Notice
+                      <span className="sr-only"> (opens in a new tab)</span>
+                    </Link>
+                    .
+                  </FormDescription>
+                  <FormMessage className={MESSAGE} />
+                </div>
+              </FormItem>
             )}
-          </FormAlert>
-        )}
+          />
 
-        <Button
-          type="submit"
-          size="lg"
-          disabled={isSubmitting}
-          className="h-12 w-full bg-accent px-10 text-[13px] font-semibold uppercase tracking-[0.18em] text-accent-foreground hover:bg-accent/90 sm:w-auto"
-        >
-          {isSubmitting && <Loader2 aria-hidden="true" className="animate-spin" />}
-          {isSubmitting ? 'Sending…' : 'Send enquiry'}
-        </Button>
+          {hasFieldErrors && status.state !== 'error' && (
+            <FormAlert>Please complete the highlighted fields, then send your enquiry again.</FormAlert>
+          )}
+
+          {status.state === 'error' && (
+            <FormAlert>
+              {ERROR_COPY[status.kind]}
+              {status.kind !== 'validation' && site.contact.email && (
+                <>
+                  {' '}
+                  You can also email us at{' '}
+                  <a
+                    href={`mailto:${site.contact.email}`}
+                    data-lead="enquiry-error-email"
+                    className="rounded-sm font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent"
+                  >
+                    {site.contact.email}
+                  </a>
+                  .
+                </>
+              )}
+            </FormAlert>
+          )}
+
+          {/* Solid espresso (chalk in the dark theme), the full width of a phone. */}
+          <Magnetic>
+            {/* min-w: "Send enquiry" and "Sending…" take the same room, so nothing jumps. */}
+            <CtaButton
+              type="submit"
+              busy={isSubmitting}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto sm:min-w-[18rem]"
+            >
+              {isSubmitting ? 'Sending…' : 'Send enquiry'}
+            </CtaButton>
+          </Magnetic>
+        </div>
       </form>
     </Form>
   );

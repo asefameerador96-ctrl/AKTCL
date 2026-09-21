@@ -1,12 +1,12 @@
 import { useId } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import { useScrollAnimation } from '@/hooks/useScrollAnimation';
-import ScrollTextReveal from '@/components/ScrollTextReveal';
 import LazyImage from '@/components/LazyImage';
 import Reveal from '@/components/Reveal';
 import ProductCard from '@/components/ProductCard';
 import FormatCard from '@/components/FormatCard';
+import { RowLink, SectionHead, TravelArrow } from '@/components/Ruled';
+import ImageReveal from '@/components/motion/ImageReveal';
+import SplitReveal from '@/components/motion/SplitReveal';
 import { cn } from '@/lib/utils';
 import { categories, productsIntro, type ProductCategory } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
@@ -14,120 +14,152 @@ import { categoryImages, productImages } from '@/content/images';
 /** Same URL shape as <EnquiryCta product>, so the enquiry form opens pre-filled. */
 const enquiryPath = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
-const CategoryCard = ({ category, index }: { category: ProductCategory; index: number }) => {
+const two = (n: number) => String(n).padStart(2, '0');
+
+const productCount = categories.reduce((sum, category) => sum + category.products.length, 0);
+
+// The pair is a 7/5 split sharing one vertical hairline. Both tiles are six twelfths
+// tall (7:6 beside 5:6), so the rule under them runs straight across the two cells.
+// Stacked, they are no wider than 6:5: the portrait cut-outs lose their tips beyond that.
+const CELL_SHAPES = [
+  {
+    cell: 'md:col-span-7',
+    ratio: 'aspect-square sm:aspect-[6/5] md:aspect-[7/6]',
+    sizes: '(min-width: 1280px) 720px, (min-width: 768px) 58vw, 100vw',
+  },
+  {
+    cell: 'md:col-span-5',
+    ratio: 'aspect-square sm:aspect-[6/5] md:aspect-[5/6]',
+    sizes: '(min-width: 1280px) 515px, (min-width: 768px) 42vw, 100vw',
+  },
+] as const;
+
+/**
+ * One category as a CELL of the ruled split: tile flush to the rules, mono eyebrow,
+ * title, one line, and a ruled-off "View Range" row. The whole cell is the link; hover
+ * is the catalogue's — the tile darkens, the title's underline is drawn, the arrow
+ * travels. No card chrome.
+ */
+const CategoryCell = ({ category, index }: { category: ProductCategory; index: number }) => {
   const id = useId();
   const cover = categoryImages[category.slug];
+  const shape = CELL_SHAPES[index % CELL_SHAPES.length];
+  const delay = index * 0.12;
 
   return (
-    <Reveal as="article" delay={index * 0.12} className="h-full">
+    <article className={shape.cell}>
       <Link
         to={`/products/${category.slug}`}
         aria-labelledby={`${id}-title ${id}-cta`}
         aria-describedby={`${id}-short`}
-        className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card transition-all duration-500 hover:border-accent/40 hover:shadow-2xl hover:shadow-accent/10 motion-safe:hover:-translate-y-1"
+        data-cursor="open"
+        // Raised while focused: the ring is drawn outside the cell, over its neighbour's tile.
+        className="group relative flex h-full flex-col focus-visible:z-10"
       >
         {cover && (
-          // Square, not wider: the 3:4 cut-outs lose only empty backdrop at this crop.
-          <div className="relative aspect-square overflow-hidden bg-tile">
-            <LazyImage
-              image={cover.image}
-              alt={cover.alt}
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 480px"
-              className="product-shot absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out motion-safe:group-hover:scale-105 motion-safe:group-focus-within:scale-105"
-              style={{ objectPosition: cover.position }}
-            />
-          </div>
+          <ImageReveal delay={delay} className={shape.ratio}>
+            {/* The tile rides inside the reveal, so the cut-out keeps multiplying into it while the frame opens. */}
+            <div className="absolute inset-0 bg-tile">
+              <LazyImage
+                image={cover.image}
+                alt={cover.alt}
+                sizes={shape.sizes}
+                className="product-shot absolute inset-0 h-full w-full object-cover"
+                style={{ objectPosition: cover.position }}
+              />
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 bg-tile-foreground opacity-0 transition-opacity group-hover:opacity-[0.04] group-focus-visible:opacity-[0.04]"
+              />
+            </div>
+          </ImageReveal>
         )}
-        <div className="flex flex-1 flex-col p-6 md:p-8">
-          <p className="eyebrow">{category.eyebrow}</p>
-          <h3
-            id={`${id}-title`}
-            className="mt-3 font-display text-2xl font-medium leading-tight text-foreground md:text-3xl"
-          >
-            {category.title}
-          </h3>
-          <p id={`${id}-short`} className="mt-3 leading-relaxed text-muted-foreground">
-            {category.short}
-          </p>
-          <span
+
+        <Reveal delay={delay + 0.15} className="flex flex-1 flex-col border-t border-border">
+          <div className="flex-1 px-4 pb-10 pt-6 sm:px-6 md:pb-14 md:pt-8 lg:px-8">
+            <p className="eyebrow">{category.eyebrow}</p>
+            <h3 id={`${id}-title`} className="display-md mt-5 text-foreground md:mt-6">
+              <span className="link-underline pb-1 group-hover:[background-position:0%_100%] group-hover:[background-size:100%_1px] group-focus-visible:[background-position:0%_100%] group-focus-visible:[background-size:100%_1px]">
+                {category.title}
+              </span>
+            </h3>
+            <p id={`${id}-short`} className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground">
+              {category.short}
+            </p>
+          </div>
+          <p
             id={`${id}-cta`}
-            className="mt-auto inline-flex items-center gap-2 pt-6 text-xs font-medium uppercase tracking-[0.2em] text-accent"
+            className="flex min-h-14 items-center justify-between gap-6 border-t border-border px-4 font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-foreground sm:px-6 lg:px-8"
           >
             View Range
-            <ArrowRight
-              aria-hidden="true"
-              className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
-            />
-          </span>
-        </div>
+            <TravelArrow className="transition-colors group-hover:text-accent group-focus-visible:text-accent" />
+          </p>
+        </Reveal>
       </Link>
-    </Reveal>
+    </article>
   );
 };
 
-/** Quiet label + hairline that separates the two catalogue grids. */
-const GroupLabel = ({ children }: { children: string }) => (
-  <Reveal className="flex items-center gap-5">
-    <p className="eyebrow shrink-0">{children}</p>
-    <span aria-hidden="true" className="h-px flex-1 bg-border" />
+/** The mono row that names a catalogue list; the grid or directory beneath supplies the rule. */
+const GroupLabel = ({ children, count, unit }: { children: string; count: number; unit: string }) => (
+  <Reveal from="none" className="flex items-baseline justify-between gap-6 pb-4">
+    <p className="eyebrow">{children}</p>
+    <p className="index-num">
+      <span aria-hidden="true">({two(count)})</span>
+      <span className="sr-only">
+        {count} {unit}
+      </span>
+    </p>
   </Reveal>
 );
 
+/**
+ * "What We Export" — the catalogue, drawn rather than boxed: a ruled 7/5 split for the
+ * two categories, a hairline grid of leaf cells (their borders shared), and the
+ * cigarette formats as directory rows. Everything is one step from a product page or
+ * a pre-filled enquiry.
+ */
 const ProductShowcase = () => {
-  const { ref: headingRef, isVisible: headingVisible } = useScrollAnimation({ threshold: 0.5 });
-
   const leaf = categories.find((c) => c.slug === 'leaf-tobacco');
   const cigarettes = categories.find((c) => c.slug === 'finished-cigarettes');
 
   return (
-    <section id="products" aria-labelledby="products-heading" className="bg-background py-20 md:py-28">
+    <section id="products" aria-labelledby="products-heading" className="bg-background py-24 md:py-32 lg:py-36">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div ref={headingRef} className="overflow-hidden text-center">
-          {/* The reveal splits text into per-letter spans; hide those and label the real element. */}
-          <div className="eyebrow">
-            <span className="sr-only">{productsIntro.eyebrow}</span>
-            <span aria-hidden="true">
-              <ScrollTextReveal text={productsIntro.eyebrow} staggerDelay={25} />
-            </span>
-          </div>
-          <h2
+        <SectionHead
+          number="02"
+          label={productsIntro.eyebrow}
+          meta={`${two(categories.length)} Categories · ${two(productCount)} Products`}
+        />
+
+        {/* Headline over the wide cell, lead over the narrow one: the split below starts here. */}
+        <div className="mt-12 grid gap-y-8 md:mt-16 lg:mt-20 lg:grid-cols-12 lg:items-end">
+          <SplitReveal
+            as="h2"
             id="products-heading"
-            aria-label={productsIntro.heading}
-            className="mt-4 overflow-hidden pb-1 font-display text-4xl font-medium leading-tight text-foreground md:text-6xl"
-          >
-            <span aria-hidden="true">
-              <ScrollTextReveal text={productsIntro.heading} staggerDelay={40} threshold={0.2} />
-            </span>
-          </h2>
-          <div
-            aria-hidden="true"
-            className={cn(
-              'mx-auto mt-6 h-px bg-gold/70 transition-[width] delay-500 duration-1000 ease-out',
-              headingVisible ? 'w-20' : 'w-0'
-            )}
+            text={productsIntro.heading}
+            italicWords={['Our']}
+            className="display-lg text-foreground lg:col-span-7 lg:pr-8"
           />
+          <Reveal as="p" delay={0.15} className="lead lg:col-span-5 lg:pb-2 lg:pl-8">
+            {productsIntro.short}
+          </Reveal>
         </div>
 
-        <Reveal
-          as="p"
-          delay={0.15}
-          className="mx-auto mt-8 max-w-3xl text-center text-base leading-relaxed text-muted-foreground md:text-lg"
-        >
-          {productsIntro.short}
-        </Reveal>
-
         {/* The two categories */}
-        <div className="mx-auto mt-14 grid max-w-5xl gap-6 md:mt-20 md:grid-cols-2 md:gap-10">
+        <div className="hairline-grid mt-14 grid md:mt-20 md:grid-cols-12">
           {categories.map((category, i) => (
-            <CategoryCard key={category.slug} category={category} index={i} />
+            <CategoryCell key={category.slug} category={category} index={i} />
           ))}
         </div>
 
         {/* Leaf catalogue: image + name, straight through to the product page */}
         {leaf && (
-          <div className="mt-20 md:mt-28">
-            <GroupLabel>{leaf.label}</GroupLabel>
-            <ul className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+          <div className="mt-24 md:mt-32">
+            <GroupLabel count={leaf.products.length} unit="products">
+              {leaf.label}
+            </GroupLabel>
+            <ul role="list" className="hairline-grid grid grid-cols-2 lg:grid-cols-4">
               {leaf.products.map((product, i) => (
                 <li key={product.slug}>
                   <ProductCard
@@ -135,8 +167,8 @@ const ProductShowcase = () => {
                     image={productImages[product.slug]?.[0] ?? categoryImages[leaf.slug]}
                     name={product.name}
                     short={product.short}
-                    eyebrow={leaf.label}
-                    index={i % 4}
+                    index={i}
+                    number={i + 1}
                   />
                 </li>
               ))}
@@ -144,14 +176,18 @@ const ProductShowcase = () => {
           </div>
         )}
 
-        {/* Cigarette formats: no detail pages yet, so each card opens a pre-filled enquiry */}
+        {/* Cigarette formats: no detail pages yet, so each row opens a pre-filled enquiry */}
         {cigarettes && (
-          <div className="mt-20 md:mt-28">
-            <GroupLabel>{cigarettes.label}</GroupLabel>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
+          <div className="mt-24 md:mt-32">
+            <GroupLabel count={cigarettes.products.length} unit="formats">
+              {cigarettes.label}
+            </GroupLabel>
+            <ul role="list">
               {cigarettes.products.map((product, i) => (
-                <Reveal as="li" key={product.slug} delay={(i % 3) * 0.08} className="h-full">
+                <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
                   <FormatCard
+                    layout="row"
+                    number={i + 1}
                     name={product.name}
                     short={product.short}
                     rows={product.specs}
@@ -163,17 +199,11 @@ const ProductShowcase = () => {
           </div>
         )}
 
-        <Reveal className="mt-16 text-center md:mt-20">
-          <Link
-            to="/products"
-            className="group inline-flex min-h-12 items-center gap-3 rounded-md border border-foreground/25 px-8 text-xs font-semibold uppercase tracking-[0.2em] text-foreground transition-colors duration-300 hover:border-accent hover:text-accent"
-          >
+        {/* The directory's closing row, not a boxed button. */}
+        <Reveal className={cn(!cigarettes && 'mt-24 md:mt-32')}>
+          <RowLink to="/products" display meta={`(${two(productCount)})`} className="border-b">
             All Products
-            <ArrowRight
-              aria-hidden="true"
-              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-            />
-          </Link>
+          </RowLink>
         </Reveal>
       </div>
     </section>

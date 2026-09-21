@@ -1,68 +1,114 @@
+import { useRef, useState } from 'react';
 import Reveal from '@/components/Reveal';
+import { DrawnRule, SectionHead, WRAP } from '@/components/PageHeader';
+import SplitReveal from '@/components/motion/SplitReveal';
 import { milestones } from '@/content/about';
+import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 interface HeritageTimelineProps {
+  /** The section's place on the page, as printed in its marker. */
+  number?: string;
   className?: string;
 }
+
+/** Columns the page shows at once from md; past this the track scrolls sideways. */
+const FITS = 4;
+
+const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
  * Heritage timeline — the "legacy" device from the Sopariwala reference, reduced to
  * what AKTCL has actually supplied: a year and one line per event.
  *
- * It renders however many entries `milestones` holds, in the order given, so the
- * list can grow without touching this file.
+ * From md one hairline is drawn across the whole sheet: above it each event's mono
+ * index, on it a small square node, below it the year in the display serif and its
+ * line of copy. The rule runs on past the last year to the edge of the sheet, so the
+ * list reads as unfinished while more milestones are still to come. On a phone the
+ * same thread runs down the left edge. Only the rule and its nodes move (transform),
+ * once, when the track is first seen.
+ *
+ * It renders however many entries `milestones` holds, in the order given: each takes
+ * a column of at least 18rem and the track scrolls sideways once they outgrow the
+ * page, so the list can grow without touching this file.
  *
  * TODO(Asef): only two dated events have been supplied (1953 and 1997). Add further
  * milestones to `milestones` in src/content/about.ts once AKTCL confirms the years.
  */
-const HeritageTimeline = ({ className }: HeritageTimelineProps) => (
-  <section aria-labelledby="heritage-heading" className={cn('py-20 md:py-28', className)}>
-    <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-12 lg:gap-16">
-      <Reveal className="lg:col-span-4">
-        <p className="eyebrow">Heritage</p>
-        <h2
-          id="heritage-heading"
-          className="mt-4 text-3xl/tight font-medium md:text-4xl/tight lg:text-5xl/tight"
-        >
-          Our Milestones
-        </h2>
-        <div className="rule mt-6" aria-hidden="true" />
-      </Reveal>
+const HeritageTimeline = ({ number = '01', className }: HeritageTimelineProps) => {
+  const [still] = useState(isStill);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const shown = useReveal(useInView(trackRef, { skip: still }));
 
-      <div className="relative lg:col-span-8">
-        {/* The thread the dots sit on. It fades out rather than ending on a cap, so
-            the list reads as unfinished while more milestones are still to come. */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-px -translate-x-1/2 bg-gradient-to-b from-gold/70 via-gold/40 to-transparent"
-        />
-        {/* role: Preflight strips the markers, and with them the list role in Safari. */}
-        <ol role="list">
-          {milestones.map((milestone, i) => (
-            <Reveal
-              as="li"
-              key={`${milestone.year}-${i}`}
-              delay={i * 0.12}
-              className="pb-12 pl-8 last:pb-0 md:grid md:grid-cols-[10rem_1fr] md:items-baseline md:gap-8 md:pb-16 md:pl-12"
-            >
-              <h3 className="relative text-5xl font-medium leading-none md:text-6xl">
-                {/* Offset by the item's left padding so the dot lands on the thread. */}
+  const count = milestones.length;
+  // The nodes follow the rule along: all set within ~0.9 s however many there are.
+  const lag = (i: number) => i * Math.min(0.3, 0.9 / count);
+  const pop = (i: number) =>
+    still
+      ? undefined
+      : {
+          transform: shown ? 'none' : 'scale(0)',
+          transition: `transform 0.7s ${EASE.expoOut} ${(0.15 + lag(i)).toFixed(2)}s`,
+        };
+
+  return (
+    <section aria-labelledby="heritage-heading" className={cn(WRAP, 'py-24 md:py-36', className)}>
+      <SectionHead
+        number={number}
+        label="Heritage"
+        // First and last year on record — both from src/content/about.ts.
+        meta={count > 1 ? `${milestones[0].year} — ${milestones[count - 1].year}` : undefined}
+        title="Our Milestones"
+        id="heritage-heading"
+      />
+
+      <div
+        ref={trackRef}
+        // Focusable only once there is something to scroll to.
+        tabIndex={count > FITS ? 0 : undefined}
+        className="mt-14 md:mt-24 md:overflow-x-auto md:pb-6"
+      >
+        <div className="relative md:w-max md:min-w-full">
+          <DrawnRule className="absolute inset-x-0 top-10 hidden md:block" />
+
+          {/* role: Preflight strips the markers, and with them the list role in Safari. */}
+          <ol role="list" className="grid md:grid-flow-col md:auto-cols-[minmax(18rem,26rem)]">
+            {milestones.map((milestone, i) => (
+              <li
+                key={`${milestone.year}-${i}`}
+                className="relative border-l border-border pb-14 pl-6 last:pb-0 md:border-l-0 md:pb-0 md:pl-0 md:pr-12"
+              >
+                {/* The <ol> carries the order; the index is its visual echo. */}
+                <p aria-hidden="true" className="index-num md:h-10">
+                  {pad(i + 1)}
+                </p>
+                {/* A square node on the thread: the one place this section spends the accent. */}
                 <span
                   aria-hidden="true"
-                  className="absolute -left-8 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold ring-4 ring-background md:-left-12"
-                />
-                <time dateTime={milestone.year}>{milestone.year}</time>
-              </h3>
-              <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground md:mt-0">
-                {milestone.text}
-              </p>
-            </Reveal>
-          ))}
-        </ol>
+                  className="absolute -left-px top-0.5 -translate-x-1/2 md:left-0 md:top-10 md:-translate-y-1/2 md:translate-x-0"
+                >
+                  <span className="block h-[7px] w-[7px] bg-accent" style={pop(i)} />
+                </span>
+
+                <h3 className="display-lg mt-6 text-foreground md:mt-10">
+                  <time dateTime={milestone.year}>
+                    <SplitReveal as="span" text={milestone.year} delay={lag(i)} />
+                  </time>
+                </h3>
+                <Reveal
+                  as="p"
+                  delay={0.2 + lag(i)}
+                  className="mt-4 max-w-[34ch] text-base leading-relaxed text-muted-foreground md:mt-6"
+                >
+                  {milestone.text}
+                </Reveal>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default HeritageTimeline;

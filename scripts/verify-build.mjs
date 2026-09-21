@@ -114,9 +114,23 @@ for (const path of paths) {
   if (text.length < MIN_STATIC_TEXT) fail(path, `only ${text.length} chars of body text in the static HTML`);
 
   // A scroll reveal the prerenderer never triggered: present in the HTML, invisible
-  // to anyone reading it without JavaScript.
+  // to anyone reading it without JavaScript. Every reveal primitive renders its final
+  // state under isStill() (src/lib/motion.ts); each of these is the mark one of them
+  // leaves when it did not.
   const unrevealed = (html.match(/style="[^"]*opacity: 0;[^"]*transition:/g) ?? []).length;
   if (unrevealed) fail(path, `${unrevealed} scroll-reveal block(s) captured at opacity 0`);
+  // SplitReveal: per-word masks only exist in its animated render.
+  const splitWords = (html.match(/data-split-word/g) ?? []).length;
+  if (splitWords) fail(path, `${splitWords} SplitReveal word(s) captured in their masked, animated state`);
+  // Masked lines parked under (or over) their window: SplitReveal, the journey's stage copy.
+  const parked = (html.match(/style="[^"]*transform: translate3d\(0(?:px)?, (?:calc\()?-?1\d\d%[^"]*transition:/g) ?? []).length;
+  if (parked) fail(path, `${parked} masked line(s) captured outside their mask`);
+  // DrawnRule / SectionMarker: a hairline that was never drawn.
+  const undrawn = (html.match(/style="[^"]*transform: scale[XY]\(0\);[^"]*transition:/g) ?? []).length;
+  if (undrawn) fail(path, `${undrawn} drawn rule(s) captured at scale 0`);
+  // ImageReveal: a photograph still waiting behind its closed frame.
+  const framed = (html.match(/data-image-reveal=""[^>]*visibility: hidden/g) ?? []).length;
+  if (framed) fail(path, `${framed} ImageReveal frame(s) captured hidden`);
 }
 
 // Every HTML file in dist, not only the routed ones (404.html, anything stray).

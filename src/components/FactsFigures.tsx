@@ -1,97 +1,141 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import Reveal from '@/components/Reveal';
-import { useCountUp } from '@/hooks/useCountUp';
-import { useScrollAnimation } from '@/hooks/useScrollAnimation';
-import { prefersReducedMotion } from '@/hooks/useMediaQuery';
+import { SectionHead } from '@/components/Ruled';
+import CountUp from '@/components/motion/CountUp';
+import Grain from '@/components/motion/Grain';
+import SplitReveal from '@/components/motion/SplitReveal';
+import { cn } from '@/lib/utils';
+import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
 import { facts, formatFact, type Fact } from '@/content/about';
+import { site } from '@/content/site';
 
-const COUNT_MS = 2000;
 /** A year sweeping up from 0 reads as nonsense, so years run through their last few decades only. */
-const YEAR_RUN = 40;
+const YEAR_RUN = 30;
+const STAGGER_S = 0.12;
 
-interface StatItemProps {
-  fact: Fact;
-  /** Seconds; staggers the fade-in across the row. */
-  delay: number;
-  /** Skip the count-up and show the final figure straight away. */
-  instant: boolean;
-}
+const two = (n: number) => String(n).padStart(2, '0');
 
-const StatItem = ({ fact, delay, instant }: StatItemProps) => {
-  const { ref, isVisible } = useScrollAnimation({ threshold: 0.3 });
-  const run = fact.isYear ? Math.min(YEAR_RUN, fact.value) : fact.value;
-  const counted = useCountUp(run, COUNT_MS, isVisible && !instant);
-  const shown = instant ? fact.value : fact.value - run + counted;
+// One row while there are three figures or fewer; more than that, two columns.
+const COLUMNS = facts.length <= 3 ? facts.length : 2;
+
+const Stat = ({ fact, index }: { fact: Fact; index: number }) => {
+  const [still] = useState(isStill);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { threshold: 0.3, skip: still });
+  const shown = useReveal(inView);
+  const delay = index * STAGGER_S;
+  // Where the cell sits from md up. The list's own border-y rules the outside; a cell
+  // only draws what divides it from its neighbours.
+  const firstInRow = index % COLUMNS === 0;
+  const firstRow = index < COLUMNS;
+
+  const move = (hidden: string, seconds: number, after = 0): CSSProperties | undefined =>
+    still
+      ? undefined
+      : { transform: shown ? 'none' : hidden, transition: `transform ${seconds}s ${EASE.expoOut} ${delay + after}s` };
 
   return (
-    // <dt> leads in the DOM so the pair reads "label: value"; column-reverse puts
-    // the figure on top visually.
+    // A column of a ruled table, not a box: mono label above, the figure at its foot.
+    // The first column sits on the page's left edge, so it takes no left padding; the
+    // others stand 32–40px off the hairline that divides them.
     <div
       ref={ref}
-      className="flex flex-col-reverse items-center justify-end gap-5 px-6 text-center transition-all duration-1000 ease-out md:gap-6 md:px-10"
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? 'none' : 'translateY(24px)',
-        transitionDelay: `${delay}s`,
-      }}
+      className={cn(
+        'relative flex flex-col justify-between gap-12 py-8 md:gap-24 md:px-8 md:pb-10 md:pt-7 lg:gap-32 lg:px-10',
+        firstInRow && 'md:pl-0 lg:pl-0'
+      )}
     >
-      <dt className="max-w-xs text-sm uppercase leading-relaxed tracking-[0.15em] text-ink-muted">
-        {fact.label}
-      </dt>
-      <dd className="font-display text-[length:clamp(3rem,6vw,5rem)] font-medium tabular-nums lining-nums leading-none text-ink-foreground">
-        {/* The final figure is always in the DOM for screen readers and crawlers;
-            the animated one is presentation only. */}
-        <span className="sr-only">
-          {formatFact(fact)}
-          {fact.suffix}
+      {/* The dividing hairlines, drawn from their origin: across the top between
+          stacked cells (every cell on a phone, every row from md), down the left side
+          between columns. */}
+      {index > 0 && (
+        <span
+          aria-hidden="true"
+          className={cn('absolute left-0 top-0 h-px w-full origin-left bg-ink-border', firstRow && 'md:hidden')}
+          style={move('scaleX(0)', 1.1)}
+        />
+      )}
+      {!firstInRow && (
+        <span
+          aria-hidden="true"
+          className="absolute left-0 top-0 hidden h-full w-px origin-top bg-ink-border md:block"
+          style={move('scaleY(0)', 1.1)}
+        />
+      )}
+      <dt
+        className="flex items-start justify-between gap-6"
+        style={
+          still ? undefined : { opacity: shown ? 1 : 0, transition: `opacity 0.9s ${EASE.expoOut} ${delay + 0.35}s` }
+        }
+      >
+        <span className="eyebrow max-w-[16rem] leading-relaxed">{fact.label}</span>
+        {/* From lg only: a tablet's columns need the width for the label. */}
+        <span aria-hidden="true" className="index-num mt-1 hidden lg:block">
+          {two(index + 1)}
         </span>
-        <span aria-hidden="true">
-          {formatFact(fact, shown)}
-          {fact.suffix && <span className="text-gold">{fact.suffix}</span>}
+      </dt>
+      {/* split-mask (index.css) is SplitReveal's window: the figure rises into it from below. */}
+      <dd className="display-xl split-mask text-[length:clamp(4.5rem,9.5vw,9rem)] lining-nums leading-none text-ink-foreground">
+        <span className="block whitespace-nowrap" style={move('translate3d(0, calc(100% + 0.3em), 0)', 1.1, 0.1)}>
+          <CountUp
+            value={fact.value}
+            from={fact.isYear ? fact.value - Math.min(YEAR_RUN, fact.value) : 0}
+            duration={fact.isYear ? 900 : 1200}
+            format={(n) => formatFact(fact, n)}
+          />
+          {/* The one signal in the band: sage, a tint of the accent, on a single glyph. */}
+          {fact.suffix && <span className="text-sage">{fact.suffix}</span>}
         </span>
       </dd>
     </div>
   );
 };
 
+// In the single row each column is as wide as its figure is long (plus one for the
+// gutter), so "50,000+" gets more room than "1953" and no column's width depends on
+// the digits turning inside it.
+const ROW_COLUMNS =
+  facts.length <= 3
+    ? facts.map((fact) => `minmax(0, ${(formatFact(fact) + (fact.suffix ?? '')).length + 1}fr)`).join(' ')
+    : 'repeat(2, minmax(0, 1fr))';
+
 /**
- * Facts & figures band (the Shah Agro count-up, on the always-dark ink band).
+ * Facts & figures, on the always-dark ink band with paper grain: a ruled table of
+ * monumental numerals that count up as they rise into view — mono label above each,
+ * vertical hairlines between them, no boxes.
  *
  * Shows ONLY the figures in src/content/about.ts, each of which is stated in the
  * About copy. TODO(Asef): add capacity, markets served, certifications etc. to
- * `facts` once AKTCL confirms real numbers — the row lays itself out for any count.
+ * `facts` once AKTCL confirms real numbers. Under isStill() (prerender, reduced
+ * motion) every figure is its final value from the first paint.
  */
-const FactsFigures = () => {
-  // Read once per mount: the prerender snapshot must hold the final numbers, and
-  // reduced-motion visitors should not watch digits spin.
-  const [instant] = useState(() => window.__PRERENDER__ === true || prefersReducedMotion());
+const FactsFigures = () => (
+  <section
+    aria-labelledby="facts-heading"
+    className="relative isolate overflow-hidden bg-ink py-24 text-ink-foreground md:py-32 lg:py-36"
+  >
+    <Grain className="-z-10" />
 
-  return (
-    <section aria-labelledby="facts-heading" className="bg-ink py-20 text-ink-foreground md:py-28">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <Reveal className="flex flex-col items-center text-center">
-          <p className="eyebrow text-gold">At a Glance</p>
-          <h2
-            id="facts-heading"
-            className="mt-4 text-3xl font-medium leading-tight md:text-4xl lg:text-5xl"
-          >
-            Facts &amp; Figures
-          </h2>
-          <div className="rule mt-6" aria-hidden="true" />
-        </Reveal>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6">
+      <SectionHead number="03" label="At a Glance" meta={site.name} onInk />
+      <SplitReveal
+        as="h2"
+        id="facts-heading"
+        text="Facts & Figures"
+        italicWords={['Figures']}
+        className="display-lg mt-12 md:mt-16 lg:mt-20"
+      />
 
-        <dl
-          className="mt-14 grid gap-y-14 md:mt-20 md:grid-cols-[repeat(var(--facts),minmax(0,1fr))] md:divide-x md:divide-ink-border"
-          style={{ '--facts': facts.length } as CSSProperties}
-        >
-          {facts.map((fact, i) => (
-            <StatItem key={fact.label} fact={fact} delay={i * 0.15} instant={instant} />
-          ))}
-        </dl>
-      </div>
-    </section>
-  );
-};
+      <dl
+        className="mt-14 grid border-y border-ink-border md:mt-20 md:[grid-template-columns:var(--facts-columns)] lg:mt-24"
+        style={{ '--facts-columns': ROW_COLUMNS } as CSSProperties}
+      >
+        {facts.map((fact, i) => (
+          <Stat key={fact.label} fact={fact} index={i} />
+        ))}
+      </dl>
+    </div>
+  </section>
+);
 
 export default FactsFigures;
