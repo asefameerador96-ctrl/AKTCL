@@ -66,6 +66,8 @@
  *                                                              enquiry band, footer, menu, gate)
  *   tile       White #FFFFFF                 Light grey #DCDCDC (behind the white-ground
  *                                                              product cut-outs; light in both)
+ *   scrim      Black #000000                 Black #000000    (washes over photography —
+ *                                                              never Slate, which greys it)
  *
  * The token names (accent, sage, destructive…) are kept so no component had to change;
  * their values are now neutrals. "sage" is the signal on ink: White.
@@ -112,6 +114,12 @@
 
     /* The signal on ink bands: White. The same value in both themes. */
     --sage: 0 0% 100%; /* White */
+
+    /*
+     * Photo scrim: Black in BOTH themes. Washes over photography must darken it; built
+     * on --ink (Slate in the light theme) they veiled the hero in grey instead.
+     */
+    --scrim: 0 0% 0%; /* Black */
 
     /* Always-dark bands. */
     --ink: 0 0% 14.9%; /* Slate #262626 */

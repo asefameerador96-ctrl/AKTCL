@@ -94,6 +94,8 @@ export default {
           DEFAULT: "hsl(var(--tile) / <alpha-value>)",
           foreground: "hsl(var(--tile-foreground) / <alpha-value>)",
         },
+        // Washes over photography: Black in both themes (src/index.css --scrim).
+        scrim: "hsl(var(--scrim) / <alpha-value>)",
         ink: {
           DEFAULT: "hsl(var(--ink) / <alpha-value>)",
           foreground: "hsl(var(--ink-foreground) / <alpha-value>)",
