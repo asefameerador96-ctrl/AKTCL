@@ -23,6 +23,10 @@ export default defineConfig(() => ({
         // change does not make every visitor re-download React.
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
+          // The world map (Global Reach): react-simple-maps with its d3 and topojson, and
+          // prop-types, which only it uses. Imported by that one section, and by it only
+          // after mount in a real browser, so none of it is in the eager bundle.
+          if (/react-simple-maps|[\\/]d3-|[\\/]topojson|[\\/]prop-types[\\/]/.test(id)) return "maps";
           if (id.includes("react-router")) return "router";
           if (id.includes("@radix-ui")) return "ui";
           if (/react-hook-form|@hookform|[\\/]zod[\\/]/.test(id)) return "forms";

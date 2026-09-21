@@ -1,13 +1,14 @@
 import { site } from '@/content/site';
 import { journey } from '@/content/journey';
 import { categories } from '@/content/products';
+import { cigaretteSizes, type CigaretteSize } from '@/content/sizes';
 
 /**
  * The single source of truth for every indexable URL on the site.
  *
- * ROUTES is derived from the content modules, so adding a journey stage or a
- * product automatically adds its route, metadata, breadcrumb, sitemap entry and
- * prerendered page. Nothing parses this file as text: scripts/prerender.mjs reads
+ * ROUTES is derived from the content modules, so adding a journey stage, a
+ * product or a cigarette size automatically adds its route, metadata, breadcrumb,
+ * sitemap entry and prerendered page. Nothing parses this file as text: scripts/prerender.mjs reads
  * the list from the running app (window.__AKTCL_ROUTES__, set in src/main.tsx) and
  * writes dist/routes.json, sitemap.xml and robots.txt from it.
  *
@@ -53,8 +54,37 @@ const CATEGORY_SEO_TITLE: Record<string, string> = {
   'finished-cigarettes': 'Finished Cigarettes & Private Label (OEM) Cigarette Manufacturing',
 };
 
+/*
+ * Size pages: "<Format> Cigarettes (<length>) — <angle>". All five are AKTCL formats:
+ * the owner confirmed their specifications and descriptions as AKTCL's (2026-09-22).
+ * Super Slim keeps the private label angle products.ts backs; the rest lead with the
+ * specifications the page publishes.
+ */
+const SIZE_SEO_ANGLE: Record<CigaretteSize['slug'], string> = {
+  'king-size': 'Manufacturing & Export Specifications',
+  '100s': 'Manufacturing & Export Specifications',
+  slim: 'Manufacturing & Export Specifications',
+  'super-slim': 'OEM & Private Label Manufacturing',
+  nano: 'Manufacturing & Export Specifications',
+};
+
+/**
+ * The tagline, then the facts of the format's first sentence (rod length and
+ * circumference, from its specs), then what the page holds. No claim beyond sizes.ts.
+ */
+const sizeDescription = (size: CigaretteSize) => {
+  const rod = size.specs.rodLength?.value ?? size.lengthLabel;
+  const circumference = size.specs.circumference?.value;
+  return [
+    size.tagline,
+    `${size.name} cigarettes: ${rod} rod${circumference ? ` on a ${circumference} circumference` : ''}.`,
+    'Pack, carton and container-load specifications for importers and private label partners.',
+  ].join(' ');
+};
+
 const JOURNEY_CRUMB: Crumb = { name: 'Our Journey', path: '/journey' };
 const PRODUCTS_CRUMB: Crumb = { name: 'Products', path: '/products' };
+const SIZES_CRUMB: Crumb = { name: 'Cigarette Sizes', path: '/cigarette-sizes' };
 
 function build(): RouteMeta[] {
   const routes: RouteMeta[] = [
@@ -129,6 +159,30 @@ function build(): RouteMeta[] {
       });
     }
   }
+
+  // Cigarette sizes: formats, not products — BreadcrumbList only, no Product JSON-LD.
+  routes.push(
+    {
+      path: SIZES_CRUMB.path,
+      title: 'Cigarette Sizes — King Size, 100s, Slim, Super Slim & Nano Formats',
+      description:
+        'Five cigarette formats, each run on dedicated lines to its own specification: King Size, 100s, Slim, Super Slim and Nano, from rod length to container loads.',
+      breadcrumbs: [SIZES_CRUMB],
+      priority: 0.8,
+      changefreq: 'monthly',
+    },
+    ...cigaretteSizes.map<RouteMeta>((size) => {
+      const path = `${SIZES_CRUMB.path}/${size.slug}`;
+      return {
+        path,
+        title: `${size.name} Cigarettes (${size.lengthLabel}) — ${SIZE_SEO_ANGLE[size.slug]}`,
+        description: sizeDescription(size),
+        breadcrumbs: [SIZES_CRUMB, { name: size.name, path }],
+        priority: 0.7,
+        changefreq: 'monthly',
+      };
+    })
+  );
 
   routes.push(
     {

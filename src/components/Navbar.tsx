@@ -24,6 +24,7 @@ export interface NavbarProps {
 const LINKS = [
   { to: '/journey', label: 'Our Journey' },
   { to: '/products', label: 'Products' },
+  { to: '/cigarette-sizes', label: 'Cigarette Sizes' },
   { to: '/about-us', label: 'About Us' },
   { to: '/contact', label: 'Contact' },
 ] as const;
@@ -31,9 +32,12 @@ const LINKS = [
 // The full-screen menu has room for the way back as well.
 const MENU_LINKS = [{ to: '/', label: 'Home' }, ...LINKS] as const;
 
-// Matches the `lg:` breakpoint the desktop links appear at — four links, the toggle,
-// the button and the lockup do not fit below it.
-const DESKTOP_QUERY = '(min-width: 1024px)';
+// Matches the `xl:` breakpoint the desktop links appear at. The mono label runs ~9.75px
+// a character (0.6em advance + 0.15em tracking at 13px), so the five links come to
+// ~520px, ~630px with their gaps; with the toggle, Enquire and the ~205px lockup that is
+// ~1060px — more than the ~960px a 1024px window leaves inside the gutters, and well
+// inside the ~1215px at 1280px. Below xl the menu sheet carries them.
+const DESKTOP_QUERY = '(min-width: 1280px)';
 
 /** The bar only steps aside once the page is properly under way. */
 const HIDE_AFTER_PX = 320;
@@ -219,7 +223,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
             </Link>
 
             <div className="flex items-center gap-3">
-              <ul className="hidden items-center gap-7 lg:flex xl:gap-9">
+              <ul className="hidden items-center gap-9 xl:flex">
                 {LINKS.map(({ to, label }) => {
                   const current = currentFor(to);
                   return (
@@ -254,15 +258,15 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
                 })}
               </ul>
 
-              {/* Below lg the toggle lives at the foot of the menu sheet instead. */}
-              <ThemeToggle isDark={isDark} onToggle={toggle} onInk={onInk} className="hidden lg:ml-5 lg:inline-flex" />
+              {/* Below xl the toggle lives at the foot of the menu sheet instead. */}
+              <ThemeToggle isDark={isDark} onToggle={toggle} onInk={onInk} className="hidden xl:ml-5 xl:inline-flex" />
 
               <Magnetic>
                 <Link
                   to="/contact"
                   data-lead="nav-enquire"
                   // The one filled control in the bar: white over the photograph, black on paper.
-                  className={cn('btn hidden lg:inline-flex', onInk ? 'btn-ink focus-ink' : 'btn-solid')}
+                  className={cn('btn hidden xl:inline-flex', onInk ? 'btn-ink focus-ink' : 'btn-solid')}
                 >
                   Enquire
                 </Link>
@@ -276,7 +280,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
                 aria-controls="mobile-menu"
                 onClick={() => (menuOpen ? closeMenu() : setMenu('open'))}
                 className={cn(
-                  'btn btn-icon flex-col gap-[7px] lg:hidden',
+                  'btn btn-icon flex-col gap-[7px] xl:hidden',
                   onInk ? 'btn-outline-ink focus-ink' : 'btn-outline'
                 )}
               >
@@ -315,7 +319,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
           // Lifting away: still painted, no longer there to be tabbed into or tapped.
           {...(menu === 'closing' ? { inert: '' } : {})}
           className={cn(
-            'fixed inset-0 z-[45] overflow-y-auto overscroll-contain bg-ink text-ink-foreground lg:hidden',
+            'fixed inset-0 z-[45] overflow-y-auto overscroll-contain bg-ink text-ink-foreground xl:hidden',
             !still &&
               (menu === 'closing'
                 ? 'duration-500 ease-expo-in-out animate-out fill-mode-forwards slide-out-to-top-full'

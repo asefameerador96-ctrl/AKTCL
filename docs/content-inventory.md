@@ -19,8 +19,9 @@ F Long Description · G VISUAL (empty).
 | 3–9 | PROCESS — Seed, Harvest, Cure, Buying, Process, Manufacture, Smoke | Home sticky "Our Journey" section, `/journey`, `/journey/<stage>` ×7 | `journey.ts` |
 | 10 | PRODUCT intro | Home product showcase, `/products` | `products.ts` → `productsIntro` |
 | 11–20 | Category 01 Leaf Tobacco + 8 products | `/products/leaf-tobacco` and 8 product pages | `products.ts` |
-| 21–27 | Category 02 Finished Cigarettes + 6 entries | `/products/finished-cigarettes` (cards only), home private-label band | `products.ts` |
+| 21–27 | Category 02 Finished Cigarettes + 6 entries | `/products/finished-cigarettes` (cards only), home private-label band, line names on `/cigarette-sizes/<format>` | `products.ts` (names read by `sizes.ts`) |
 | 28 | ABOUT US (3 paragraphs) | `/about-us`, facts strip, heritage timeline, Organization JSON-LD | `about.ts` |
+| — | Not in the workbook: cigarette-size specifications and format descriptions, supplied and confirmed by the owner on 2026-09-22 (see gap 7) | `/cigarette-sizes`, `/cigarette-sizes/<format>`, home sizes band | `sizes.ts` |
 
 Corrections made to the workbook text (please confirm):
 
@@ -63,7 +64,7 @@ names do not say so.
 Honest note on provenance: the field, curing and product images have the dimensions and
 finish of AI-generated imagery; the threshing/manufacturing floor shots and two of the
 buying-centre shots look like real photographs. The brief asks for authentic factory and
-farm photography where possible — see gaps 6 and 7.
+farm photography where possible — see gaps 6 and 8.
 
 ## 3. Gap list — needed from AKTCL
 
@@ -95,21 +96,67 @@ hidden or shows an honest "on request" state.
    width, moisture, filling value, packing, MOQ. Cigarettes: length, circumference,
    filter, pack format, sticks/pack, packs/outer, outers/master case, cases per 20'/40'
    container, MOQ. Spec cards show the labels with "On request" until filled
-   (`products.ts → specs`).
+   (`products.ts → specs`). Per cigarette *format* these are now supplied — see gap 7;
+   the finished-cigarette product cards still need their own.
 6. **Finished cigarettes** — one line of copy each and one shared pack shot. Need long
    descriptions and a pack shot per format (Premium King Size, King Size Filter, Super
    Slim, NANO, AKT Signature Collection) before they get their own pages
    (`hasDetailPage: true`). **SCRAP** also has only one line.
-7. **Real photography** — GLT plant, cigarette factory, buying centres, farmer network,
+7. ~~**Cigarette size specifications**~~ — **supplied 2026-09-22, owner-confirmed.**
+   The owner supplied five "Packaging & Logistics Specifications" sheets (King Size,
+   100s, Slim, Super Slim, Nano) with the size-page references, confirmed that the
+   figures are AKTCL's own, and then that AKTCL's specifications and format descriptions
+   for these sizes are the same as the reference site's, so they are replicated. On the
+   site: every figure the sheets give, in `src/content/sizes.ts → specs({ … })`, typed in
+   the site's style (en-dash ranges, × dimensions, "(typical)" for nominal values); a
+   tagline, two paragraphs, "Why brands choose it" and "Best for" per format, reworded by
+   us for the trade (no consumer, lifestyle or health-appeal lines). The reference site's
+   artwork and prose are not used. This also answers the old questions: 100s and Slim are
+   AKTCL formats, and the copy per format now exists.
+   - **Still open, per format:** what the sheets do not give is left off that size's data
+     sheet (not shown, never guessed; a group with nothing in it is dropped), so the sheet
+     prints only real figures — King Size and 100s: diameter, filter length, tobacco
+     weight and type, moisture content, all pack/carton dimensions, gross weight, pallet
+     configuration (no "Dimensions & weights" group yet); Slim: moisture content,
+     pack/carton dimensions, gross weight, pallet configuration (no "Dimensions &
+     weights" group yet); Super Slim: tobacco type, moisture content. Supplying any of
+     them is a data edit in `sizes.ts`; the row appears by itself.
+   - **Optional:** an infographic or pack shot per format that AKTCL owns the rights to
+     (`infographic` in `sizes.ts`; renders only when present).
+
+   **Caveat — Super Slim and Nano carton sizes: published as supplied at the owner's
+   instruction — verify with AKTCL logistics.** The figures do not add up physically:
+   - The labelled "master carton size" (Super Slim 105 × 60 × 100 mm, Nano
+     105 × 55 × 95 mm) is outer-sized — roughly ten soft packs — not a box holding 500
+     packs.
+   - The "outer carton size" (Super Slim 540 × 280 × 115 mm ≈ 17.4 L, Nano
+     540 × 275 × 110 mm ≈ 16.3 L) cannot hold the 50 of those boxes a master carton is
+     said to contain (50 × 0.63 L ≈ 31.5 L; 50 × 0.55 L ≈ 27.4 L). The two labels look
+     swapped, and even swapped the volumes do not reconcile.
+   - The pallet configurations (Super Slim 8 outers per layer × 6 layers = 48; Nano 10
+     per layer × 7 layers = 70) do not fit a standard pallet: boxes of 540 × 280 mm or
+     540 × 275 mm go about 4–6 to a layer on a 1200 × 800 mm or 1200 × 1000 mm pallet,
+     not 8 or 10, and 8 or 10 of the 105 mm boxes would cover a fraction of one.
+   AKTCL logistics should confirm the pack, outer and master carton dimensions, gross
+   weights and pallet patterns for these two formats; correcting them is a data edit in
+   `sizes.ts` only.
+8. **Real photography** — GLT plant, cigarette factory, buying centres, farmer network,
    plus a second image for the Smoke stage. Video (hero loop, factory) if available.
 
 **Would strengthen credibility (Sopariwala "proof layer")**
 
-8. Heritage milestones beyond 1953 and 1997 (the timeline is built to take more).
-9. Leadership names/roles/photos; Abul Khair Group context paragraph.
-10. Certifications and standards (ISO etc.), awards, press.
-11. Export markets/regions — enables the world map section and region pages that the
-    Shah Agro layout and Orchid both have. Omitted for now.
-12. Capacity figures (GLT throughput, cigarette output), brochures/catalogues (PDF) for
+9. Heritage milestones beyond 1953 and 1997 (the timeline is built to take more).
+10. Leadership names/roles/photos; Abul Khair Group context paragraph.
+11. Certifications and standards (ISO etc.), awards, press.
+12. **Export markets/regions — still open.** The homepage "Global Reach" world map is live
+    (2026-09-22, at the owner's request), but it shows a **stand-in** list of 21 key
+    import markets for leaf tobacco and cigarettes from Bangladesh and India — not
+    AKTCL's confirmed export list — and its note line says exactly that. Needed from
+    AKTCL: the confirmed export markets (country, and region if it should differ), to
+    replace `markets` in `src/content/markets.ts` (marked `TODO(Asef)`); then the note
+    line can say "Where we export". **Owner / legal to confirm** that naming these 21
+    countries under the stand-in framing is acceptable until then. Region pages remain
+    out of scope until the real list exists.
+13. Capacity figures (GLT throughput, cigarette output), brochures/catalogues (PDF) for
     "Download" buttons, CSR/sustainability content.
-13. Social/profile links (LinkedIn etc.) for the footer and JSON-LD.
+14. Social/profile links (LinkedIn etc.) for the footer and JSON-LD.

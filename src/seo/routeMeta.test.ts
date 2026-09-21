@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { journey } from '@/content/journey';
 import { categories } from '@/content/products';
+import { SPEC_GROUPS, SPEC_LABELS, cigaretteSizes, sizeBySlug } from '@/content/sizes';
 import { ROUTES, ROUTE_BY_PATH, SITE, normalisePath } from './routeMeta';
 
 // Text modules only: routeMeta imports no images, so this runs without the Vite
@@ -95,6 +96,70 @@ describe('content coverage', () => {
         if (product.hasDetailPage) expect(route, product.slug).toBeDefined();
         // No page, no URL: the sitemap must not advertise a 404.
         else expect(route, product.slug).toBeUndefined();
+      }
+    }
+  });
+
+  it('has the sizes index and a route for every cigarette size, titled within 70 characters', () => {
+    expect(ROUTE_BY_PATH['/cigarette-sizes']).toBeDefined();
+    expect(new Set(cigaretteSizes.map((s) => s.slug)).size).toBe(cigaretteSizes.length);
+    for (const size of cigaretteSizes) {
+      const route = ROUTE_BY_PATH[`/cigarette-sizes/${size.slug}`];
+      expect(route, size.slug).toBeDefined();
+      expect(route.title.length, `title of /cigarette-sizes/${size.slug}: "${route.title}"`).toBeLessThanOrEqual(70);
+      expect(route.breadcrumbs[0]?.path).toBe('/cigarette-sizes');
+      // Formats, not products: no Product JSON-LD.
+      expect(route.product, size.slug).toBeUndefined();
+      expect(sizeBySlug(size.slug)).toBe(size);
+    }
+  });
+
+  it('lists every size spec field exactly once, with a label', () => {
+    const labelled = Object.keys(SPEC_LABELS).sort();
+    const grouped = SPEC_GROUPS.flatMap((g) => g.keys);
+    expect(new Set(grouped).size, 'no key in two groups').toBe(grouped.length);
+    expect([...grouped].sort()).toEqual(labelled);
+    for (const size of cigaretteSizes) {
+      expect(Object.keys(size.specs).sort(), `spec keys of ${size.slug}`).toEqual(labelled);
+    }
+  });
+
+  it('gives every cigarette size its copy', () => {
+    for (const size of cigaretteSizes) {
+      expect(size.tagline, `tagline of ${size.slug}`).toMatch(/\S.*\.$/);
+      expect(size.paragraphs.length, `paragraphs of ${size.slug}`).toBeGreaterThan(0);
+      expect(size.whyChoose.length, `whyChoose of ${size.slug}`).toBeGreaterThan(0);
+      expect(size.bestFor.length, `bestFor of ${size.slug}`).toBeGreaterThan(0);
+      for (const text of [size.tagline, ...size.paragraphs, ...size.whyChoose, ...size.bestFor]) {
+        expect(text.trim(), `${size.slug}: "${text}"`).toBe(text);
+        expect(text.length, `${size.slug}: empty copy`).toBeGreaterThan(0);
+      }
+      // The description leads with the tagline.
+      expect(ROUTE_BY_PATH[`/cigarette-sizes/${size.slug}`].description.startsWith(size.tagline)).toBe(true);
+    }
+  });
+
+  it('types size spec values as supplied: en dashes, ×, no "~" (typical says it)', () => {
+    for (const size of cigaretteSizes) {
+      for (const [key, spec] of Object.entries(size.specs)) {
+        if (!spec) continue;
+        const where = `${size.slug}.${key}: "${spec.value}"`;
+        expect(spec.value.trim(), where).toBe(spec.value);
+        expect(spec.value, where).not.toMatch(/\d\s*-\s*\d/); // a range takes an en dash
+        expect(spec.value, where).not.toMatch(/\d\s*[xX]\s*\d/); // a dimension takes ×
+        expect(spec.value, where).not.toMatch(/~/);
+      }
+    }
+  });
+
+  it('keeps each size’s packaging ladder arithmetically whole', () => {
+    const n = (value?: string) => Number((value ?? '').replace(/,/g, ''));
+    for (const { slug, specs } of cigaretteSizes) {
+      if (!specs.sticksPerPack || !specs.packsPerOuter || !specs.outersPerMasterCarton) continue;
+      const packs = n(specs.packsPerOuter.value) * n(specs.outersPerMasterCarton.value);
+      if (specs.packsPerMasterCarton) expect(n(specs.packsPerMasterCarton.value), slug).toBe(packs);
+      if (specs.sticksPerMasterCarton) {
+        expect(n(specs.sticksPerMasterCarton.value), slug).toBe(packs * n(specs.sticksPerPack.value));
       }
     }
   });
