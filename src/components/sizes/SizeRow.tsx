@@ -9,10 +9,11 @@ interface SizeRowProps {
 
 /**
  * One format as a directory row of /cigarette-sizes: the name in the display serif,
- * its length label in mono, the AKTCL lines made in it as a quiet mono list (when
- * there are any), and a travelling arrow. The whole row is the link; the house hover
- * — the accent drawn over the row's hairline, the name 8px along, the arrow through.
- * The row draws its own top rule; close a list of them with one border-b.
+ * its length label in mono, its tagline in the secondary sans with the AKTCL lines
+ * made in it under that as a quiet mono list (when there are any), and a travelling
+ * arrow. The whole row is the link; the house hover — the accent drawn over the row's
+ * hairline, the name 8px along, the arrow through. The row draws its own top rule;
+ * close a list of them with one border-b.
  */
 const SizeRow = ({ size }: SizeRowProps) => (
   <Link
@@ -26,22 +27,25 @@ const SizeRow = ({ size }: SizeRowProps) => (
     <span className="index-num col-span-2 text-foreground lg:col-span-2 lg:col-start-5 lg:row-start-1">
       {size.lengthLabel}
     </span>
-    {size.aktclLines.length > 0 && (
-      <span className="mono-label col-span-2 text-muted-foreground lg:col-span-5 lg:col-start-7 lg:row-start-1 lg:pr-8">
-        <span className="sr-only">AKTCL lines in this format: </span>
-        {size.aktclLines.map((line, i) => (
-          <span key={line}>
-            {i > 0 && (
-              <span aria-hidden="true" className="px-2 opacity-60">
-                /
-              </span>
-            )}
-            {i > 0 && <span className="sr-only">, </span>}
-            {line}
-          </span>
-        ))}
-      </span>
-    )}
+    <span className="col-span-2 flex flex-col gap-y-3 lg:col-span-5 lg:col-start-7 lg:row-start-1 lg:pr-8">
+      <span className="text-secondary text-muted-foreground">{size.tagline}</span>
+      {size.aktclLines.length > 0 && (
+        <span className="mono-label text-muted-foreground">
+          <span className="sr-only">AKTCL lines in this format: </span>
+          {size.aktclLines.map((line, i) => (
+            <span key={line}>
+              {i > 0 && (
+                <span aria-hidden="true" className="px-2 opacity-60">
+                  /
+                </span>
+              )}
+              {i > 0 && <span className="sr-only">, </span>}
+              {line}
+            </span>
+          ))}
+        </span>
+      )}
+    </span>
   </Link>
 );
 

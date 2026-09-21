@@ -70,13 +70,25 @@ const Footer = () => {
       <h2 className="sr-only">Site footer</h2>
 
       {/*
-       * Lockup (3) · journey over cigarette sizes (2) · products (3) | company over trade
-       * enquiries (4). The sizes share the journey's column, split by a hairline as the
-       * last column is: the short lists balance the products column beside them, on a
-       * phone's two columns as well as on the desktop's twelve.
+       * From xl: lockup (3) · journey over cigarette sizes (2) · products (3) | company
+       * over trade enquiries (4), in twelfths, so the last vertical falls on the eighth
+       * column. The sizes share the journey's column, split by a hairline as the last
+       * column is: the short lists balance the products column beside them, on a
+       * phone's two columns as well as on the desktop. That column runs a narrower right
+       * padding, so "Cigarette Sizes" sets on one line.
+       *
+       * lg only (1024–1279px): two twelfths are too narrow for that title, and the
+       * lockup (a fixed 230px) has nothing to spare, so the lockup takes its own row as
+       * it does on a tablet, and the three columns share the row beneath it in thirds —
+       * the eighth-column line stays where the enquiry band and the trade notice put it.
        */}
-      <div className={cn(CONTAINER, 'grid grid-cols-2 lg:grid-cols-12')}>
-        <div className="col-span-2 py-14 lg:col-span-3 lg:py-20 lg:pr-8">
+      <div
+        className={cn(
+          CONTAINER,
+          'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)_minmax(0,3fr)_minmax(0,4fr)]'
+        )}
+      >
+        <div className="col-span-2 py-14 lg:col-span-3 xl:col-span-1 xl:py-20 xl:pr-8">
           <Link to="/" aria-label={`${site.name} — home`} className="inline-block rounded-sm">
             <Logo variant="onDark" size="md" />
           </Link>
@@ -84,8 +96,8 @@ const Footer = () => {
           <p className="eyebrow mt-4">Part of {site.parent}</p>
         </div>
 
-        <div className="border-t lg:col-span-2 lg:border-l lg:border-t-0">
-          <nav aria-label={journeyIntro.heading} className="py-10 pr-4 lg:px-8 lg:pb-10 lg:pt-20">
+        <div className="border-t xl:border-l xl:border-t-0">
+          <nav aria-label={journeyIntro.heading} className="py-10 pr-4 lg:pr-8 xl:pb-10 xl:pl-8 xl:pr-4 xl:pt-20">
             <ColumnTitle>
               <Link to="/journey" className={TITLE_LINK}>
                 {journeyIntro.heading}
@@ -102,7 +114,7 @@ const Footer = () => {
             </ul>
           </nav>
 
-          <nav aria-label="Cigarette Sizes" className="border-t py-10 pr-4 lg:px-8 lg:pb-20 lg:pt-10">
+          <nav aria-label="Cigarette Sizes" className="border-t py-10 pr-4 lg:pr-8 xl:pb-20 xl:pl-8 xl:pr-4 xl:pt-10">
             <ColumnTitle>
               <Link to="/cigarette-sizes" className={TITLE_LINK}>
                 Cigarette Sizes
@@ -120,7 +132,7 @@ const Footer = () => {
           </nav>
         </div>
 
-        <nav aria-label="Products" className="border-l border-t py-10 pl-4 lg:col-span-3 lg:border-t-0 lg:px-8 lg:py-20">
+        <nav aria-label="Products" className="border-l border-t py-10 pl-4 lg:px-8 xl:border-t-0 xl:py-20">
           <ColumnTitle>
             <Link to="/products" className={TITLE_LINK}>
               Products
@@ -152,8 +164,8 @@ const Footer = () => {
           </ul>
         </nav>
 
-        <div className="col-span-2 grid grid-cols-2 border-t lg:col-span-4 lg:grid-cols-1 lg:border-l lg:border-t-0">
-          <nav aria-label="Company" className="py-10 pr-4 lg:pb-10 lg:pl-12 lg:pr-0 lg:pt-20">
+        <div className="col-span-2 grid grid-cols-2 border-t lg:col-span-1 lg:grid-cols-1 lg:border-l xl:border-t-0">
+          <nav aria-label="Company" className="py-10 pr-4 lg:pl-12 lg:pr-0 xl:pb-10 xl:pt-20">
             <ColumnTitle>Company</ColumnTitle>
             <ul>
               {COMPANY_LINKS.map(({ to, label }) => (
@@ -166,7 +178,7 @@ const Footer = () => {
             </ul>
           </nav>
 
-          <div className="border-l py-10 pl-4 lg:border-l-0 lg:border-t lg:pb-20 lg:pl-12 lg:pt-10">
+          <div className="border-l py-10 pl-4 lg:border-l-0 lg:border-t lg:pl-12 xl:pb-20">
             <ColumnTitle>Trade Enquiries</ColumnTitle>
             {/* Every row below is hidden until site.contact supplies it; the form link always shows. */}
             {addressLines && (

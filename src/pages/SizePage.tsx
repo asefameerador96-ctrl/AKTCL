@@ -3,6 +3,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import PageLayout from '@/components/PageLayout';
 import {
   ArrowTravel,
+  BODY,
   DISPLAY_H1,
   DrawnRule,
   GROUP_UNDERLINE,
@@ -20,7 +21,7 @@ import PackagingSheet from '@/components/sizes/PackagingSheet';
 import RodDiagram from '@/components/sizes/RodDiagram';
 import NotFound from '@/pages/NotFound';
 import { categoryBySlug } from '@/content/products';
-import { cigaretteSizes, sizeBySlug, sizesIntro } from '@/content/sizes';
+import { cigaretteSizes, hasAnySpecs, sizeBySlug, sizesIntro } from '@/content/sizes';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
 
@@ -56,11 +57,13 @@ const PagerRow = ({ direction, label, to }: PagerRowProps) => (
 );
 
 /**
- * /cigarette-sizes/:slug — one format. The masthead (the format's name, its nominal
- * length as the mono meta line, the enquiry), the format drawn full width on the
- * line-up's shared scale — so stepping from size to size, the rod grows or shrinks
- * truthfully — the AKTCL lines made in it, the packaging and logistics data sheet,
- * and a previous / next directory between the sizes.
+ * /cigarette-sizes/:slug — one format, read top to bottom like a trade sheet: the
+ * masthead (the format's name, its nominal length as the mono meta line, the tagline
+ * as the lead); the format described, with why brands choose it ruled off beside it;
+ * the format drawn full width on the line-up's shared scale — so stepping from size to
+ * size, the rod grows or shrinks truthfully — and what it is best for; the AKTCL lines
+ * made in it; the packaging and logistics data sheet; the enquiry; and a previous /
+ * next directory between the sizes.
  */
 const SizePage = () => {
   const params = useParams<{ slug: string }>();
@@ -112,32 +115,55 @@ const SizePage = () => {
           />
 
           <div className="grid pb-14 pt-10 md:pb-20 md:pt-14 lg:grid-cols-12">
-            <Reveal trigger="enter" delay={0.5} className="lg:col-span-5 lg:col-start-8 lg:pl-8">
-              {/* Only verbatim AKTCL copy: absent until AKTCL supplies a line for the format. */}
-              {size.summary && <p className="lead">{size.summary}</p>}
-              <Magnetic>
-                <Link
-                  to={enquiryHref(product)}
-                  data-lead="size-enquire"
-                  data-cursor="enquire"
-                  className={cn('group btn btn-lg btn-solid', size.summary && 'mt-8')}
-                >
-                  Enquire about {size.name}
-                  <ArrowTravel />
-                </Link>
-              </Magnetic>
+            <Reveal as="p" trigger="enter" delay={0.5} className="lead lg:col-span-5 lg:col-start-8 lg:pl-8">
+              {size.tagline}
             </Reveal>
           </div>
 
           <DrawnRule trigger="enter" delay={0.55} />
         </header>
 
-        {/* The drawing hangs from the masthead's closing rule. First screen on a
-            desktop: data-enter="view" holds it until the app can draw it in. */}
-        <section aria-label={`${size.name} format drawing`} data-enter="view" className={WRAP}>
-          <figure className="border-b border-border pb-8 pt-12 md:pb-10 md:pt-20">
-            <RodDiagram size={size} dimension delay={0.3} />
-            <figcaption className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 md:mt-14">
+        {/* The format described, and beside it why brands choose it, ruled off as a list.
+            It can share a desktop's first screen: data-enter="view" holds it for the app. */}
+        <section aria-labelledby="size-why-heading" data-enter="view" className={WRAP}>
+          <div className="grid gap-y-14 pt-14 md:pt-20 lg:grid-cols-12">
+            <div className="space-y-6 lg:col-span-7 lg:pr-8">
+              {size.paragraphs.map((paragraph, i) => (
+                <Reveal as="p" key={paragraph} delay={i * 0.08} className={BODY}>
+                  {paragraph}
+                </Reveal>
+              ))}
+            </div>
+            <div className="lg:col-span-5 lg:pl-8">
+              <h2 id="size-why-heading" className="eyebrow pb-4">
+                Why brands choose it
+              </h2>
+              {/* role: Preflight strips the markers, and with them the list role in Safari. */}
+              <ul role="list" className="border-b border-border">
+                {size.whyChoose.map((reason, i) => (
+                  <Reveal
+                    as="li"
+                    key={reason}
+                    delay={Math.min(i, 3) * 0.07}
+                    className="text-body border-t border-border py-4 text-foreground"
+                  >
+                    {reason}
+                  </Reveal>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* The drawing, full width between two hairlines, then what the format is best
+            for as a ruled row of mono labels (never pills). */}
+        <section aria-label={`${size.name} format drawing`} className={cn(WRAP, 'pt-24 md:pt-32')}>
+          <figure>
+            <DrawnRule />
+            <div className="pb-8 pt-12 md:pb-10 md:pt-20">
+              <RodDiagram size={size} dimension delay={0.3} />
+            </div>
+            <figcaption className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-border pb-8 md:pb-10">
               <span className="eyebrow">Nominal rod length, drawn to scale</span>
               <Link to={INDEX_PATH} data-cursor="open" className={TEXT_LINK}>
                 <span className={GROUP_UNDERLINE}>Compare all sizes</span>
@@ -145,6 +171,26 @@ const SizePage = () => {
               </Link>
             </figcaption>
           </figure>
+
+          <Reveal className="grid border-b border-border lg:grid-cols-12">
+            <h2 id="size-best-heading" className="mono-label py-5 text-foreground lg:col-span-3 lg:py-6 lg:pr-8">
+              Best for
+            </h2>
+            <ul
+              role="list"
+              aria-labelledby="size-best-heading"
+              className="grid border-t border-border sm:grid-cols-3 lg:col-span-9 lg:border-l lg:border-t-0"
+            >
+              {size.bestFor.map((use) => (
+                <li
+                  key={use}
+                  className="mono-label border-t border-border py-5 text-foreground first:border-t-0 sm:border-l sm:border-t-0 sm:px-6 sm:first:border-l-0 sm:first:pl-0 lg:py-6 lg:first:pl-8"
+                >
+                  {use}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
         </section>
 
         {size.aktclLines.length > 0 && (
@@ -169,6 +215,34 @@ const SizePage = () => {
 
         <div className={cn(WRAP, 'pt-24 md:pt-32')}>
           <PackagingSheet size={size} />
+
+          {/* The enquiry closes the sheet, set over its value column. */}
+          <Reveal className="grid pt-10 md:pt-14 lg:grid-cols-12">
+            <div className="flex flex-col items-start gap-6 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-10 lg:col-span-9 lg:col-start-4 lg:pl-8">
+              <Magnetic>
+                <Link
+                  to={enquiryHref(product)}
+                  data-lead="size-enquire"
+                  data-cursor="enquire"
+                  className="group btn btn-lg btn-solid w-full sm:w-auto"
+                >
+                  Enquire about {size.name}
+                  <ArrowTravel />
+                </Link>
+              </Magnetic>
+              {hasAnySpecs(size) && (
+                <Link
+                  to={enquiryHref(product)}
+                  data-lead="size-request-specs"
+                  data-cursor="enquire"
+                  className={TEXT_LINK}
+                >
+                  <span className={GROUP_UNDERLINE}>Request the full specification sheet</span>
+                  <ArrowTravel />
+                </Link>
+              )}
+            </div>
+          </Reveal>
         </div>
 
         <nav aria-label="Previous and next size" className={cn(WRAP, 'pt-24 md:pt-32')}>

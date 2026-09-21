@@ -123,6 +123,46 @@ describe('content coverage', () => {
       expect(Object.keys(size.specs).sort(), `spec keys of ${size.slug}`).toEqual(labelled);
     }
   });
+
+  it('gives every cigarette size its copy', () => {
+    for (const size of cigaretteSizes) {
+      expect(size.tagline, `tagline of ${size.slug}`).toMatch(/\S.*\.$/);
+      expect(size.paragraphs.length, `paragraphs of ${size.slug}`).toBeGreaterThan(0);
+      expect(size.whyChoose.length, `whyChoose of ${size.slug}`).toBeGreaterThan(0);
+      expect(size.bestFor.length, `bestFor of ${size.slug}`).toBeGreaterThan(0);
+      for (const text of [size.tagline, ...size.paragraphs, ...size.whyChoose, ...size.bestFor]) {
+        expect(text.trim(), `${size.slug}: "${text}"`).toBe(text);
+        expect(text.length, `${size.slug}: empty copy`).toBeGreaterThan(0);
+      }
+      // The description leads with the tagline.
+      expect(ROUTE_BY_PATH[`/cigarette-sizes/${size.slug}`].description.startsWith(size.tagline)).toBe(true);
+    }
+  });
+
+  it('types size spec values as supplied: en dashes, ×, no "~" (typical says it)', () => {
+    for (const size of cigaretteSizes) {
+      for (const [key, spec] of Object.entries(size.specs)) {
+        if (!spec) continue;
+        const where = `${size.slug}.${key}: "${spec.value}"`;
+        expect(spec.value.trim(), where).toBe(spec.value);
+        expect(spec.value, where).not.toMatch(/\d\s*-\s*\d/); // a range takes an en dash
+        expect(spec.value, where).not.toMatch(/\d\s*[xX]\s*\d/); // a dimension takes ×
+        expect(spec.value, where).not.toMatch(/~/);
+      }
+    }
+  });
+
+  it('keeps each size’s packaging ladder arithmetically whole', () => {
+    const n = (value?: string) => Number((value ?? '').replace(/,/g, ''));
+    for (const { slug, specs } of cigaretteSizes) {
+      if (!specs.sticksPerPack || !specs.packsPerOuter || !specs.outersPerMasterCarton) continue;
+      const packs = n(specs.packsPerOuter.value) * n(specs.outersPerMasterCarton.value);
+      if (specs.packsPerMasterCarton) expect(n(specs.packsPerMasterCarton.value), slug).toBe(packs);
+      if (specs.sticksPerMasterCarton) {
+        expect(n(specs.sticksPerMasterCarton.value), slug).toBe(packs * n(specs.sticksPerPack.value));
+      }
+    }
+  });
 });
 
 describe('App.tsx', () => {

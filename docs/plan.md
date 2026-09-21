@@ -38,8 +38,10 @@ TypeScript and ESLint run in CI; unknown URLs return a real 404.
 | `/privacy`, `/terms`, 404 | — | — |
 
 Dropped from the proposed sitemap because the Excel has no content for them: Global
-Exports/regions (and the world map), Sustainability/CSR, News/Media, leadership,
-certifications. They are on the gap list and the structure leaves room for them.
+Exports/regions pages, Sustainability/CSR, News/Media, leadership, certifications. They
+are on the gap list and the structure leaves room for them. The homepage world map
+("Global Reach", after the journey section) was added on 2026-09-22 with a stand-in
+list of import markets, labelled as such, until AKTCL confirms its own (gap 12).
 
 ## Compliance
 

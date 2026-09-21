@@ -6,9 +6,10 @@ import { sizesIntro } from '@/content/sizes';
 
 /**
  * "Cigarette Sizes" on the homepage, straight after the catalogue: the ruled section
- * opener, a short headline (UI microcopy) with the segment's one line of microcopy
- * under it, and the formats' line-up drawn to one scale — each rod a link to its size
- * page — closed by a directory row to /cigarette-sizes. Kept to about one screen.
+ * opener, a short headline (UI microcopy) with the segment's one owner-approved line
+ * under it, and the formats' line-up drawn to one scale — each row a link to its size
+ * page, with the format's tagline under its name — closed by a directory row to
+ * /cigarette-sizes. Kept to about one screen.
  *
  * In the eager homepage bundle, so nothing heavy: the line-up is inline SVG and the
  * rest is the homepage's own ruled kit. No top padding: it follows ProductShowcase on
@@ -34,7 +35,7 @@ const SizesBand = () => (
           )}
         </div>
 
-        <RodLineUp compact linked className="lg:col-span-7" />
+        <RodLineUp compact linked taglines className="lg:col-span-7" />
       </div>
 
       <Reveal className="mt-14 md:mt-20">

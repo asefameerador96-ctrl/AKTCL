@@ -13,6 +13,8 @@ interface RodLineUpProps {
   compact?: boolean;
   /** Each row links to its size page (the homepage). The index lists them separately. */
   linked?: boolean;
+  /** Each format's tagline under its name and length (the homepage band). */
+  taglines?: boolean;
   className?: string;
 }
 
@@ -53,7 +55,8 @@ const Guides = ({ delay, labelled = false }: { delay: number; labelled?: boolean
 /**
  * The formats side by side on one scale — the segment's signature drawing. A ruled
  * table of rods: a header row naming the reference guides, then one row per format
- * with its name and length label on the left and its rod drawn from a common datum
+ * with its name and length label (and, with `taglines`, its tagline) on the left and
+ * its rod drawn from a common datum
  * (the vertical hairline) on the right. Every rod shares one mm-to-px scale, so the
  * lengths compare truthfully; the drawn diameters are indicative, and the caption
  * says so.
@@ -62,14 +65,20 @@ const Guides = ({ delay, labelled = false }: { delay: number; labelled?: boolean
  * `linked` each row is a directory row: the house hover (accent rule, 8px shift,
  * travelling arrow) and a link to the size page.
  */
-const RodLineUp = ({ sizes = cigaretteSizes, compact = false, linked = false, className }: RodLineUpProps) => {
+const RodLineUp = ({
+  sizes = cigaretteSizes,
+  compact = false,
+  linked = false,
+  taglines = false,
+  className,
+}: RodLineUpProps) => {
   const cols = compact
     ? { label: 'md:col-span-4', drawing: 'md:col-span-8' }
     : { label: 'md:col-span-3', drawing: 'md:col-span-9' };
 
   const rowGrid = 'grid md:grid-cols-12';
   const labelCell = cn(
-    'relative flex items-baseline gap-x-3 gap-y-1 pt-4 md:flex-col md:justify-center md:pr-12',
+    'relative flex flex-wrap items-baseline gap-x-3 gap-y-1 pt-4 md:flex-col md:flex-nowrap md:justify-center md:pr-12',
     compact ? 'md:py-4' : 'md:py-6',
     cols.label
   );
@@ -106,6 +115,12 @@ const RodLineUp = ({ sizes = cigaretteSizes, compact = false, linked = false, cl
                 {linked && (
                   <TravelArrow className="ml-auto self-center text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent md:absolute md:right-6 md:top-1/2 md:ml-0 md:-translate-y-1/2" />
                 )}
+                {taglines && (
+                  // Its own line on a phone, under the name and length; the column's foot from md.
+                  <span className={cn('text-secondary basis-full text-muted-foreground md:mt-1 md:basis-auto', shift)}>
+                    {size.tagline}
+                  </span>
+                )}
               </div>
               <div className={drawingCell}>
                 <Guides delay={delay} />
@@ -119,7 +134,7 @@ const RodLineUp = ({ sizes = cigaretteSizes, compact = false, linked = false, cl
               {linked ? (
                 <Link
                   to={`/cigarette-sizes/${size.slug}`}
-                  aria-label={`${size.name}, ${size.lengthLabel}`}
+                  aria-label={`${size.name}, ${size.lengthLabel}${taglines ? `. ${size.tagline}` : ''}`}
                   data-cursor="open"
                   className={cn('group relative border-t border-border', rowGrid)}
                 >

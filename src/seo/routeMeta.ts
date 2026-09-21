@@ -55,29 +55,32 @@ const CATEGORY_SEO_TITLE: Record<string, string> = {
 };
 
 /*
- * Size pages: "<Format> Cigarettes (<length>) — <angle>". The name and length are the
- * format definition from sizes.ts; the angle only says more where products.ts backs it
- * (AKTCL lists King Size, Super Slim and NANO lines). 100s and Slim have no AKTCL line
- * yet, so their titles describe the page, not a production claim.
+ * Size pages: "<Format> Cigarettes (<length>) — <angle>". All five are AKTCL formats:
+ * the owner confirmed their specifications and descriptions as AKTCL's (2026-09-22).
+ * Super Slim keeps the private label angle products.ts backs; the rest lead with the
+ * specifications the page publishes.
  */
 const SIZE_SEO_ANGLE: Record<CigaretteSize['slug'], string> = {
   'king-size': 'Manufacturing & Export Specifications',
-  '100s': 'Format & Packaging Specifications',
-  slim: 'Format & Packaging Specifications',
+  '100s': 'Manufacturing & Export Specifications',
+  slim: 'Manufacturing & Export Specifications',
   'super-slim': 'OEM & Private Label Manufacturing',
   nano: 'Manufacturing & Export Specifications',
 };
 
-/** Format definition plus the AKTCL lines products.ts lists in it — nothing else. */
-const sizeDescription = (size: CigaretteSize) =>
-  [
-    `${size.name} cigarette format: ${size.lengthLabel} rod length.`,
-    size.aktclLines.length > 0 &&
-      `AKTCL ${size.aktclLines.length > 1 ? 'lines' : 'line'}: ${size.aktclLines.join(', ')}.`,
-    'Specifications on request for importers and private label partners.',
-  ]
-    .filter(Boolean)
-    .join(' ');
+/**
+ * The tagline, then the facts of the format's first sentence (rod length and
+ * circumference, from its specs), then what the page holds. No claim beyond sizes.ts.
+ */
+const sizeDescription = (size: CigaretteSize) => {
+  const rod = size.specs.rodLength?.value ?? size.lengthLabel;
+  const circumference = size.specs.circumference?.value;
+  return [
+    size.tagline,
+    `${size.name} cigarettes: ${rod} rod${circumference ? ` on a ${circumference} circumference` : ''}.`,
+    'Pack, carton and container-load specifications for importers and private label partners.',
+  ].join(' ');
+};
 
 const JOURNEY_CRUMB: Crumb = { name: 'Our Journey', path: '/journey' };
 const PRODUCTS_CRUMB: Crumb = { name: 'Products', path: '/products' };
@@ -163,7 +166,7 @@ function build(): RouteMeta[] {
       path: SIZES_CRUMB.path,
       title: 'Cigarette Sizes — King Size, 100s, Slim, Super Slim & Nano Formats',
       description:
-        'King Size, 100s, Slim, Super Slim and Nano cigarette formats, from rod length to container loads. Specifications on request for importers and private label partners.',
+        'Five cigarette formats, each run on dedicated lines to its own specification: King Size, 100s, Slim, Super Slim and Nano, from rod length to container loads.',
       breadcrumbs: [SIZES_CRUMB],
       priority: 0.8,
       changefreq: 'monthly',

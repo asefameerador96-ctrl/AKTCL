@@ -1,11 +1,9 @@
 import { useId } from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowRight } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
 import Reveal from '@/components/Reveal';
 import { SectionHead } from '@/components/PageHeader';
 import DrawnRule from '@/components/motion/DrawnRule';
-import { CtaButton } from '@/components/ui/button';
 import {
   SPEC_GROUPS,
   SPEC_LABELS,
@@ -23,11 +21,11 @@ interface PackagingSheetProps {
   className?: string;
 }
 
-const ON_REQUEST = 'On request';
-
 /**
  * The packaging ladder: pack → outer → master carton = the master carton's total. The
- * step names are UI microcopy; each value comes from `specs` (null → "On request").
+ * step names are UI microcopy; each value comes from `specs`. It is drawn only when all
+ * four steps are known; otherwise the known ones fall back to labelled rows. Packs per
+ * master carton is not a step of it: it stays a labelled row underneath.
  */
 const LADDER: { key: SpecKey; step: string }[] = [
   { key: 'sticksPerPack', step: 'Pack' },
@@ -49,35 +47,61 @@ const CONTAINERS: { key: SpecKey; lengthM: number; heightM: number }[] = [
 const LADDER_KEYS = new Set<SpecKey>(LADDER.map((s) => s.key));
 const CONTAINER_KEYS = new Set<SpecKey>(CONTAINERS.map((c) => c.key));
 
-/** A real value in the display serif; "(typical)" after a nominal one. */
-const Value = ({ spec, variant = 'row' }: { spec: SpecValue; variant?: 'row' | 'step' | 'load' }) => {
-  if (!spec) return <span className="eyebrow">{ON_REQUEST}</span>;
-  const type =
-    variant === 'load'
-      ? 'display-md'
-      : variant === 'step'
-        ? 'display-sm'
-        : 'font-display text-[length:clamp(1.25rem,1.1rem_+_0.5vw,1.5rem)] leading-snug tracking-[-0.01em]';
+const TYPE = {
+  row: 'font-display text-[length:clamp(1.25rem,1.1rem_+_0.5vw,1.5rem)] leading-snug tracking-[-0.01em]',
+  step: 'display-sm',
+  load: 'display-md',
+} as const;
+
+type KnownSpec = NonNullable<SpecValue>;
+/** A field with a value, ready to print. */
+interface Known {
+  key: SpecKey;
+  spec: KnownSpec;
+}
+
+/** The field as a printable entry, or null when the sheets do not give it. */
+const known = (specs: SizeSpecs, key: SpecKey): Known | null => {
+  const spec = specs[key];
+  return spec ? { key, spec } : null;
+};
+const isKnown = <T,>(entry: T | null): entry is T => entry !== null;
+
+/**
+ * A value in the display serif; its unit after it in the quiet mono — under a
+ * container load's big figure, beside anything else — and "(typical)" after a
+ * nominal one. Only known values reach it: a field the sheets do not give is left off.
+ */
+const Value = ({ spec, variant = 'row' }: { spec: KnownSpec; variant?: keyof typeof TYPE }) => {
+  const stacked = variant === 'load';
   return (
     <span className="text-foreground">
-      <span className={type}>{spec.value}</span>
+      <span className={cn(TYPE[variant], stacked && 'block tabular-nums')}>{spec.value}</span>
+      {spec.unit && (
+        <span className={cn('index-num whitespace-nowrap', stacked ? 'mt-3 block uppercase' : 'ml-2')}>
+          {spec.unit}
+        </span>
+      )}
       {spec.typical && <span className="index-num ml-2 whitespace-nowrap">(typical)</span>}
     </span>
   );
 };
 
-/** Labelled rows: the mono label on the left, the value (or "On request") beside it. */
-const Rows = ({ keys, specs }: { keys: SpecKey[]; specs: SizeSpecs }) => (
+/**
+ * Labelled rows: the mono label, then the value. Stacked on a phone,
+ * so a dimension or the MOQ gets the full measure and wraps instead of running out;
+ * even halves from sm; label and value columns over the sheet's nine from lg.
+ */
+const Rows = ({ entries }: { entries: Known[] }) => (
   <dl className="divide-y divide-border">
-    {keys.map((key) => (
+    {entries.map(({ key, spec }) => (
       <div
         key={key}
-        // Even halves on a phone, so a long label keeps to its own column.
-        className="grid grid-cols-2 items-baseline gap-6 py-4 lg:grid-cols-9 lg:gap-0 lg:pl-8"
+        className="grid items-baseline gap-2 py-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-9 lg:gap-0 lg:pl-8"
       >
-        <dt className="eyebrow lg:col-span-5 lg:pr-8">{SPEC_LABELS[key]}</dt>
-        <dd className="text-right lg:col-span-4 lg:text-left">
-          <Value spec={specs[key]} />
+        <dt className="eyebrow lg:col-span-4 lg:pr-8">{SPEC_LABELS[key]}</dt>
+        <dd className="min-w-0 break-words sm:text-right lg:col-span-5 lg:text-left">
+          <Value spec={spec} />
         </dd>
       </div>
     ))}
@@ -105,9 +129,9 @@ const Connector = ({ equals }: { equals: boolean }) => (
  * The packaging structure as a ladder: four ruled cells, pack → outer → master carton
  * = cigarettes per master carton, stacked on a phone with the arrows pointing down.
  */
-const Ladder = ({ specs }: { specs: SizeSpecs }) => (
+const Ladder = ({ steps }: { steps: (Known & { step: string })[] }) => (
   <dl className="grid md:grid-cols-4">
-    {LADDER.map(({ key, step }, i) => (
+    {steps.map(({ key, spec, step }, i) => (
       <div
         key={key}
         className={cn(
@@ -121,8 +145,8 @@ const Ladder = ({ specs }: { specs: SizeSpecs }) => (
           <span className="mono-label block text-foreground">{step}</span>
           <span className="text-secondary mt-1 block text-muted-foreground">{SPEC_LABELS[key]}</span>
         </dt>
-        <dd className="shrink-0 text-right md:mt-auto md:text-left">
-          <Value spec={specs[key]} variant="step" />
+        <dd className="shrink-0 text-right tabular-nums md:mt-auto md:text-left">
+          <Value spec={spec} variant="step" />
           {i < LADDER.length - 1 && <Connector equals={i === LADDER.length - 2} />}
         </dd>
       </div>
@@ -154,10 +178,10 @@ const ContainerGlyph = ({ lengthM, heightM }: { lengthM: number; heightM: number
   );
 };
 
-/** Container loads side by side: the box, its label, and the figure when AKTCL has one. */
-const Loads = ({ specs }: { specs: SizeSpecs }) => (
+/** Container loads side by side: the box, its label, the load as a big figure. */
+const Loads = ({ loads }: { loads: (Known & { lengthM: number; heightM: number })[] }) => (
   <dl className="grid sm:grid-cols-2">
-    {CONTAINERS.map(({ key, lengthM, heightM }) => (
+    {loads.map(({ key, spec, lengthM, heightM }) => (
       <div
         key={key}
         className="flex flex-col gap-5 border-t border-border py-8 first:border-t-0 sm:border-l sm:border-t-0 sm:px-6 sm:first:border-l-0 sm:first:pl-0 lg:first:pl-8"
@@ -167,7 +191,7 @@ const Loads = ({ specs }: { specs: SizeSpecs }) => (
           <span className="eyebrow mt-5 block">{SPEC_LABELS[key]}</span>
         </dt>
         <dd className="mt-auto">
-          <Value spec={specs[key]} variant="load" />
+          <Value spec={spec} variant="load" />
         </dd>
       </div>
     ))}
@@ -175,19 +199,44 @@ const Loads = ({ specs }: { specs: SizeSpecs }) => (
 );
 
 /**
- * AKTCL's own data sheet for a format — the reason no borrowed infographic is needed.
- * One ruled group per SPEC_GROUPS entry, its title over a narrow column and its
- * values over the wide one: labelled rows, the packaging structure as a ladder, the
- * container loads as two cells with large figures. A real value is set in the display
- * serif; a value AKTCL has not confirmed reads "On request" in the quiet mono, so the
- * two can never be mistaken for each other. With no values at all the sheet says so in
- * one line and offers the enquiry. An infographic AKTCL owns, when attached to the
- * size in src/content/sizes.ts, is shown above the sheet.
+ * AKTCL's data sheet for a format, drawn in the site's own hand — no borrowed
+ * infographic. One ruled group per SPEC_GROUPS entry, its title over a narrow column
+ * and its values over the wide one: labelled rows, the packaging structure as a
+ * ladder, the container loads as two cells with large figures, each value in the
+ * display serif. Only what the sheets give is printed: a field they leave out is not
+ * shown, and a group with nothing in it is left off, so every row on the sheet is a
+ * real figure. With no values at all the sheet says so in one line (the page carries
+ * the enquiry). An infographic AKTCL owns, when attached to the size in
+ * src/content/sizes.ts, is shown above the sheet.
  */
 const PackagingSheet = ({ size, className }: PackagingSheetProps) => {
   const headingId = useId();
   const { specs } = size;
   const pending = !hasAnySpecs(size);
+
+  const groups = SPEC_GROUPS.map((group) => {
+    const inGroup = (key: SpecKey) => group.keys.includes(key);
+    // The ladder is drawn whole or not at all; a partial one reads as rows instead.
+    const ladderSteps = LADDER.filter(({ key }) => inGroup(key));
+    const steps = ladderSteps
+      .map(({ key, step }) => {
+        const entry = known(specs, key);
+        return entry && { ...entry, step };
+      })
+      .filter(isKnown);
+    const ladder = ladderSteps.length === LADDER.length && steps.length === LADDER.length ? steps : [];
+    const loads = CONTAINERS.filter(({ key }) => inGroup(key))
+      .map(({ key, lengthM, heightM }) => {
+        const entry = known(specs, key);
+        return entry && { ...entry, lengthM, heightM };
+      })
+      .filter(isKnown);
+    const rows = group.keys
+      .filter((key) => !(ladder.length > 0 && LADDER_KEYS.has(key)) && !CONTAINER_KEYS.has(key))
+      .map((key) => known(specs, key))
+      .filter(isKnown);
+    return { title: group.title, ladder, loads, rows };
+  }).filter((group) => group.ladder.length + group.loads.length + group.rows.length > 0);
 
   return (
     <section aria-labelledby={headingId} className={className}>
@@ -204,45 +253,28 @@ const PackagingSheet = ({ size, className }: PackagingSheetProps) => {
         </Reveal>
       )}
 
-      <div className="mt-14 border-b border-border md:mt-20">
-        {SPEC_GROUPS.map((group, i) => {
-          const ladder = group.keys.some((key) => LADDER_KEYS.has(key));
-          const loads = group.keys.some((key) => CONTAINER_KEYS.has(key));
-          const rest = group.keys.filter(
-            (key) => !(ladder && LADDER_KEYS.has(key)) && !(loads && CONTAINER_KEYS.has(key))
-          );
-
-          return (
+      {groups.length > 0 && (
+        <div className="mt-14 border-b border-border md:mt-20">
+          {groups.map((group, i) => (
             <Reveal key={group.title} delay={Math.min(i, 2) * 0.06} className="grid lg:grid-cols-12">
               <DrawnRule className="lg:col-span-12" />
               <h3 className="mono-label py-5 text-foreground lg:col-span-3 lg:py-6 lg:pr-8">{group.title}</h3>
               {/* Stacked, a rule parts the title from its values; beside it, the vertical one does. */}
-              <div className="divide-y divide-border border-t border-border lg:col-span-9 lg:border-l lg:border-t-0">
-                {ladder && <Ladder specs={specs} />}
-                {loads && <Loads specs={specs} />}
-                {rest.length > 0 && <Rows keys={rest} specs={specs} />}
+              <div className="min-w-0 divide-y divide-border border-t border-border lg:col-span-9 lg:border-l lg:border-t-0">
+                {group.ladder.length > 0 && <Ladder steps={group.ladder} />}
+                {group.loads.length > 0 && <Loads loads={group.loads} />}
+                {group.rows.length > 0 && <Rows entries={group.rows} />}
               </div>
             </Reveal>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {pending && (
         <div className="grid lg:grid-cols-12">
-          <div className="pt-8 lg:col-span-9 lg:col-start-4 lg:pl-8">
-            <p className="text-secondary max-w-[34rem] text-muted-foreground">
-              Full packaging and logistics specifications are shared against a trade enquiry.
-            </p>
-            <CtaButton asChild className="mt-8 w-full sm:w-auto">
-              <Link
-                to={`/contact?product=${encodeURIComponent(`${size.name} cigarettes`)}`}
-                data-lead="size-request-specs"
-                data-cursor="enquire"
-              >
-                Request Specifications
-              </Link>
-            </CtaButton>
-          </div>
+          <p className="text-secondary max-w-[34rem] pt-8 text-muted-foreground lg:col-span-9 lg:col-start-4 lg:pl-8">
+            Full packaging and logistics specifications are shared against a trade enquiry.
+          </p>
         </div>
       )}
     </section>
