@@ -1,0 +1,90 @@
+name: Deploy to Azure Static Web Apps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch or PR supersedes a build that is still running.
+concurrency:
+  group: swa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    name: Build and Deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # vite-imagetools keeps its encoded AVIF/WebP variants here. Without the cache
+      # every build re-encodes all ~220 of them, which takes minutes.
+      - name: Cache encoded image variants
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/imagetools
+          key: imagetools-${{ runner.os }}-${{ hashFiles('src/assets/**', 'src/content/images.ts', 'package-lock.json') }}
+          restore-keys: |
+            imagetools-${{ runner.os }}-
+
+      # The build prerenders every route with headless Chromium, so the browser has
+      # to exist before `npm run build`. Only Chromium is needed.
+      - name: Install Chromium for prerendering
+        run: npx playwright install --with-deps chromium
+
+      - name: Typecheck, lint and unit tests
+        run: npm run check
+
+      # The enquiry API is a separate package; Azure installs its production
+      # dependencies during the deploy step below (api/node_modules is not committed).
+      - name: API tests
+        working-directory: api
+        run: |
+          npm ci
+          npm test
+
+      # sitemap.xml <lastmod> is today's date unless BUILD_DATE=YYYY-MM-DD is set.
+      - name: Build and prerender
+        run: npm run build
+
+      # Fails the deploy if any page errors, overflows or ships placeholder text.
+      - name: Verify built site
+        run: npm run verify
+
+      # Hand Azure a clean api/ so it installs the dependencies for its own runtime.
+      - name: Reset api/ for deployment
+        run: rm -rf api/node_modules
+
+      - name: Deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          # dist/ is already built, prerendered and verified above. api/ is NOT
+          # prebuilt: no skip_api_build, so the action installs its dependencies.
+          app_location: "dist"
+          api_location: "api"
+          output_location: ""
+          skip_app_build: true
+
+  close_pull_request:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Staging Environment
+    steps:
+      - uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: "close"

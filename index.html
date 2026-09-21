@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover makes env(safe-area-inset-*) non-zero on notched phones. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#1b130e" />
+
+    <!-- Per-route title, description, canonical, Open Graph and JSON-LD are written
+         by src/components/Seo.tsx and captured into each prerendered page. These
+         are the fallbacks for the bare shell. -->
+    <title>AKTCL — Abul Khair Tobacco Co. Ltd. | From Seed to Smoke</title>
+    <meta
+      name="description"
+      content="Abul Khair Tobacco Co. Ltd. (AKTCL), Bangladesh — vertically integrated exporter of leaf tobacco, processed tobacco and finished cigarettes. Trade enquiries only."
+    />
+    <meta name="author" content="Abul Khair Tobacco Co. Ltd." />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Abul Khair Tobacco Co. Ltd." />
+    <meta property="og:title" content="AKTCL — From Seed to Smoke" />
+    <meta
+      property="og:description"
+      content="Vertically integrated exporter of leaf tobacco, processed tobacco and finished cigarettes from Bangladesh. Trade enquiries only."
+    />
+    <meta property="og:url" content="https://www.aktcl.com/" />
+    <meta property="og:image" content="https://www.aktcl.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Runs before first paint, so it must stay inline and ahead of the stylesheet.
+         1. Apply the saved theme, so dark-mode visitors never see a light flash.
+         2. Legal-age gate: the prerendered page would otherwise paint for a moment
+            before the app boots and raises the gate. Until a visitor has confirmed
+            (same key and 30-day validity as src/components/AgeGate.tsx), "age-pending"
+            keeps #root unpainted (see index.css); AgeGate removes the class as soon
+            as it is on screen. Never applied to the prerenderer's snapshot. -->
+    <script>
+      (function () {
+        var root = document.documentElement;
+        try {
+          if (localStorage.getItem("theme") === "dark") root.classList.add("dark");
+        } catch (e) {}
+        if (window.__PRERENDER__) return;
+        var confirmedAt = 0;
+        try {
+          confirmedAt = Number(localStorage.getItem("aktcl-age-ok")) || 0;
+        } catch (e) {}
+        if (!(confirmedAt > 0 && Date.now() - confirmedAt < 2592000000)) root.classList.add("age-pending");
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="padding: 2rem; font-family: sans-serif">
+        This website is intended for tobacco trade professionals of legal age. Please enable JavaScript to
+        continue.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

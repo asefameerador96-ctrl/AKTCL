@@ -1,0 +1,9 @@
+<!-- Placeholder monogram. TODO(Asef): replace with the official AKTCL mark when supplied. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#1b130e" />
+  <!-- Drawn as strokes, not <text>, so it never depends on an installed font. -->
+  <g fill="none" stroke="#d09939" stroke-width="5" stroke-linecap="square" stroke-miterlimit="8">
+    <path d="M18 50 32 17 46 50" />
+    <path d="M24.5 39h15" />
+  </g>
+</svg>

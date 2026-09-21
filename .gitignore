@@ -1,0 +1,35 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies and build output
+node_modules
+dist
+dist-ssr
+*.local
+
+# Secrets — never commit; see .env.example
+.env
+.env.*
+!.env.example
+api/local.settings.json
+
+# Raw content masters (multi-MB originals, video masters) stay out of git.
+# Optimised copies live in src/assets and are produced by `npm run images:import`.
+/content-originals
+*.psd
+*.ai
+*.mov
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.sw?
+
+# Test artefacts
+playwright-report
+test-results

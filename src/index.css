@@ -1,0 +1,226 @@
+/* Fonts are self-hosted (bundled by Vite from @fontsource) — no third-party requests. */
+@import '@fontsource-variable/fraunces/index.css';
+@import '@fontsource-variable/inter/index.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * AKTCL design tokens.
+ *
+ * Palette is drawn from the photography: ivory paper, cured-leaf gold, deep
+ * tobacco brown and field green. Every colour in the app must come from these
+ * variables (through the Tailwind names in tailwind.config.ts) so light/dark and
+ * any future re-skin are controlled from this one file. Values are "H S% L%" so
+ * Tailwind's <alpha-value> syntax works: bg-primary/40 etc.
+ *
+ * Contrast (WCAG, computed against --background; AA needs 4.5:1 for body text):
+ *   light: foreground 15.2 · muted-foreground 6.7 · accent 6.1 · destructive 6.3
+ *   dark:  foreground 16.4 · muted-foreground 8.8 · accent 8.1 · destructive 4.9
+ * --gold is DECORATIVE ONLY on light backgrounds (2.4:1 — never use it for text
+ * there); on --ink it is 7.2:1 and may carry text. ink-muted on ink is 9.0:1.
+ */
+@layer base {
+  :root {
+    --background: 40 38% 96%; /* ivory #F9F6F0 */
+    --foreground: 26 32% 12%; /* tobacco brown-black #281D15 */
+
+    --card: 40 40% 98%;
+    --card-foreground: 26 32% 12%;
+
+    --popover: 40 40% 98%;
+    --popover-foreground: 26 32% 12%;
+
+    --primary: 26 32% 14%;
+    --primary-foreground: 40 38% 96%;
+
+    --secondary: 38 28% 90%;
+    --secondary-foreground: 26 32% 14%;
+
+    --muted: 38 22% 88%;
+    --muted-foreground: 26 14% 34%;
+
+    /* Accent = dark cured gold, safe for text and buttons on ivory. */
+    --accent: 33 72% 30%;
+    --accent-foreground: 40 38% 96%;
+
+    /* Bright leaf gold: rules, dots, icons, and text on dark bands. */
+    --gold: 38 62% 52%;
+    /* Field green: secondary brand colour for quiet highlights. */
+    --leaf: 142 28% 24%;
+    --leaf-foreground: 40 38% 96%;
+
+    /* Always-dark band (hero overlay, facts strip, footer) in both themes. */
+    --ink: 24 30% 8%;
+    --ink-foreground: 40 38% 94%;
+    --ink-muted: 36 16% 70%;
+    --ink-border: 30 18% 22%;
+
+    /* Light tile behind the white-background product cut-outs — light in BOTH themes. */
+    --tile: 40 30% 95%;
+    --tile-foreground: 26 32% 12%;
+
+    --destructive: 4 70% 40%;
+    --destructive-foreground: 40 38% 96%;
+
+    --border: 36 20% 80%;
+    --input: 36 20% 70%;
+    --ring: 33 72% 30%;
+
+    --radius: 0.375rem;
+  }
+
+  .dark {
+    --background: 24 30% 7%;
+    --foreground: 40 38% 93%;
+
+    --card: 24 26% 10%;
+    --card-foreground: 40 38% 93%;
+
+    --popover: 24 26% 10%;
+    --popover-foreground: 40 38% 93%;
+
+    --primary: 40 38% 93%;
+    --primary-foreground: 24 30% 8%;
+
+    --secondary: 26 22% 14%;
+    --secondary-foreground: 40 38% 93%;
+
+    --muted: 26 18% 16%;
+    --muted-foreground: 36 16% 68%;
+
+    /* On dark the bright gold is the accessible accent (7.6:1). */
+    --accent: 38 62% 56%;
+    --accent-foreground: 24 30% 8%;
+
+    --gold: 38 62% 56%;
+    --leaf: 142 26% 38%;
+    --leaf-foreground: 40 38% 96%;
+
+    --ink: 24 32% 5%;
+    --ink-foreground: 40 38% 94%;
+    --ink-muted: 36 16% 70%;
+    --ink-border: 30 18% 20%;
+
+    --tile: 40 24% 90%;
+    --tile-foreground: 26 32% 12%;
+
+    --destructive: 4 70% 58%;
+    --destructive-foreground: 24 30% 8%;
+
+    --border: 30 18% 22%;
+    --input: 30 18% 30%;
+    --ring: 38 62% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+    /* Fraunces: optical sizing on, the "wonky" alternates off for a sober tone. */
+    font-variation-settings: 'SOFT' 0, 'WONK' 0;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    background-color: hsl(var(--gold) / 0.35);
+  }
+}
+
+/*
+ * Legal-age gate, before the app has booted. index.html puts "age-pending" on <html>
+ * for visitors who have not confirmed their age, so the prerendered page is never
+ * painted ahead of the gate; AgeGate removes it once its own overlay is up.
+ */
+.age-pending body {
+  background-color: hsl(var(--ink));
+}
+.age-pending #root {
+  visibility: hidden;
+}
+
+@layer components {
+  /* Small uppercase label above headings: "CATEGORY 01", "FROM SEED TO SMOKE". */
+  .eyebrow {
+    @apply font-sans text-xs font-medium uppercase tracking-[0.3em] text-accent;
+  }
+
+  /* Glass pill used by the top navigation over photography. */
+  .nav-pill {
+    @apply inline-flex items-center rounded-md border px-4 py-2 font-sans text-[13px] font-semibold uppercase tracking-[0.18em] backdrop-blur-xl transition-colors duration-300;
+  }
+
+  /* Short gold rule under headings. */
+  .rule {
+    @apply h-px w-16 bg-gold/70;
+  }
+
+  /*
+   * Product cut-outs are shot on pure white. Multiply drops the white into the
+   * ivory page in light mode; in dark mode they sit on a light tile instead.
+   */
+  .product-shot {
+    mix-blend-mode: multiply;
+  }
+  .dark .product-shot {
+    mix-blend-mode: normal;
+  }
+  /* The tile is light in both themes, so on it the cut-outs keep blending in. */
+  .dark .bg-tile .product-shot {
+    mix-blend-mode: multiply;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* 100svh with a 100vh fallback: stops mobile browser chrome cropping hero text. */
+  .h-screen-safe {
+    height: 100vh;
+    height: 100svh;
+  }
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
