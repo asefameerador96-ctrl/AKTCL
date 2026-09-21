@@ -197,7 +197,7 @@ const AgeGate = () => {
                 <h2 id={titleId} className="display-md mt-6 max-w-[11ch]">
                   Are you of <em className="italic">legal</em> age?
                 </h2>
-                <p id={textId} className="mt-6 max-w-[52ch] text-sm leading-relaxed text-ink-muted">
+                <p id={textId} className="text-body mt-6 max-w-[34rem] text-ink-muted">
                   This website contains information about tobacco products and is intended for tobacco
                   trade professionals. You must be at least {site.legalAge} years old, or of legal age in
                   your country, to enter.
@@ -236,8 +236,8 @@ const AgeGate = () => {
 
         <div className="border-t border-ink-border">
           <div className={cn(COLUMN, 'py-5 sm:py-6')}>
-            {/* Boxed and in full chalk: the warning is never the small print. */}
-            <p className="border border-ink-foreground/30 px-4 py-3.5 font-mono text-xs leading-relaxed text-ink-foreground">
+            {/* Boxed and in full white: the warning is never the small print. */}
+            <p className="border border-ink-foreground/30 px-4 py-3.5 font-mono text-[0.8125rem] leading-relaxed text-ink-foreground">
               {site.compliance.healthWarning}
             </p>
           </div>

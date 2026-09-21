@@ -5,15 +5,12 @@ import CountUp from '@/components/motion/CountUp';
 import Grain from '@/components/motion/Grain';
 import SplitReveal from '@/components/motion/SplitReveal';
 import { cn } from '@/lib/utils';
-import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
+import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
 import { facts, formatFact, type Fact } from '@/content/about';
-import { site } from '@/content/site';
 
 /** A year sweeping up from 0 reads as nonsense, so years run through their last few decades only. */
 const YEAR_RUN = 30;
 const STAGGER_S = 0.12;
-
-const two = (n: number) => String(n).padStart(2, '0');
 
 // One row while there are three figures or fewer; more than that, two columns.
 const COLUMNS = facts.length <= 3 ? facts.length : 2;
@@ -24,60 +21,68 @@ const Stat = ({ fact, index }: { fact: Fact; index: number }) => {
   const inView = useInView(ref, { threshold: 0.3, skip: still });
   const shown = useReveal(inView);
   const delay = index * STAGGER_S;
-  // Where the cell sits from md up. The list's own border-y rules the outside; a cell
+  // Where the cell sits from lg up. The list's own border-y rules the outside; a cell
   // only draws what divides it from its neighbours.
   const firstInRow = index % COLUMNS === 0;
   const firstRow = index < COLUMNS;
 
+  // Every time the cell comes on screen, and back out as it leaves (lib/motion): in on
+  // its stagger, out at once and quicker.
   const move = (hidden: string, seconds: number, after = 0): CSSProperties | undefined =>
     still
       ? undefined
-      : { transform: shown ? 'none' : hidden, transition: `transform ${seconds}s ${EASE.expoOut} ${delay + after}s` };
+      : { transform: shown ? 'none' : hidden, transition: revealTransition(shown, 'transform', seconds, delay + after) };
 
   return (
-    // A column of a ruled table, not a box: mono label above, the figure at its foot.
-    // The first column sits on the page's left edge, so it takes no left padding; the
-    // others stand 32–40px off the hairline that divides them.
+    // A column of a ruled table, not a box: the mono label and its figure are one
+    // unit, the label directly over the numeral and the pair at the top of the cell.
+    // (They used to be pushed to the cell's top and foot, which left a gap the height
+    // of a figure between "…since" and "1953".) The first column sits on the page's
+    // left edge, so it takes no left padding; the others stand 32–40px off the
+    // hairline that divides them.
     <div
       ref={ref}
       className={cn(
-        'relative flex flex-col justify-between gap-12 py-8 md:gap-24 md:px-8 md:pb-10 md:pt-7 lg:gap-32 lg:px-10',
-        firstInRow && 'md:pl-0 lg:pl-0'
+        'relative flex flex-col gap-3 py-8 md:py-10 lg:px-8 lg:pt-8 xl:px-10',
+        firstInRow && 'lg:pl-0 xl:pl-0'
       )}
     >
       {/* The dividing hairlines, drawn from their origin: across the top between
-          stacked cells (every cell on a phone, every row from md), down the left side
+          stacked cells (every cell below lg, every row from lg), down the left side
           between columns. */}
       {index > 0 && (
         <span
           aria-hidden="true"
-          className={cn('absolute left-0 top-0 h-px w-full origin-left bg-ink-border', firstRow && 'md:hidden')}
+          className={cn('absolute left-0 top-0 h-px w-full origin-left bg-ink-border', firstRow && 'lg:hidden')}
           style={move('scaleX(0)', 1.1)}
         />
       )}
       {!firstInRow && (
         <span
           aria-hidden="true"
-          className="absolute left-0 top-0 hidden h-full w-px origin-top bg-ink-border md:block"
+          className="absolute left-0 top-0 hidden h-full w-px origin-top bg-ink-border lg:block"
           style={move('scaleY(0)', 1.1)}
         />
       )}
+      {/* A rem measure, not ch (ch knows nothing of the tracking): 16rem breaks every
+          label over two lines on the desktop row, so the three figures still line up. */}
       <dt
-        className="flex items-start justify-between gap-6"
+        className="eyebrow max-w-[16rem] leading-relaxed"
         style={
-          still ? undefined : { opacity: shown ? 1 : 0, transition: `opacity 0.9s ${EASE.expoOut} ${delay + 0.35}s` }
+          still ? undefined : { opacity: shown ? 1 : 0, transition: revealTransition(shown, 'opacity', 0.9, delay + 0.35) }
         }
       >
-        <span className="eyebrow max-w-[16rem] leading-relaxed">{fact.label}</span>
-        {/* From lg only: a tablet's columns need the width for the label. */}
-        <span aria-hidden="true" className="index-num mt-1 hidden lg:block">
-          {two(index + 1)}
-        </span>
+        {fact.label}
       </dt>
-      {/* split-mask (index.css) is SplitReveal's window: the figure rises into it from below. */}
-      <dd className="display-xl split-mask text-[length:clamp(4.5rem,9.5vw,9rem)] lining-nums leading-none text-ink-foreground">
+      {/* split-mask (index.css) is SplitReveal's window: the figure rises into it from below.
+          -mt: the serif's digits stand some 0.14em under the top of their line box, so
+          without it the label would read as floating a figure's shoulder above them. */}
+      <dd className="display-xl split-mask -mt-[0.1em] text-[length:clamp(4.5rem,9.5vw,9rem)] lining-nums leading-none text-ink-foreground">
         <span className="block whitespace-nowrap" style={move('translate3d(0, calc(100% + 0.3em), 0)', 1.1, 0.1)}>
+          {/* Counts as the cell reveals, from the same signal: never before, so the
+              figure can wait as one plain number behind its mask. */}
           <CountUp
+            play={shown}
             value={fact.value}
             from={fact.isYear ? fact.value - Math.min(YEAR_RUN, fact.value) : 0}
             duration={fact.isYear ? 900 : 1200}
@@ -101,8 +106,10 @@ const ROW_COLUMNS =
 
 /**
  * Facts & figures, on the always-dark ink band with paper grain: a ruled table of
- * monumental numerals that count up as they rise into view — mono label above each,
- * vertical hairlines between them, no boxes.
+ * monumental numerals that count up as they rise into view — mono label directly over
+ * each, vertical hairlines between them, no boxes. Stacked below lg: at tablet width
+ * three columns would break the labels over four lines each and leave the figures on
+ * three different lines.
  *
  * Shows ONLY the figures in src/content/about.ts, each of which is stated in the
  * About copy. TODO(Asef): add capacity, markets served, certifications etc. to
@@ -117,7 +124,7 @@ const FactsFigures = () => (
     <Grain className="-z-10" />
 
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
-      <SectionHead number="03" label="At a Glance" meta={site.name} onInk />
+      <SectionHead label="At a Glance" onInk />
       <SplitReveal
         as="h2"
         id="facts-heading"
@@ -127,7 +134,7 @@ const FactsFigures = () => (
       />
 
       <dl
-        className="mt-14 grid border-y border-ink-border md:mt-20 md:[grid-template-columns:var(--facts-columns)] lg:mt-24"
+        className="mt-14 grid border-y border-ink-border md:mt-20 lg:mt-24 lg:[grid-template-columns:var(--facts-columns)]"
         style={{ '--facts-columns': ROW_COLUMNS } as CSSProperties}
       >
         {facts.map((fact, i) => (

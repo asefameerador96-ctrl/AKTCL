@@ -13,14 +13,12 @@ export interface ProductCardProps {
   image: SiteImage;
   name: string;
   short: string;
-  /** Small label beside the number, e.g. "Category 01" or "Leaf Tobacco". */
+  /** Small mono label above the name, e.g. "Leaf Tobacco". */
   eyebrow?: string;
   /** Link text for assistive tech (the arrow stands in for it on screen). Default "Know More". */
   cta?: string;
   /** Position in the grid. Only its column matters: cards reveal left to right, row by row. */
   index?: number;
-  /** Catalogue number printed above the name ("01"). Left out, no number is shown. */
-  number?: number;
   /** "portrait" 3:4 (default, matches the product cut-outs) or "landscape" 4:3. */
   aspect?: 'portrait' | 'landscape';
 }
@@ -60,7 +58,6 @@ const ProductCard = ({
   eyebrow,
   cta = 'Know More',
   index = 0,
-  number,
   aspect = 'portrait',
 }: ProductCardProps) => {
   const id = useId();
@@ -69,7 +66,6 @@ const ProductCard = ({
   const ctaId = `${id}-cta`;
   const frame = FRAME[aspect];
   const delay = (index % COLUMNS) * STAGGER_S;
-  const hasMeta = number !== undefined || Boolean(eyebrow);
 
   // The cut-outs are shot 3:4 on an off-white sweep, so any letterboxing shows a
   // seam against the tile. A photo whose orientation matches the frame fills it
@@ -107,13 +103,8 @@ const ProductCard = ({
         className="relative flex flex-1 flex-col border-t border-border px-3.5 pb-6 pt-4 sm:px-5 sm:pb-7 sm:pt-5"
       >
         {to && <TravelArrow mode="in" className="absolute right-3.5 top-4 text-foreground sm:right-5 sm:top-5" />}
-        {hasMeta && (
-          <p className="index-num flex items-center gap-3 pr-8 uppercase">
-            {number !== undefined && <span>{String(number).padStart(2, '0')}</span>}
-            {eyebrow && <span className="truncate">{eyebrow}</span>}
-          </p>
-        )}
-        <h3 id={nameId} className={cn('display-xs text-foreground', hasMeta ? 'mt-4 sm:mt-5' : to && 'pr-8')}>
+        {eyebrow && <p className="eyebrow truncate pr-8">{eyebrow}</p>}
+        <h3 id={nameId} className={cn('display-xs text-foreground', eyebrow ? 'mt-4 sm:mt-5' : to && 'pr-8')}>
           {to ? (
             <span className="link-underline pb-0.5 group-hover:[background-position:0%_100%] group-hover:[background-size:100%_1px] group-focus-visible:[background-position:0%_100%] group-focus-visible:[background-size:100%_1px]">
               {name}
@@ -124,12 +115,12 @@ const ProductCard = ({
         </h3>
         {/* A linked cell keeps its grid even: three lines, the full text being one step away on
             the product's page. Two-up on a phone the measure is ~130px — too narrow to read
-            a sentence in — so there the cell is image, number and name (the line stays in
-            the DOM, and still describes the link to assistive tech). */}
+            a sentence in — so there the cell is image and name (the line stays in the DOM,
+            and still describes the link to assistive tech). */}
         <p
           id={shortId}
           className={cn(
-            'mt-2.5 text-sm leading-relaxed text-muted-foreground',
+            'mt-3 text-base leading-relaxed text-muted-foreground',
             to && 'line-clamp-3',
             to && aspect === 'portrait' && 'max-sm:hidden'
           )}

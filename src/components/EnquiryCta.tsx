@@ -20,7 +20,7 @@ export interface EnquiryCtaProps {
 const ROW = 'group flex min-h-12 items-center justify-between gap-6 py-3';
 const ROW_LABEL = 'eyebrow shrink-0 transition-transform group-hover:translate-x-2 group-focus-visible:translate-x-2';
 const ROW_VALUE =
-  'min-w-0 text-right font-mono text-[12px] tracking-[0.06em] text-ink-foreground transition-colors group-hover:text-sage group-focus-visible:text-sage';
+  'min-w-0 text-right font-mono text-[0.8125rem] tracking-[0.06em] text-ink-foreground transition-colors group-hover:text-sage group-focus-visible:text-sage';
 
 // The arrow leaves right as its twin arrives from the left (transform only) — the
 // same ruled-off arrow cell as the enquiry form's submit (ui/button CtaButton), written
@@ -74,7 +74,7 @@ const EnquiryCta = ({ product, className }: EnquiryCtaProps) => {
         {/* The hairline belongs to the cell, not to the Reveal inside it: a rule must not slide. */}
         <div className="flex border-t border-ink-border py-12 md:py-16 lg:col-span-4 lg:border-l lg:border-t-0 lg:py-36 lg:pl-12">
           <Reveal delay={0.15} className="flex w-full flex-col justify-between gap-12">
-            <p className="max-w-[42ch] text-sm leading-relaxed text-ink-muted md:text-base">
+            <p className="text-body max-w-[30rem] text-ink-muted">
               Importers, distributors and manufacturers are invited to share the product, volume and
               destination they have in mind so that we can prepare a quotation.
             </p>
@@ -107,7 +107,7 @@ const EnquiryCta = ({ product, className }: EnquiryCtaProps) => {
               </Magnetic>
 
               {product && (
-                <p className="mt-5 text-sm text-ink-muted">
+                <p className="text-secondary mt-5 text-ink-muted">
                   Your enquiry will reference <span className="text-ink-foreground">{product}</span>.
                 </p>
               )}

@@ -23,6 +23,14 @@ export default {
     dropShadow: {
       none: "0 0 #0000",
     },
+    // Every colour as text, less one: `text-secondary` is the TYPE size for descriptions
+    // (src/index.css), and text in the surface tone would be invisible on the surface
+    // anyway. Without this the two would stack on one class name. text-secondary-foreground
+    // stays.
+    textColor: ({ theme }) => {
+      const { secondary, ...colors } = theme("colors");
+      return { ...colors, secondary: { foreground: secondary.foreground } };
+    },
     extend: {
       fontFamily: {
         // Set once here; components use font-display / font-sans / font-mono, never a

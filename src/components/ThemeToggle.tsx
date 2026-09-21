@@ -9,7 +9,7 @@ interface ThemeToggleProps {
    */
   isDark: boolean;
   onToggle: () => void;
-  /** true over photography and on the ink menu sheet: chalk hairline, sage focus ring. */
+  /** true over photography and on the ink menu sheet: white hairline, sage focus ring. */
   onInk?: boolean;
   /** Layout only (display, size). The surface comes from `onInk`. */
   className?: string;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
 /**
@@ -90,59 +90,212 @@ export function entranceHold(): number {
   return Math.max(0, curtainLiftsAt - performance.now());
 }
 
-/** True from the first time `ref` comes into view. Without IntersectionObserver: at once. */
-export function useInView<T extends Element>(
+// ---- scroll reveals, both ways -----------------------------------------------------
+// A reveal plays every time its element comes on screen and plays back out as it
+// leaves, in whichever direction the visitor scrolls (owner feedback, 2026-09: "why
+// not every time?"). "On screen" means inside the ACTIVE ZONE, the viewport less its
+// bottom 8%: scrolling back up, whatever leaves through the foot is seen to go in that
+// last strip, and whatever comes back in over the top plays again.
+
+/** The viewport less its bottom 8%: where a scroll reveal counts as on screen. */
+export const ACTIVE_ZONE = '0px 0px -8% 0px';
+
+/** Seconds a reveal takes to play back out: quicker than it came, so scrolling back feels light. */
+export const OUT_S = 0.6;
+
+/**
+ * The CSS transition for a two-way reveal: in over `seconds` after the element's own
+ * stagger, out over OUT_S at once (a stagger on the way out only reads as lag). The
+ * transition that runs is the one on the new style, so the two never mix.
+ */
+export function revealTransition(
+  shown: boolean,
+  properties: string | readonly string[],
+  seconds: number,
+  delay = 0
+): string {
+  const length = shown ? seconds : Math.min(seconds, OUT_S);
+  const wait = shown ? +delay.toFixed(3) : 0;
+  return (typeof properties === 'string' ? [properties] : properties)
+    .map((property) => `${property} ${length}s ${EASE.expoOut} ${wait}s`)
+    .join(', ');
+}
+
+type Sighting = (inZone: boolean, entry: IntersectionObserverEntry) => void;
+
+interface Watch {
+  observer: IntersectionObserver;
+  targets: Map<Element, Set<Sighting>>;
+}
+
+/** One IntersectionObserver per (threshold, rootMargin), however many elements use it. */
+const watches = new Map<string, Watch>();
+
+/** Float noise in the reported ratio must not make a threshold crossing look short of it. */
+const RATIO_SLACK = 1e-3;
+
+/**
+ * Low-level: calls `onChange(true)` once `el` shows `threshold` of itself inside the
+ * zone and `onChange(false)` once it has left the zone entirely — between the two
+ * nothing is reported. That gap is the hysteresis that keeps an element parked on
+ * the edge from flickering. Returns the unsubscribe. Needs IntersectionObserver.
+ */
+export function observeIntersection(
+  el: Element,
+  { threshold = 0, rootMargin = '0px' }: { threshold?: number; rootMargin?: string },
+  onChange: Sighting
+): () => void {
+  const key = `${threshold}|${rootMargin}`;
+  let watch = watches.get(key);
+  if (!watch) {
+    const targets = new Map<Element, Set<Sighting>>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const inZone = entry.isIntersecting && entry.intersectionRatio + RATIO_SLACK >= threshold;
+          // Partly in but short of the threshold: whatever it was, it stays.
+          if (!inZone && entry.isIntersecting) continue;
+          targets.get(entry.target)?.forEach((sighting) => sighting(inZone, entry));
+        }
+      },
+      // 0 as well as the threshold, so leaving the zone altogether is reported too.
+      { threshold: threshold > 0 ? [0, threshold] : [0], rootMargin }
+    );
+    watch = { observer, targets };
+    watches.set(key, watch);
+  }
+
+  const { observer, targets } = watch;
+  let sightings = targets.get(el);
+  if (!sightings) {
+    sightings = new Set();
+    targets.set(el, sightings);
+    observer.observe(el);
+  }
+  sightings.add(onChange);
+
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    const current = targets.get(el);
+    current?.delete(onChange);
+    if (current && current.size === 0) {
+      targets.delete(el);
+      observer.unobserve(el);
+    }
+    if (targets.size === 0) {
+      observer.disconnect();
+      watches.delete(key);
+    }
+  };
+}
+
+/**
+ * Where an element stands against the active zone. 'above' means it left (or waits)
+ * over the top of the screen: a reveal that slides in uses it to wait on that side,
+ * since an offset towards the screen would carry its hidden self back into the zone.
+ */
+export type ViewPlace = 'in' | 'above' | 'below';
+
+export interface InViewOptions {
+  /** Share of the element inside the zone that counts as on screen. */
+  threshold?: number;
+  /** The zone. Default ACTIVE_ZONE. */
+  rootMargin?: string;
+  /** Do not observe at all (isStill(), or a load-triggered element). */
+  skip?: boolean;
+  /**
+   * Stay 'in' after the first sighting. Implied inside a [data-enter] element: that
+   * belongs to the page-load choreography, which plays once and never on scroll —
+   * except data-enter="view", a first-screen block that only borrows the pre-app hold.
+   */
+  once?: boolean;
+}
+
+/**
+ * Tracks `ref` in and out of the active zone, every time, on one shared observer.
+ * Without IntersectionObserver it is simply 'in'.
+ */
+export function useViewPlace<T extends Element>(
   ref: RefObject<T>,
-  { threshold = 0.15, rootMargin = '0px', skip = false } = {}
-): boolean {
-  const [inView, setInView] = useState(false);
+  { threshold = 0.15, rootMargin = ACTIVE_ZONE, skip = false, once = false }: InViewOptions = {}
+): ViewPlace {
+  const [place, setPlace] = useState<ViewPlace>('below');
 
   useEffect(() => {
     const el = ref.current;
-    if (skip || inView || !el) return;
+    if (skip || !el) return;
     if (typeof IntersectionObserver === 'undefined') {
-      setInView(true);
+      setPlace('in');
       return;
     }
-    // A block taller than the screen can never show 15% of itself on a phone; a
-    // third of a screen of it is "in view" enough.
+    const oneShot = once || el.parentElement?.closest('[data-enter]:not([data-enter="view"])') != null;
+    // A block taller than the screen can never show 15% of itself on a phone; a third
+    // of a screen of it is on screen enough. Rounded down to a 0.05 step, so tall
+    // blocks still share a handful of observers rather than one each.
     const height = el.getBoundingClientRect().height;
-    const reachable = height > 0 ? Math.min(threshold, (window.innerHeight * 0.35) / height) : threshold;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) setInView(true);
-      },
-      { threshold: reachable, rootMargin }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref, threshold, rootMargin, skip, inView]);
+    const reachable = height > 0 ? (window.innerHeight * 0.35) / height : threshold;
+    const level = reachable < threshold ? Math.max(0.01, Math.floor(reachable * 20) / 20) : threshold;
 
-  return inView;
+    const stop = observeIntersection(el, { threshold: level, rootMargin }, (inZone, entry) => {
+      if (inZone) {
+        setPlace('in');
+        if (oneShot) stop();
+        return;
+      }
+      const above = entry.rootBounds !== null && entry.boundingClientRect.bottom <= entry.rootBounds.top;
+      setPlace(above ? 'above' : 'below');
+    });
+    return stop;
+  }, [ref, threshold, rootMargin, skip, once]);
+
+  return place;
+}
+
+/** True while `ref` is on screen (see useViewPlace), again each time it comes back. */
+export function useInView<T extends Element>(ref: RefObject<T>, options: InViewOptions = {}): boolean {
+  return useViewPlace(ref, options) === 'in';
 }
 
 /**
  * The one "go" signal the reveal primitives share. `ready` is the component's own
- * condition (in view, or simply mounted for page-load choreography); the result turns
- * true once that holds, the age gate is passed and any route curtain is lifting.
- * One frame is always left between mount and go, so the hidden state has painted and
- * the transition has something to run from.
+ * condition (on screen, or simply mounted for page-load choreography) and the result
+ * follows it both ways. The FIRST time only, it also waits for the age gate and a
+ * lifting route curtain, and leaves one frame between mount and go so the hidden
+ * state has painted and the transition has something to run from. After that a
+ * return is immediate: the element has been painted hidden on its way out.
+ * Under isStill() it is always true.
  */
 export function useReveal(ready: boolean): boolean {
+  const [still] = useState(isStill);
   const entered = useEntered();
-  const [shown, setShown] = useState(isStill);
+  const [shown, setShown] = useState(still);
+  const played = useRef(false);
 
   useEffect(() => {
-    if (shown || !ready || !entered) return;
+    if (still) return;
+    if (!ready) {
+      setShown(false);
+      return;
+    }
+    if (played.current) {
+      setShown(true);
+      return;
+    }
+    if (!entered) return;
     let frame = 0;
     const timer = window.setTimeout(() => {
-      frame = requestAnimationFrame(() => setShown(true));
+      frame = requestAnimationFrame(() => {
+        played.current = true;
+        setShown(true);
+      });
     }, entranceHold());
     return () => {
       window.clearTimeout(timer);
       cancelAnimationFrame(frame);
     };
-  }, [shown, ready, entered]);
+  }, [still, ready, entered]);
 
-  return shown;
+  return still || shown;
 }

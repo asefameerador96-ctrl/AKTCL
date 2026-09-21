@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FocusEvent, PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowRight } from 'lucide-react';
+import { ArrowDown, ArrowRight, Pause, Play } from 'lucide-react';
 import HeroStats from '@/components/HeroStats';
 import LazyImage from '@/components/LazyImage';
 import Reveal from '@/components/Reveal';
@@ -46,7 +46,7 @@ const HERO_SIZES = '(max-aspect-ratio: 1/1) 179vh, 100vw';
 const HERO_SIZE = '[--hero-size:clamp(3.5rem,min(20vw,16vh),10rem)]';
 const HEADLINE = 'display-xl max-w-[3.6em] text-[length:var(--hero-size)] text-ink-foreground';
 
-/** Hairlines over photography are a chalk tint: the ink hairline would vanish into the scrim. */
+/** Hairlines over photography are a white tint: the ink hairline would vanish into the scrim. */
 const LINE = 'bg-ink-foreground/25';
 
 /** Seconds into the load choreography: headline, the rule beside it, lead, buttons, figures, controls. */
@@ -55,7 +55,7 @@ const AT = { headline: 0.15, divider: 0.5, lead: 0.6, actions: 0.7, stats: 0.8, 
 // The hero section is bg-ink, so the ink context (index.css) gives every control here
 // the sage focus ring.
 const CONTROL = 'flex h-11 items-center rounded-sm';
-const MONO = 'font-mono text-[11px] font-medium uppercase leading-none tracking-[0.2em]';
+const MONO = 'font-mono text-[0.8125rem] font-medium uppercase leading-none tracking-[0.15em]';
 
 const twoDigits = (n: number) => String(n).padStart(2, '0');
 
@@ -202,7 +202,7 @@ const HeroCarousel = () => {
       })}
 
       {/* Legibility, in washes rather than panels — measured, not guessed: with the text
-          hidden, the brightest pixel behind the 16px lead still has to leave it 4.5:1 on
+          hidden, the brightest pixel behind the lead still has to leave it 4.5:1 on
           both photographs. An even veil (heavier below lg, where the copy runs the height
           of the screen); a lean to the left, where the headline stands; from lg its
           mirror on the right, behind the narrow column; and a foot that closes to solid
@@ -240,7 +240,7 @@ const HeroCarousel = () => {
 
           {/* The narrow column: lead, then the two ways on, stacked like directory rows.
               Its rule runs the height of the headline and lands on the figures' top line. */}
-          <div className="relative flex flex-col justify-end pb-8 lg:col-span-4 lg:pb-[calc(3.5rem+var(--hero-size)*0.135)] lg:pl-8">
+          <div className="relative flex flex-col justify-end pb-8 text-ink-foreground lg:col-span-4 lg:pb-[calc(3.5rem+var(--hero-size)*0.135)] lg:pl-8">
             <DrawnRule
               axis="y"
               trigger="enter"
@@ -252,7 +252,8 @@ const HeroCarousel = () => {
               as="p"
               trigger="enter"
               delay={AT.lead}
-              className="max-w-[34ch] text-base/relaxed text-ink-foreground"
+              // The colour is the column's: white over the photograph.
+              className="text-lead max-w-[24rem]"
             >
               {hero.subtitle}
             </Reveal>
@@ -310,16 +311,23 @@ const HeroCarousel = () => {
                   </button>
                 ))}
                 {/* Hover and focus already pause the rotation; this is the explicit
-                    control WCAG 2.2.2 asks for. Pointless when nothing auto-advances. */}
+                    control WCAG 2.2.2 asks for. Pointless when nothing auto-advances.
+                    The icon alone, a 44px target: a written "Pause" read as one more
+                    label in a row that was all labels. A toggle, like the marquee's: one
+                    fixed name and aria-pressed; the icon shows what a press will do. */}
                 {!still && (
                   <button
                     type="button"
                     onClick={() => setUserPaused((paused) => !paused)}
-                    // The visible word leads the name, so speech input finds it.
-                    aria-label={userPaused ? 'Play photograph rotation' : 'Pause photograph rotation'}
-                    className={`${CONTROL} ${MONO} ml-2 min-w-[4.25rem] px-1 text-ink-muted transition-colors hover:text-ink-foreground focus-visible:text-ink-foreground`}
+                    aria-label="Pause photograph rotation"
+                    aria-pressed={userPaused}
+                    className={`${CONTROL} ml-1 w-11 justify-center text-ink-muted transition-colors hover:text-ink-foreground focus-visible:text-ink-foreground`}
                   >
-                    {userPaused ? 'Play' : 'Pause'}
+                    {userPaused ? (
+                      <Play aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
+                    ) : (
+                      <Pause aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
+                    )}
                   </button>
                 )}
               </div>

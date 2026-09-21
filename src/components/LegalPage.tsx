@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import PageLayout from '@/components/PageLayout';
 import PageHeader, { WRAP } from '@/components/PageHeader';
 import Reveal from '@/components/Reveal';
-import { site } from '@/content/site';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
 
@@ -28,10 +27,10 @@ export interface LegalPageProps {
  * wide zero (1ch is 0.73em), so "68ch" would come out near 100 characters.
  */
 const PROSE = [
-  'text-base leading-relaxed text-muted-foreground marker:text-accent md:text-[17px]',
+  'text-base leading-[1.65] text-muted-foreground marker:text-accent md:text-[17px]',
   // On the children, not the box: the box carries the cell's padding.
-  '[&>*:first-child]:mt-0 [&>*]:max-w-[36rem]',
-  '[&_h2]:mb-5 [&_h2]:mt-14 [&_h2]:border-t [&_h2]:border-border [&_h2]:pt-8 [&_h2]:text-[length:clamp(1.75rem,3vw,2.75rem)] [&_h2]:leading-[1.08] [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground md:[&_h2]:mt-20 md:[&_h2]:pt-10',
+  '[&>*:first-child]:mt-0 [&>*]:max-w-[38rem]',
+  '[&_h2]:mb-5 [&_h2]:mt-14 [&_h2]:border-t [&_h2]:border-border [&_h2]:pt-8 [&_h2]:text-[length:clamp(1.9rem,3vw,2.75rem)] [&_h2]:leading-[1.08] [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground md:[&_h2]:mt-20 md:[&_h2]:pt-10',
   '[&_p]:mt-4',
   '[&_ul]:mt-4 [&_ul]:list-[square] [&_ul]:space-y-2 [&_ul]:pl-5 [&_li]:pl-2',
   // Links are told apart by their underline, not by colour alone.
@@ -50,7 +49,6 @@ const LegalPage = ({ path, title, lastUpdated, children }: LegalPageProps) => (
       <PageHeader
         breadcrumbs={ROUTE_BY_PATH[path]?.breadcrumbs ?? [{ name: title, path }]}
         eyebrow="Legal"
-        meta={site.shortName}
         title={title}
         size="compact"
       />
@@ -67,7 +65,7 @@ const LegalPage = ({ path, title, lastUpdated, children }: LegalPageProps) => (
             className="border-b border-border py-6 lg:sticky lg:top-24 lg:col-span-4 lg:self-start lg:border-b-0 lg:py-10"
           >
             <p className="eyebrow">Last updated</p>
-            <p className="index-num mt-3 uppercase leading-normal text-foreground">{lastUpdated}</p>
+            <p className="mono-label mt-3 text-foreground">{lastUpdated}</p>
           </Reveal>
 
           {/* No <Reveal> here: a block this tall may never cross the reveal threshold on

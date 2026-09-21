@@ -1,10 +1,20 @@
-import { act, render, renderHook, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SplitReveal from '@/components/motion/SplitReveal';
-import Marquee from '@/components/motion/Marquee';
+import Marquee, { MarqueeBand } from '@/components/motion/Marquee';
 import CountUp from '@/components/motion/CountUp';
+import ImageReveal from '@/components/motion/ImageReveal';
 import Reveal from '@/components/Reveal';
-import { EASE, ENTERED_EVENT, isStill, useEntered } from './motion';
+import {
+  ACTIVE_ZONE,
+  EASE,
+  ENTERED_EVENT,
+  OUT_S,
+  isStill,
+  revealTransition,
+  useEntered,
+  useReveal,
+} from './motion';
 
 // src/test/setup.ts stubs matchMedia with matches:false, i.e. "motion allowed".
 afterEach(() => {
@@ -39,6 +49,13 @@ describe('motion vocabulary', () => {
     const returning = renderHook(() => useEntered());
     expect(returning.result.current).toBe(true);
   });
+
+  it('plays a reveal in after its stagger and out at once, quicker', () => {
+    expect(revealTransition(true, ['opacity', 'transform'], 0.9, 0.12)).toBe(
+      `opacity 0.9s ${EASE.expoOut} 0.12s, transform 0.9s ${EASE.expoOut} 0.12s`
+    );
+    expect(revealTransition(false, 'transform', 1.2, 0.3)).toBe(`transform ${OUT_S}s ${EASE.expoOut} 0s`);
+  });
 });
 
 // What the prerenderer captures is what crawlers and no-JS readers get: it has to be
@@ -63,7 +80,10 @@ describe('primitives under the prerenderer', () => {
           <p>Subtitle</p>
         </Reveal>
         <CountUp value={50000} format={(n) => n.toLocaleString('en-US')} />
-        <Marquee items={['Leaf Tobacco', 'Cigarettes']} />
+        <MarqueeBand>
+          <Marquee items={['Leaf Tobacco', 'Cigarettes']} />
+        </MarqueeBand>
+        <Marquee items={['Cut Rag']} />
       </>
     );
     expect(container.innerHTML).not.toMatch(/opacity|visibility|clip-path/);
@@ -89,5 +109,290 @@ describe('SplitReveal, animated', () => {
     expect(p).not.toHaveAttribute('aria-label');
     expect(p.querySelector('.sr-only')?.textContent).toBe('Verbatim copy.');
     expect(p.querySelector('[aria-hidden="true"]')?.textContent).toBe('Verbatim copy.');
+  });
+});
+
+// ---- two-way scroll reveals ----------------------------------------------------------
+// jsdom has no IntersectionObserver. This one is driven by hand: sight(el, ratio)
+// reports `el` as having `ratio` of itself inside the active zone (0 = left it).
+
+class MockObserver {
+  static all = new Set<MockObserver>();
+  readonly root = null;
+  readonly rootMargin: string;
+  readonly thresholds: readonly number[];
+  readonly targets = new Set<Element>();
+
+  constructor(
+    private readonly callback: IntersectionObserverCallback,
+    options: IntersectionObserverInit = {}
+  ) {
+    this.rootMargin = options.rootMargin ?? '0px';
+    this.thresholds = ([] as number[]).concat(options.threshold ?? 0);
+    MockObserver.all.add(this);
+  }
+  observe(el: Element) {
+    this.targets.add(el);
+  }
+  unobserve(el: Element) {
+    this.targets.delete(el);
+  }
+  disconnect() {
+    this.targets.clear();
+    MockObserver.all.delete(this);
+  }
+  takeRecords() {
+    return [];
+  }
+  report(target: Element, ratio: number, side: 'above' | 'below') {
+    const rootBounds = { top: 0, bottom: 920 } as DOMRectReadOnly;
+    const boundingClientRect = (side === 'above' ? { top: -80, bottom: -40 } : { top: 940, bottom: 980 }) as DOMRectReadOnly;
+    const entry = { target, isIntersecting: ratio > 0, intersectionRatio: ratio, rootBounds, boundingClientRect };
+    this.callback([entry as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+  }
+}
+
+const sight = (el: Element, ratio: number, side: 'above' | 'below' = 'below') =>
+  act(() => {
+    MockObserver.all.forEach((observer) => observer.targets.has(el) && observer.report(el, ratio, side));
+  });
+
+const pass = () =>
+  act(() => {
+    window.__aktclEntered = true;
+    window.dispatchEvent(new Event(ENTERED_EVENT));
+  });
+
+describe('scroll reveals play both ways, every time', () => {
+  beforeEach(() => {
+    vi.stubGlobal('IntersectionObserver', MockObserver);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('holds the first reveal for the age gate, then follows the scroll in, out and in again', async () => {
+    const { container } = render(
+      <Reveal>
+        <p>Body copy</p>
+      </Reveal>
+    );
+    const block = container.firstElementChild as HTMLElement;
+    expect(block.style.opacity).toBe('0');
+
+    sight(block, 1);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(block.style.opacity).toBe('0');
+
+    pass();
+    await waitFor(() => expect(block.style.opacity).toBe('1'));
+    expect(block.style.transform).toBe('none');
+
+    // Out through the foot of the screen: back down, quicker, with no stagger.
+    sight(block, 0);
+    expect(block.style.opacity).toBe('0');
+    expect(block.style.transform).toBe('translateY(28px)');
+    expect(block.style.transition).toContain(`${OUT_S}s`);
+
+    // A return is immediate: no gate, no frame to wait for.
+    sight(block, 1);
+    expect(block.style.opacity).toBe('1');
+
+    // Out over the top: it waits above its place, so its offset cannot carry it back in.
+    sight(block, 0, 'above');
+    expect(block.style.transform).toBe('translateY(-28px)');
+    sight(block, 1);
+    expect(block.style.opacity).toBe('1');
+  });
+
+  it('has hysteresis: nothing changes between the threshold and leaving altogether', async () => {
+    window.__aktclEntered = true;
+    const { container } = render(<Reveal>Body copy</Reveal>);
+    const block = container.firstElementChild as HTMLElement;
+
+    sight(block, 0.05);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(block.style.opacity).toBe('0');
+
+    sight(block, 0.5);
+    await waitFor(() => expect(block.style.opacity).toBe('1'));
+
+    sight(block, 0.05);
+    expect(block.style.opacity).toBe('1');
+    sight(block, 0);
+    expect(block.style.opacity).toBe('0');
+    sight(block, 0.05);
+    expect(block.style.opacity).toBe('0');
+  });
+
+  it('shares one observer per threshold and zone, and lets it go with the last element', () => {
+    window.__aktclEntered = true;
+    const { unmount } = render(
+      <>
+        <Reveal>One</Reveal>
+        <Reveal>Two</Reveal>
+        <SplitReveal as="h2" text="Three" />
+        <CountUp value={12} />
+      </>
+    );
+    const observers = [...MockObserver.all];
+    expect(observers).toHaveLength(2);
+    const shared = observers.find((observer) => observer.thresholds.includes(0.15))!;
+    expect(shared.targets.size).toBe(3);
+    expect(shared.rootMargin).toBe(ACTIVE_ZONE);
+    expect(shared.thresholds).toEqual([0, 0.15]);
+    unmount();
+    expect(MockObserver.all.size).toBe(0);
+  });
+
+  it('page-load choreography plays once and is never observed', async () => {
+    window.__aktclEntered = true;
+    const { getByText } = render(
+      <div data-enter="">
+        <Reveal trigger="enter">Headline</Reveal>
+        <Reveal>Inside the sequence</Reveal>
+      </div>
+    );
+    const inside = getByText('Inside the sequence');
+    // Only the view-triggered one is watched, and only until it has been seen.
+    expect([...MockObserver.all].reduce((n, observer) => n + observer.targets.size, 0)).toBe(1);
+    sight(inside, 1);
+    await waitFor(() => expect(inside.style.opacity).toBe('1'));
+    expect(MockObserver.all.size).toBe(0);
+    await waitFor(() => expect(getByText('Headline').style.opacity).toBe('1'));
+  });
+
+  it('SplitReveal sinks back into its masks on the way out', async () => {
+    window.__aktclEntered = true;
+    const { container } = render(<SplitReveal as="h2" text="Facts & Figures" />);
+    const h2 = container.querySelector('h2')!;
+    const words = () => [...h2.querySelectorAll<HTMLElement>('[data-split-word] > span')];
+
+    sight(h2, 1);
+    await waitFor(() => expect(words().every((word) => word.style.transform === 'none')).toBe(true));
+    sight(h2, 0);
+    expect(words().every((word) => word.style.transform.startsWith('translate3d'))).toBe(true);
+    expect([...h2.querySelectorAll('[data-split-word]')].every((mask) => mask.classList.contains('split-mask'))).toBe(
+      true
+    );
+    // Still one heading with one name while hidden.
+    expect(screen.getByRole('heading', { name: 'Facts & Figures' })).toBeInTheDocument();
+  });
+
+  it('ImageReveal waits transparent, never removed from the accessibility tree', async () => {
+    window.__aktclEntered = true;
+    const { container } = render(
+      <ImageReveal>
+        <img alt="Leaf in the barn" />
+      </ImageReveal>
+    );
+    const frame = container.querySelector<HTMLElement>('[data-image-reveal]')!;
+    expect(frame.style.opacity).toBe('0');
+    expect(frame.style.visibility).toBe('');
+    expect(screen.getByRole('img', { name: 'Leaf in the barn' })).toBeInTheDocument();
+    sight(frame, 1);
+    await waitFor(() => expect(frame.style.opacity).toBe(''));
+    // Once opened it is never made transparent again: the way out is the mask closing.
+    sight(frame, 0);
+    expect(frame.style.opacity).toBe('');
+  });
+
+  it('CountUp starts again from its first figure on every return', async () => {
+    window.__aktclEntered = true;
+    const { container } = render(<CountUp value={50} from={10} duration={60} />);
+    const figure = container.firstElementChild as HTMLElement;
+
+    sight(figure, 1);
+    await waitFor(() => expect(figure.textContent).toBe('50'));
+    // At rest it is one plain number: nothing for copied text to repeat.
+    expect(figure.querySelector('.sr-only')).toBeNull();
+
+    sight(figure, 0);
+    expect(figure.textContent).toBe('50');
+    sight(figure, 1);
+    expect(figure.querySelector('[aria-hidden="true"]')?.textContent).toBe('10');
+    expect(figure.querySelector('.sr-only')?.textContent).toBe('50');
+    await waitFor(() => expect(figure.textContent).toBe('50'));
+  });
+
+  it('a controlled CountUp watches nothing and is one plain number until it plays', async () => {
+    window.__aktclEntered = true;
+    const { container, rerender } = render(<CountUp play={false} value={50} from={10} duration={60} />);
+    const figure = container.firstElementChild as HTMLElement;
+    expect(MockObserver.all.size).toBe(0);
+    expect(figure.textContent).toBe('50');
+    expect(figure.querySelector('.sr-only')).toBeNull();
+
+    rerender(<CountUp play value={50} from={10} duration={60} />);
+    expect(figure.querySelector('[aria-hidden="true"]')?.textContent).toBe('10');
+    await waitFor(() => expect(figure.textContent).toBe('50'));
+  });
+
+  it('under isStill() nothing is observed and nothing is ever hidden', () => {
+    window.__PRERENDER__ = true;
+    const { container } = render(
+      <>
+        <Reveal>Body copy</Reveal>
+        <SplitReveal as="h2" text="Heading" />
+        <ImageReveal>
+          <img alt="Leaf" />
+        </ImageReveal>
+        <CountUp value={1953} />
+      </>
+    );
+    expect(MockObserver.all.size).toBe(0);
+    expect(container.innerHTML).not.toMatch(/opacity|visibility|clip-path|transform/);
+    expect(renderHook(() => useReveal(false)).result.current).toBe(true);
+  });
+});
+
+describe('Marquee controls', () => {
+  it('a band has ONE icon-only control that pauses every row', () => {
+    const { container } = render(
+      <MarqueeBand>
+        <Marquee items={['Leaf Tobacco', 'Cut Rag']} />
+        <Marquee items={['King Size']} />
+      </MarqueeBand>
+    );
+    const rows = () => [...container.querySelectorAll('.marquee')];
+    const [toggle, ...others] = screen.getAllByRole('button');
+    expect(others).toHaveLength(0);
+    expect(toggle).toHaveAccessibleName('Pause moving text');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle.textContent).toBe('');
+    expect(container.textContent).not.toMatch(/Pause|Play|products/);
+    expect(rows().some((row) => row.hasAttribute('data-paused'))).toBe(false);
+
+    // One fixed name; the state is aria-pressed, never a second name.
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAccessibleName('Pause moving text');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(rows().every((row) => row.hasAttribute('data-paused'))).toBe(true);
+
+    fireEvent.click(toggle);
+    expect(rows().some((row) => row.hasAttribute('data-paused'))).toBe(false);
+  });
+
+  it('keyboard focus inside the band holds it still until focus leaves', () => {
+    const { container } = render(
+      <MarqueeBand>
+        <Marquee items={['Leaf Tobacco']} />
+      </MarqueeBand>
+    );
+    const row = container.querySelector('.marquee')!;
+    const toggle = screen.getByRole('button');
+    act(() => toggle.focus());
+    expect(row).toHaveAttribute('data-paused');
+    act(() => toggle.blur());
+    expect(row).not.toHaveAttribute('data-paused');
+  });
+
+  it('a lone marquee keeps its own control unless told otherwise', () => {
+    const { rerender } = render(<Marquee items={['Leaf Tobacco']} />);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    rerender(<Marquee items={['Leaf Tobacco']} paused={false} />);
+    expect(screen.queryByRole('button')).toBeNull();
+    rerender(<Marquee items={['Leaf Tobacco']} control={false} />);
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

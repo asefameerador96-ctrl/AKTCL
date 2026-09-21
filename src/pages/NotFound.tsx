@@ -49,13 +49,10 @@ const NotFound = () => (
 
         <Reveal trigger="enter" delay={0.5} className="mt-12">
           <ul className="hairline-rows">
-            {DESTINATIONS.map(({ to, label, lead }, index) => (
+            {DESTINATIONS.map(({ to, label, lead }) => (
               <li key={to}>
                 {/* A row, not a button: the label shifts 8px and the arrow darkens. */}
                 <Link to={to} data-lead={lead} className="group flex min-h-16 items-center gap-5 text-foreground">
-                  <span aria-hidden="true" className="index-num w-7 shrink-0">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
                   <span className="display-xs flex-1 transition-transform group-hover:translate-x-2 group-focus-visible:translate-x-2">
                     {label}
                   </span>
@@ -70,7 +67,7 @@ const NotFound = () => (
 
           <Link
             to="/"
-            className="link-underline mt-8 inline-block bg-origin-content py-3.5 font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-[background-size,color] hover:text-foreground"
+            className="mono-label link-underline mt-8 inline-block bg-origin-content py-3.5 text-muted-foreground transition-[background-size,color] hover:text-foreground"
           >
             Return to the homepage
           </Link>

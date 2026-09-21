@@ -24,7 +24,7 @@ const photo = journeyImages.process?.[0];
 const WhoWeAre = () => (
   <section aria-labelledby="who-we-are-heading" className="py-24 md:py-32 lg:py-36">
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
-      <SectionHead number="01" label="Who We Are" meta={`${site.parent} · ${site.country}`} />
+      <SectionHead label="Who We Are" />
 
       <SplitReveal
         as="h2"
@@ -58,11 +58,13 @@ const WhoWeAre = () => (
         )}
 
         <div className="flex flex-col lg:col-span-5 lg:col-start-1 lg:row-start-1 lg:border-r lg:border-border">
-          <div className="max-w-[60ch] py-10 md:py-12 lg:pr-10">
-            <Reveal as="p" className="text-base leading-relaxed text-foreground">
+          {/* rem, not ch (see .lead in index.css): some 70 characters a line at 17px. */}
+          <div className="max-w-[38rem] py-10 md:py-12 lg:pr-10">
+            {/* Running copy at the body's own 17px: no size of its own to fall behind. */}
+            <Reveal as="p" className="text-foreground">
               {hero.body}
             </Reveal>
-            <Reveal as="p" delay={0.08} className="mt-6 text-base leading-relaxed text-muted-foreground">
+            <Reveal as="p" delay={0.08} className="mt-6 text-muted-foreground">
               {about.paragraphs[0]}
             </Reveal>
           </div>

@@ -18,8 +18,6 @@ import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
 const enquiryHref = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
 /**
@@ -38,7 +36,6 @@ const CategoryRange = ({ category }: { category: ProductCategory }) => {
           <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
             <FormatCard
               layout="row"
-              number={i + 1}
               name={product.name}
               short={product.short}
               rows={product.specs}
@@ -61,7 +58,6 @@ const CategoryRange = ({ category }: { category: ProductCategory }) => {
             short={product.short}
             // Only the column matters: the stagger restarts on every row of the grid.
             index={i}
-            number={i + 1}
           />
         </li>
       ))}
@@ -77,7 +73,6 @@ const ProductsIndex = () => (
       eyebrow={productsIntro.eyebrow}
       title={productsIntro.heading}
       italicWords={['Our']}
-      meta={`${pad(categories.length)} Categories`}
       lead={productsIntro.short}
     />
 
@@ -88,7 +83,7 @@ const ProductsIndex = () => (
       <Reveal className="relative grid lg:grid-cols-12">
         <span aria-hidden="true" className="absolute inset-y-0 left-[41.666667%] hidden w-px bg-border lg:block" />
         <p className="eyebrow pt-6 lg:col-span-5 lg:pt-10">Overview</p>
-        <p className={cn(BODY, 'pt-5 lg:col-span-7 lg:pb-24 lg:pl-8 lg:pt-10')}>{productsIntro.long}</p>
+        <p className={`${BODY} pt-5 lg:col-span-7 lg:pb-24 lg:pl-8 lg:pt-10`}>{productsIntro.long}</p>
       </Reveal>
     </section>
 
@@ -110,8 +105,9 @@ const ProductsIndex = () => (
           <DrawnRule axis="y" delay={0.2} className="absolute inset-y-0 left-[58.333333%] hidden lg:block" />
 
           <div className="pb-10 pt-4 md:pt-5 lg:col-span-7 lg:pb-20 lg:pr-8">
-            {/* The workbook's "Category 01", set as the site's section marker. */}
-            <SectionMarker number={pad(i + 1)}>Category</SectionMarker>
+            {/* The workbook's "Category 01" without its number: the order of the two
+                categories is not information. */}
+            <SectionMarker>Category</SectionMarker>
             <SplitReveal
               as="h2"
               id={`${category.slug}-heading`}

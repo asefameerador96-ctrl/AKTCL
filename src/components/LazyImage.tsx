@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { observeIntersection } from '@/lib/motion';
 
 /** The shape vite-imagetools returns for a "?...&as=picture" import. */
 export interface ResponsiveImage {
@@ -72,17 +73,14 @@ export default function LazyImage({
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    // The reveals' shared observer (lib/motion): one for every image on the page
+    // rather than one each.
+    const stop = observeIntersection(el, { rootMargin }, (near) => {
+      if (!near) return;
+      setVisible(true);
+      stop();
+    });
+    return stop;
   }, [loadNow, visible, rootMargin]);
 
   return (

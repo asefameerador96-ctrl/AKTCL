@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { canHover, isStill } from '@/lib/motion';
+import { canHover, isStill, observeIntersection } from '@/lib/motion';
 
 export interface ParallaxProps {
   children: ReactNode;
@@ -42,20 +42,17 @@ const Parallax = ({ children, speed = 0.08, className }: ParallaxProps) => {
     const schedule = () => {
       if (near && !frame) frame = requestAnimationFrame(update);
     };
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        near = entry.isIntersecting;
-        inner.style.willChange = near ? 'transform' : 'auto';
-        schedule();
-      },
-      { rootMargin: '25% 0px' }
-    );
-    observer.observe(outer);
+    // Near = within a quarter-screen of the viewport, on the observer the reveals share.
+    const unobserve = observeIntersection(outer, { rootMargin: '25% 0px' }, (inZone) => {
+      near = inZone;
+      inner.style.willChange = near ? 'transform' : 'auto';
+      schedule();
+    });
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
 
     return () => {
-      observer.disconnect();
+      unobserve();
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
       if (frame) cancelAnimationFrame(frame);

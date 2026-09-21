@@ -39,7 +39,11 @@ export interface ProductCategory {
   slug: string;
   /** Short label for nav, breadcrumbs and cards. */
   label: string;
-  /** "CATEGORY 01" style eyebrow from col B. */
+  /**
+   * "CATEGORY 01" style eyebrow from col B. Kept as the workbook's record, but not
+   * rendered: category numbering was decoration (owner feedback, 2026-09) and the
+   * category's name says the same.
+   */
   eyebrow: string;
   title: string;
   short: string;

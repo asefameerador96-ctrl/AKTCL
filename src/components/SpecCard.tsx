@@ -2,7 +2,7 @@ import { useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SectionMarker from '@/components/SectionMarker';
 import { CtaButton } from '@/components/ui/button';
-import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
+import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
 
 export interface SpecRow {
   label: string;
@@ -14,10 +14,8 @@ interface SpecCardProps {
   rows: SpecRow[];
   /** Row labels to show, each as "On request", while `rows` is empty. */
   templateLabels?: string[];
-  /** Product name: shown opposite the marker and pre-selected on the enquiry form. */
+  /** Product name: pre-selected on the enquiry form. The page's <h1> already names it. */
   product: string;
-  /** The sheet's place among the page's numbered sections, as printed. */
-  number?: string;
 }
 
 const ON_REQUEST = 'On request';
@@ -30,13 +28,13 @@ const LINE_STAGGER = 0.06;
  * value on the right. A real value is set in the display serif; a value AKTCL has not
  * supplied reads "On request" in the quiet mono, so the two can never be mistaken for
  * each other. Always in the DOM (nothing to expand); only the hairlines move, drawing
- * in one after another the first time the sheet is seen.
+ * in one after another as the sheet comes into view, and back out as it leaves.
  *
  * The workbook holds no technical values yet, so with empty `rows` the same sheet is
  * drawn from `templateLabels`, plus a route to ask for the data sheet. A figure that
  * AKTCL has not supplied is never shown here.
  */
-const SpecCard = ({ rows, templateLabels = [], product, number = '01' }: SpecCardProps) => {
+const SpecCard = ({ rows, templateLabels = [], product }: SpecCardProps) => {
   const headingId = useId();
   const [still] = useState(isStill);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -56,7 +54,7 @@ const SpecCard = ({ rows, templateLabels = [], product, number = '01' }: SpecCar
           ? undefined
           : {
               transform: shown ? 'none' : 'scaleX(0)',
-              transition: `transform 1.1s ${EASE.expoOut} ${(i * LINE_STAGGER).toFixed(2)}s`,
+              transition: revealTransition(shown, 'transform', 1.1, i * LINE_STAGGER),
             }
       }
     />
@@ -64,11 +62,7 @@ const SpecCard = ({ rows, templateLabels = [], product, number = '01' }: SpecCar
 
   return (
     <section aria-labelledby={headingId} className="border-t border-foreground pt-5 text-foreground">
-      <div className="flex items-baseline justify-between gap-6">
-        <SectionMarker number={number}>Data Sheet</SectionMarker>
-        {/* A phone has room for the marker only; the <h1> above names the product. */}
-        <p className="index-num hidden text-right uppercase leading-normal sm:block">{product}</p>
-      </div>
+      <SectionMarker>Data Sheet</SectionMarker>
       <h2 id={headingId} className="display-sm mt-8 md:mt-10">
         Specifications
       </h2>
@@ -79,7 +73,8 @@ const SpecCard = ({ rows, templateLabels = [], product, number = '01' }: SpecCar
             {display.map((row, i) => (
               <div
                 key={row.label}
-                className="relative grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-baseline gap-6 py-4"
+                // Even halves on a phone, so a two-word label ("Minimum Order") keeps its line.
+                className="relative grid grid-cols-2 items-baseline gap-6 py-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
               >
                 {hairline(i)}
                 {i === display.length - 1 && hairline(i + 1, 'bottom')}
@@ -98,7 +93,7 @@ const SpecCard = ({ rows, templateLabels = [], product, number = '01' }: SpecCar
 
         {pending && (
           <>
-            <p className="mt-6 max-w-[52ch] text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-6 max-w-[34rem] text-secondary text-muted-foreground">
               Full specifications, grades and packing details are shared against a trade enquiry.
             </p>
             {/* The primary button, full measure, with its arrow in a ruled-off cell: it

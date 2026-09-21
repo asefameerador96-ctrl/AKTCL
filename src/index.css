@@ -11,6 +11,30 @@
  * The two variable packages ship no latin-only stylesheet, so their faces are declared
  * by hand in fonts.css from the packages' own files (the why is in that file). Italics
  * of the sans and the mono are not loaded: nothing uses them.
+ *
+ * TYPE SCALE — the one source of truth for text sizes (raised in feedback round 1: the
+ * owner found the site too small to read). px at a 1440px desktop; phones where they
+ * differ. Components take these classes rather than restating a size, and nothing on
+ * the site is set under 12px — 12px only for legal small print, and 13px is preferred.
+ *
+ *   .display-xl … -xs   headlines, Instrument Serif, fluid        60–144px … 26–32px
+ *   .lead               lead / intro paragraph, muted, measured   18 → 21px, leading 1.55
+ *   .text-lead          the lead's size alone                     clamp(1.125rem, 1rem + 0.4vw, 1.3125rem)
+ *   body, .text-body    running copy                              17px (16px under md), leading 1.65
+ *   .text-secondary     descriptions in cells and rows, footer    16px, leading 1.6
+ *                       links, form help text
+ *   .eyebrow            mono label over a heading, muted          13px, tracking 0.15em
+ *   .mono-label         the same label in the colour it is given: 13px, tracking 0.15em
+ *                       nav links, row links, spec terms, "View Range"
+ *   .btn                button labels                             13px, tracking 0.15em
+ *   .index-num          the few numerals that carry information   13px, tracking 0.14em
+ *                       (slide, carousel and lightbox positions, the journey's stages)
+ *
+ * .text-body / .text-secondary / .text-lead are component classes. lib/utils.ts tells
+ * tailwind-merge they are font sizes, so inside cn() they sit beside a colour utility
+ * safely (and a later text-[size] replaces them, as it would text-lg). .text-secondary
+ * is a size here, never the surface colour — tailwind.config.ts takes that one colour
+ * out of the text-* utilities so the two cannot stack.
  */
 @import '@fontsource/instrument-serif/latin-400.css';
 @import '@fontsource/instrument-serif/latin-400-italic.css';
@@ -21,85 +45,92 @@
 @tailwind utilities;
 
 /*
- * AKTCL design tokens — ONE palette, held strictly.
+ * AKTCL design tokens — the owner's neutral palette (2026-09-22), held strictly:
  *
- *   light   "Warm Editorial Ivory"      paper #FBF9F5 · surface #F2EFE9 · hairline #E2DED5
- *                                       espresso #1A1917 · olive-grey #6E6C64
- *   dark    "Warm Architectural Dark"   charcoal #10100E · surface #181816 · hairline #282824
- *                                       chalk #EDECE8 · grey #9C9B94
- *   ink     the always-dark bands (hero, facts, enquiry band, footer, menu, age gate):
- *           the dark palette in BOTH themes — #10100E, and #0B0B0C under .dark so the
- *           bands still step down from the page.
- *   accent  Deep British Racing Green #0A3622. Surgical: under 5% of any viewport — a
- *           tick, a node, a hover, a selection. Never a band, never a big fill. In the
- *           dark theme it is a lifted tint of the same green (#88BFA0).
- *   sage    #A8C7B6, a light tint of the accent, for small signals ON INK only
- *           (signal eyebrows, active ticks, focus rings). Never a fill, never on paper.
+ *   Black #000000 · Slate #262626 · Dark Grey #393939 · Secondhand Grey #3F3F3F
+ *   Light grey #DCDCDC · Whitish #F5F5F5 · White #FFFFFF
+ *
+ * Nothing else. The site is monochrome: there is no hue anywhere, so emphasis comes
+ * from weight, scale, underline and the Black/White extremes, never from colour.
+ *
+ *              light                         dark
+ *   page       Whitish #F5F5F5               Slate #262626
+ *   surface    White #FFFFFF                 Dark Grey #393939
+ *   hairline   Light grey #DCDCDC            Secondhand Grey #3F3F3F
+ *   text       Slate #262626                 Whitish #F5F5F5
+ *   secondary  Secondhand Grey #3F3F3F       Light grey #DCDCDC
+ *   emphasis   Black #000000                 White #FFFFFF    (buttons, "accent", focus ring,
+ *                                                              selection, form errors)
+ *   ink        Slate #262626                 Black #000000    (the always-dark bands — hero
+ *              · text #F5F5F5 · muted #DCDCDC · rule #3F3F3F (#393939 on Black)  scrim, facts,
+ *                                                              enquiry band, footer, menu, gate)
+ *   tile       White #FFFFFF                 Light grey #DCDCDC (behind the white-ground
+ *                                                              product cut-outs; light in both)
+ *
+ * The token names (accent, sage, destructive…) are kept so no component had to change;
+ * their values are now neutrals. "sage" is the signal on ink: White.
  *
  * Every colour in the app comes from these variables through the Tailwind names in
- * tailwind.config.ts. Values are "H S% L%" (decimals where the hex needs them) so
- * Tailwind's <alpha-value> syntax works: bg-ink/40 etc.
+ * tailwind.config.ts. Values are "H S% L%" so Tailwind's <alpha-value> syntax works.
  *
- * Contrast (WCAG 2.1 relative luminance, computed — not estimated; AA text needs 4.5:1,
- * non-text UI 3:1). "a / b" = on --background / on the surface (--card, --secondary):
- *   light  foreground 16.7 / 15.3 · muted-foreground 5.0 / 4.6 · accent 12.8 / 11.7
- *          destructive 7.4 / 6.8 · input (field rule) 3.4 · border 1.3 (decorative)
- *          primary-foreground on primary 16.7 · accent-foreground on accent 12.8
- *   dark   foreground 16.1 / 15.0 · muted-foreground 6.8 / 6.4 · accent 9.1 / 8.5
- *          destructive 6.1 / 5.7 · input 3.5 · border 1.3 (decorative)
- *          primary-foreground on primary 16.1 · accent-foreground on accent 9.1
- *   ink    ink-foreground 16.1 (16.6 under .dark) · ink-muted 6.8 (7.1) · sage 10.4 (10.8)
- *          ink on ink-foreground (the chalk button) 16.1 · ink-border 1.3 (decorative)
- *   tile   tile-foreground 15.3 (13.5 under .dark, where the tile stays light)
- * muted-foreground is already at the floor on the surface (4.6) — never lighten it, and
- * never set it under 11px. On bg-tile use text-tile-foreground: the themed text colours
- * flip with the theme and the tile does not.
+ * Contrast (WCAG 2.1, computed; AA text 4.5:1, non-text UI 3:1). "a / b" = on the page /
+ * on the surface:
+ *   light  text 13.9 / 15.1 · secondary 9.7 / 10.5 · emphasis 19.3 / 21 · field rule 9.7
+ *          button label on button 21 · hairline 1.3 (decorative)
+ *   dark   text 13.9 / 10.6 · secondary 11.0 / 8.4 · emphasis 15.1 · field rule 11.0
+ *          button label on button 21 · hairline 1.4 (decorative)
+ *   ink    text 13.9 (19.3 under .dark) · muted 11.0 (15.3) · rule 1.4 (1.8, decorative)
+ *   tile   tile text 15.1 (11.0 under .dark, where the tile is Light grey)
+ * On bg-tile use text-tile-foreground: the themed text colours flip with the theme and
+ * the tile does not.
  */
 @layer base {
   :root {
-    --background: 40 42.9% 97.3%; /* #FBF9F5 */
-    --foreground: 40 6.1% 9.6%; /* #1A1917 */
+    --background: 0 0% 96.1%; /* Whitish #F5F5F5 */
+    --foreground: 0 0% 14.9%; /* Slate #262626 */
 
-    /* The one surface tone. "Cards" are regions ruled off with hairlines, not boxes. */
-    --card: 40 26% 93%; /* #F2EFE9 */
-    --card-foreground: 40 6.1% 9.6%;
+    /* The surface tone. "Cards" are regions ruled off with hairlines, not boxes. */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 0 0% 14.9%;
 
-    --popover: 40 26% 93%;
-    --popover-foreground: 40 6.1% 9.6%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 14.9%;
 
-    /* Buttons: solid espresso, ivory label. */
-    --primary: 40 6.1% 9.6%; /* #1A1917 */
-    --primary-foreground: 40 42.9% 97.3%; /* #FBF9F5 */
+    /* Buttons: solid Black, White label. */
+    --primary: 0 0% 0%; /* Black */
+    --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 40 26% 93%; /* #F2EFE9 */
-    --secondary-foreground: 40 6.1% 9.6%;
+    --secondary: 0 0% 100%; /* White */
+    --secondary-foreground: 0 0% 14.9%;
 
-    --muted: 40 26% 93%; /* #F2EFE9 */
-    --muted-foreground: 48 4.8% 41.2%; /* #6E6C64 */
+    --muted: 0 0% 100%; /* White */
+    --muted-foreground: 0 0% 24.7%; /* Secondhand Grey #3F3F3F */
 
-    --accent: 152.7 68.8% 12.5%; /* #0A3622 British Racing Green */
-    --accent-foreground: 40 42.9% 97.3%; /* #FBF9F5 */
+    /* Emphasis: the Black end of the scale (active rules, underlines, selection). */
+    --accent: 0 0% 0%; /* Black */
+    --accent-foreground: 0 0% 100%; /* White */
 
-    /* Light tint of the accent: small signals on ink. The same value in both themes. */
-    --sage: 146 22% 72%; /* #A8C7B6 */
+    /* The signal on ink bands: White. The same value in both themes. */
+    --sage: 0 0% 100%; /* White */
 
-    /* Always-dark bands, in both themes. */
-    --ink: 60 7% 6%; /* #10100E */
-    --ink-foreground: 48 12% 92%; /* #EDECE8 */
-    --ink-muted: 52.5 3.9% 59.6%; /* #9C9B94 */
-    --ink-border: 60 5% 15%; /* #282824 */
+    /* Always-dark bands. */
+    --ink: 0 0% 14.9%; /* Slate #262626 */
+    --ink-foreground: 0 0% 96.1%; /* Whitish #F5F5F5 */
+    --ink-muted: 0 0% 86.3%; /* Light grey #DCDCDC */
+    --ink-border: 0 0% 24.7%; /* Secondhand Grey #3F3F3F */
 
     /* Tile behind the white-background product cut-outs — light in BOTH themes. */
-    --tile: 40 26% 93%; /* #F2EFE9 */
-    --tile-foreground: 40 6.1% 9.6%; /* #1A1917 */
+    --tile: 0 0% 100%; /* White */
+    --tile-foreground: 0 0% 14.9%; /* Slate */
 
-    --destructive: 6 62% 36%; /* #952E23 */
-    --destructive-foreground: 40 42.9% 97.3%;
+    /* No red in the palette: an error is Black, and always says so in words. */
+    --destructive: 0 0% 0%; /* Black */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 42 18% 86%; /* #E2DED5 hairline */
+    --border: 0 0% 86.3%; /* Light grey #DCDCDC hairline */
     /* The rule a form field is written on: a control boundary, so it clears 3:1. */
-    --input: 45 4.9% 51.8%; /* #8A877E */
-    --ring: 152.7 68.8% 12.5%; /* = accent */
+    --input: 0 0% 24.7%; /* Secondhand Grey #3F3F3F */
+    --ring: 0 0% 0%; /* Black */
 
     --radius: 0.125rem;
 
@@ -117,43 +148,44 @@
   }
 
   .dark {
-    --background: 60 7% 6%; /* #10100E */
-    --foreground: 48 12% 92%; /* #EDECE8 */
+    --background: 0 0% 14.9%; /* Slate #262626 */
+    --foreground: 0 0% 96.1%; /* Whitish #F5F5F5 */
 
-    --card: 60 4% 9%; /* #181816 */
-    --card-foreground: 48 12% 92%;
+    --card: 0 0% 22.4%; /* Dark Grey #393939 */
+    --card-foreground: 0 0% 96.1%;
 
-    --popover: 60 4% 9%;
-    --popover-foreground: 48 12% 92%;
+    --popover: 0 0% 22.4%;
+    --popover-foreground: 0 0% 96.1%;
 
-    /* Buttons: solid chalk, charcoal label. */
-    --primary: 48 12% 92%; /* #EDECE8 */
-    --primary-foreground: 60 7% 6%; /* #10100E */
+    /* Buttons: solid White, Black label. */
+    --primary: 0 0% 100%; /* White */
+    --primary-foreground: 0 0% 0%; /* Black */
 
-    --secondary: 60 4% 9%; /* #181816 */
-    --secondary-foreground: 48 12% 92%;
+    --secondary: 0 0% 22.4%; /* Dark Grey */
+    --secondary-foreground: 0 0% 96.1%;
 
-    --muted: 60 4% 9%; /* #181816 */
-    --muted-foreground: 52.5 3.9% 59.6%; /* #9C9B94 */
+    --muted: 0 0% 22.4%; /* Dark Grey */
+    --muted-foreground: 0 0% 86.3%; /* Light grey #DCDCDC */
 
-    /* The same green, lifted until it reads on charcoal. Never orange, never lime. */
-    --accent: 146 30% 64%; /* #88BFA0 */
-    --accent-foreground: 60 7% 6%; /* #10100E */
+    --accent: 0 0% 100%; /* White */
+    --accent-foreground: 0 0% 0%; /* Black */
 
-    --ink: 240 4.3% 4.5%; /* #0B0B0C */
-    --ink-foreground: 48 12% 92%;
-    --ink-muted: 52.5 3.9% 59.6%;
-    --ink-border: 60 5% 15%;
+    /* Black bands on the Slate page, so they still step down from it. */
+    --ink: 0 0% 0%; /* Black */
+    --ink-foreground: 0 0% 96.1%;
+    --ink-muted: 0 0% 86.3%;
+    --ink-border: 0 0% 22.4%; /* Dark Grey #393939 */
 
-    --tile: 42 15.6% 87.5%; /* #E4E1DA — a step under the light tile, so it does not glare */
-    --tile-foreground: 40 6.1% 9.6%;
+    /* Light grey, not White: a white tile glares on the Slate page. */
+    --tile: 0 0% 86.3%; /* Light grey #DCDCDC */
+    --tile-foreground: 0 0% 14.9%; /* Slate */
 
-    --destructive: 6 72% 64%; /* #E56E61 */
-    --destructive-foreground: 60 7% 6%;
+    --destructive: 0 0% 100%; /* White */
+    --destructive-foreground: 0 0% 0%;
 
-    --border: 60 5% 15%; /* #282824 hairline */
-    --input: 52.5 3.9% 40.4%; /* #6B6A63 */
-    --ring: 146 30% 64%;
+    --border: 0 0% 24.7%; /* Secondhand Grey #3F3F3F hairline */
+    --input: 0 0% 86.3%; /* Light grey — a field rule must clear 3:1 on Slate */
+    --ring: 0 0% 100%; /* White */
   }
 
   /*
@@ -183,9 +215,17 @@
     scrollbar-color: hsl(var(--foreground) / 0.28) transparent;
   }
 
-  /* Understated body: 16px, relaxed leading. Scale contrast is the display type's job. */
+  /* Running copy: 17px (16px on a phone), leading 1.65 — see the type scale at the top.
+     Scale contrast is still the display type's job; the body just has to read easily. */
   body {
-    @apply bg-background font-sans text-base leading-relaxed text-foreground antialiased;
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  @media (min-width: 768px) {
+    body {
+      font-size: 1.0625rem;
+    }
   }
 
   /*
@@ -251,6 +291,9 @@
  * unpainted until main.tsx adds "app-live" — from then on each component holds its
  * own hidden state and plays exactly once (after the age gate: useEntered()).
  *
+ * data-enter="view" borrows only that hold: a first-screen block whose reveals still
+ * play on scroll, both ways (lib/motion), like any other.
+ *
  * No JavaScript, or a crawler: no "js" class, so nothing is ever hidden. Reduced
  * motion: the rule does not apply at all. Bundle blocked or very slow: the failsafe
  * shows the static page after 4 s rather than leaving a hole where the headline is.
@@ -313,11 +356,14 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
    * Every headline on the site takes one of these five — never a stepped text-4xl /
    * md:text-6xl ladder. Instrument Serif, 400, tight. Component layer, so a utility
    * beside it (leading-none, tracking-…, italic, a colour) still wins.
-   *   display-xl   hero / page mastheads          52 → 144px
-   *   display-lg   section headlines              44 → 96px
-   *   display-md   sub-section headlines          36 → 64px
-   *   display-sm   row titles, column heads       28 → 44px
-   *   display-xs   names inside a narrow cell     24 → 32px
+   *   display-xl   hero / page mastheads          60 → 144px
+   *   display-lg   section headlines              50 → 96px
+   *   display-md   sub-section headlines          40 → 64px
+   *   display-sm   row titles, column heads       30 → 44px
+   *   display-xs   names inside a narrow cell     26 → 32px
+   * The phone floors were raised a step in feedback round 1, for more contrast against
+   * the larger body text; each was checked at 360px against the longest word it sets
+   * ("Manufacturing", "Specifications", the product names in a two-up cell).
    */
   .display-xl,
   .display-lg,
@@ -329,51 +375,88 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
     letter-spacing: -0.03em;
   }
   .display-xl {
-    font-size: clamp(3.25rem, 9.5vw, 9rem);
+    font-size: clamp(3.75rem, 9.5vw, 9rem);
     line-height: 0.95;
   }
   .display-lg {
-    font-size: clamp(2.75rem, 6.5vw, 6rem);
+    font-size: clamp(3.1rem, 6.5vw, 6rem);
     line-height: 0.98;
   }
   .display-md {
-    font-size: clamp(2.25rem, 4.5vw, 4rem);
+    font-size: clamp(2.5rem, 4.5vw, 4rem);
     line-height: 1.02;
   }
   .display-sm {
-    font-size: clamp(1.75rem, 3vw, 2.75rem);
+    font-size: clamp(1.9rem, 3vw, 2.75rem);
     line-height: 1.08;
     letter-spacing: -0.02em;
   }
   .display-xs {
-    font-size: clamp(1.5rem, 1.15rem + 0.9vw, 2rem);
+    font-size: clamp(1.6rem, 1.15rem + 0.9vw, 2rem);
     line-height: 1.1;
     letter-spacing: -0.02em;
   }
 
-  /* Lead paragraph: the largest the sans ever gets. Tight, understated, short measure. */
+  /*
+   * ---- Running text ------------------------------------------------------------------
+   * .text-body       running copy: the body's own 17px (16px on a phone), for text
+   *                  inside something that sets a different size.
+   * .text-secondary  descriptions in cells and rows, footer links, form help: 16px.
+   * .text-lead       the lead's size alone, for a lead in its own colour (the hero's).
+   * .lead            the lead paragraph: that size, muted, on a short measure. The
+   *                  largest the sans ever gets.
+   * Sizes and leading only (plus the lead's colour and measure) — never a weight.
+   */
+  .text-body {
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  @media (min-width: 768px) {
+    .text-body {
+      font-size: 1.0625rem;
+    }
+  }
+  .text-secondary {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  .text-lead,
+  .lead {
+    font-size: clamp(1.125rem, 1rem + 0.4vw, 1.3125rem);
+    line-height: 1.55;
+  }
   .lead {
     /* rem, not ch: Plus Jakarta Sans has a wide zero (1ch is 0.73em), so "60ch" runs to
-       some 90 characters. 38rem is about 72 at 16px and 68 at 17px. */
-    @apply max-w-[38rem] text-base leading-relaxed text-muted-foreground md:text-[17px];
+       some 90 characters. 38rem is about 60 characters at 20px. */
+    @apply max-w-[38rem] text-muted-foreground;
   }
 
   /*
    * ---- Mono labels -------------------------------------------------------------------
-   * .eyebrow       the small label over a heading: mono, uppercase, wide, MUTED.
+   * All 13px, uppercase, tracked 0.14–0.15em (they were 11px at 0.22em: wide tracking
+   * on small caps is what made them hard to read).
+   * .mono-label    the label in whatever colour it is given: nav and row links, spec
+   *                terms, the catalogue's "View Range".
+   * .eyebrow       the small label over a heading: the same, MUTED.
    * .eyebrow-signal  the same label as a signal: accent on paper, sage on ink. Sparingly.
-   * .index-num     the 01 / 02 numerals of list rows and section markers.
+   * .index-num     the few numerals that carry information — which photograph of how
+   *                many, which journey stage of seven. Decoration is never numbered.
    * On ink (inside bg-ink / on-ink) they switch to the ink palette by themselves.
    */
+  .mono-label,
   .eyebrow,
   .eyebrow-signal {
-    @apply font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em] text-muted-foreground;
+    @apply font-mono text-[0.8125rem] font-medium uppercase leading-normal tracking-[0.15em];
+  }
+  .eyebrow,
+  .eyebrow-signal {
+    @apply text-muted-foreground;
   }
   .eyebrow-signal {
     @apply text-accent;
   }
   .index-num {
-    @apply font-mono text-[11px] font-medium tabular-nums leading-none tracking-[0.2em] text-muted-foreground;
+    @apply font-mono text-[0.8125rem] font-medium tabular-nums leading-none tracking-[0.14em] text-muted-foreground;
   }
   :where(.bg-ink, .on-ink) .eyebrow,
   :where(.bg-ink, .on-ink) .index-num {
@@ -415,13 +498,13 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
 
   /*
    * ---- Buttons -----------------------------------------------------------------------
-   * One label everywhere: mono, 12px, uppercase, tracked 0.18em. Square-ish (2px),
+   * One label everywhere: mono, 13px, uppercase, tracked 0.15em. Square-ish (2px),
    * solid high-contrast fills, 300ms expo-out, and the only thing hover changes is
    * colour and border — nothing scales, lifts, glows or bounces.
-   *   .btn-solid        espresso fill, ivory label (chalk / charcoal in the dark theme);
-   *                     hover turns it racing green — the accent's one button moment.
-   *   .btn-ink          chalk fill, charcoal label, for ink bands and photography;
+   *   .btn-solid        Black fill, White label (White / Black in the dark theme);
    *                     hover empties it to its own outline (keyboard focus does not).
+   *   .btn-ink          Whitish fill, Slate label, for ink bands and photography;
+   *                     hover empties it the same way.
    *   .btn-outline      1px hairline that darkens on hover (paper).
    *   .btn-outline-ink  the same on ink.
    *   .btn-link         no box: the label with a drawn underline.
@@ -430,7 +513,7 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
    * ui/button.tsx wraps the same classes for <Button>; on a <Link> write them directly.
    */
   .btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-3 whitespace-nowrap rounded-sm border border-transparent px-6 font-mono text-[12px] font-medium uppercase leading-none tracking-[0.18em];
+    @apply inline-flex min-h-11 items-center justify-center gap-3 whitespace-nowrap rounded-sm border border-transparent px-6 font-mono text-[0.8125rem] font-medium uppercase leading-none tracking-[0.15em];
     transition:
       color var(--duration-ui) var(--ease-expo-out),
       background-color var(--duration-ui) var(--ease-expo-out),
@@ -483,11 +566,8 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
 
   /* Keyboard focus always answers; hover only where there is a real pointer, so a
      tap never leaves a button stuck in its hover colours. */
-  .btn-solid:focus-visible {
-    @apply border-accent bg-accent text-accent-foreground;
-  }
-  /* .btn-ink keeps its fill under keyboard focus: a primary button that opens focused
-     (the age gate's "Yes") must not first be seen hollow. The sage ring marks it. */
+  /* Solid buttons keep their fill under keyboard focus: a primary button that opens
+     focused (the age gate's "Yes") must not first be seen hollow. The ring marks it. */
   .btn-outline:focus-visible {
     @apply border-foreground;
   }
@@ -502,8 +582,9 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
     transform: translate3d(0.25rem, 0, 0);
   }
   @media (hover: hover) {
+    /* Monochrome, so hover inverts rather than tints: the fill empties to its rule. */
     .btn-solid:hover {
-      @apply border-accent bg-accent text-accent-foreground;
+      @apply bg-transparent text-foreground;
     }
     .btn-ink:hover {
       @apply bg-transparent text-ink-foreground;
@@ -525,7 +606,7 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
 
   /*
    * Product cut-outs are shot on pure white. Multiply drops the white into the
-   * ivory page in light mode; in dark mode they sit on a light tile instead.
+   * page in light mode; in dark mode they sit on a light tile instead.
    */
   .product-shot {
     mix-blend-mode: multiply;
@@ -599,8 +680,9 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
   .marquee-track {
     animation: marquee var(--marquee-duration, 60s) linear infinite;
   }
-  .marquee:hover .marquee-track,
-  .marquee-track:focus-within,
+  /* :hover for a lone marquee only: a MarqueeBand holds all its rows at once, and an
+     explicit "play" there must not be undone row by row under the pointer. */
+  .marquee:not([data-in-band]):hover .marquee-track,
   .marquee[data-paused] .marquee-track,
   .marquee[data-offscreen] .marquee-track {
     animation-play-state: paused;

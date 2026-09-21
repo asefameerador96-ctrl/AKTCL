@@ -8,7 +8,7 @@ export interface BreadcrumbsProps {
   className?: string;
 }
 
-// The trail is set in the site's mono label (.eyebrow: 11px, uppercase, wide, muted —
+// The trail is set in the site's mono label (.eyebrow: 13px, uppercase, tracked, muted —
 // and the ink palette by itself inside bg-ink / on-ink). Links darken to the text
 // colour; nothing else moves. min-h keeps each crumb a 44px target; the drawn
 // underline sits on the word inside it, not on the box.
@@ -25,10 +25,11 @@ const Separator = ({ className }: { className?: string }) => (
 /**
  * Visible trail only — the matching BreadcrumbList JSON-LD is emitted by RouteSeo.
  *
- * Deliberately small: it is the running head above the masthead's first rule, not
- * part of the headline. On a phone a three-deep trail used to wrap onto a second 44px
- * line, so there the current page — which the <h1> directly below states anyway — is
- * left to screen readers and the visible trail ends at its parent.
+ * Quiet, not small: it is the running head above the masthead's first rule, not part
+ * of the headline, but it is read at the label's full 13px. On a phone a three-deep
+ * trail used to wrap onto a second 44px line, so there the current page — which the
+ * <h1> directly below states anyway — is left to screen readers and the visible trail
+ * ends at its parent.
  */
 const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
   const collapses = items.length > 1;

@@ -26,7 +26,7 @@ interface ImageCarouselProps {
   /** Accessible name of the carousel region. */
   label?: string;
   /**
-   * Unmasks the frame the first time it is seen (ImageReveal). For a carousel in the
+   * Unmasks the frame as it comes into view (ImageReveal). For a carousel in the
    * first screen: the frame is marked data-enter, so the prerendered photograph is
    * not painted, dropped and then revealed — it arrives once.
    */
@@ -221,20 +221,20 @@ const ImageCarousel = ({
           />
         </span>
 
-        <p className="index-num flex items-center pr-4 leading-normal">
-          <span className="sr-only">
-            Image {selected + 1} of {images.length}
-          </span>
-          <span aria-hidden="true">
-            <span className="text-foreground">{pad(selected + 1)}</span> / {pad(images.length)}
-          </span>
+        {/* The position is information (which photograph, of how many), so it stays.
+            Seen only: each slide already says "2 of 4" to a screen reader, and a hidden
+            twin here would turn up in copied text as "Image 2 of 4 02 / 04". */}
+        <p aria-hidden="true" className="index-num flex items-center pr-4 leading-normal">
+          <span className="text-foreground">{pad(selected + 1)}</span> / {pad(images.length)}
         </p>
 
         <div className="ml-auto flex">
           {allowed && (
             <button
               type="button"
-              aria-label={paused ? 'Play slideshow' : 'Pause slideshow'}
+              // A toggle like the hero's and the marquee's: one name, the state in aria-pressed.
+              aria-label="Pause slideshow"
+              aria-pressed={paused}
               onClick={() => setPaused((p) => !p)}
               className={CELL}
             >

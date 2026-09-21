@@ -128,8 +128,9 @@ for (const path of paths) {
   // DrawnRule / SectionMarker: a hairline that was never drawn.
   const undrawn = (html.match(/style="[^"]*transform: scale[XY]\(0\);[^"]*transition:/g) ?? []).length;
   if (undrawn) fail(path, `${undrawn} drawn rule(s) captured at scale 0`);
-  // ImageReveal: a photograph still waiting behind its closed frame.
-  const framed = (html.match(/data-image-reveal=""[^>]*visibility: hidden/g) ?? []).length;
+  // ImageReveal: a photograph still waiting behind its closed frame. It waits at
+  // opacity 0 now (kept in the accessibility tree); visibility is the older mark.
+  const framed = (html.match(/data-image-reveal=""[^>]*(?:visibility: hidden|opacity: 0)/g) ?? []).length;
   if (framed) fail(path, `${framed} ImageReveal frame(s) captured hidden`);
 }
 

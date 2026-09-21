@@ -25,12 +25,15 @@ const COMPANY_LINKS = [
  */
 const CONTAINER = 'mx-auto max-w-7xl px-4 sm:px-6';
 
-// The drawn underline sits under the words (bg-origin-content), not at the foot of the
-// 44px row the padding makes for thumbs. Tightened only where the layout is wide AND the
-// pointer is fine: a tablet in landscape is lg too, and keeps its 44px rows.
+// 16px (text-base, the scale's secondary size) on a 24px line. The drawn underline sits
+// under the words (bg-origin-content), not at the foot of the 48px row the padding makes
+// for thumbs. Tightened only where the layout is wide AND the pointer is fine: a tablet
+// in landscape is lg too, and keeps its touch rows.
 const LINK =
-  'link-underline inline-block bg-origin-content py-3 text-sm leading-5 text-ink-muted transition-[background-size,color] hover:text-ink-foreground focus-visible:text-ink-foreground lg:[@media(pointer:fine)]:py-1.5';
-const MONO_LINK = 'font-mono text-[12px] font-medium uppercase tracking-[0.18em]';
+  'link-underline inline-block bg-origin-content py-3 text-base leading-6 text-ink-muted transition-[background-size,color] hover:text-ink-foreground focus-visible:text-ink-foreground lg:[@media(pointer:fine)]:py-1.5';
+// .mono-label's type written out as utilities: beside LINK's text-base the component
+// class would lose, while cn() lets the later utility size win.
+const MONO_LINK = 'font-mono text-[0.8125rem] font-medium uppercase tracking-[0.15em]';
 
 const ColumnTitle = ({ children }: { children: ReactNode }) => <h3 className="eyebrow mb-4 lg:mb-6">{children}</h3>;
 // A column heading that is itself a link: the label's own muted colour at rest, the same
@@ -142,7 +145,7 @@ const Footer = () => {
             <ColumnTitle>Trade Enquiries</ColumnTitle>
             {/* Every row below is hidden until site.contact supplies it; the form link always shows. */}
             {addressLines && (
-              <address className="mb-3 text-sm not-italic leading-relaxed text-ink-muted">
+              <address className="mb-3 text-base not-italic leading-relaxed text-ink-muted">
                 {addressLines.map((line) => (
                   <span key={line} className="block">
                     {line}
@@ -207,12 +210,12 @@ const Footer = () => {
         <div className={cn(CONTAINER, 'grid lg:grid-cols-12')}>
           <div className="py-10 lg:col-span-8 lg:py-14 lg:pr-12">
             <p className="eyebrow">Trade notice</p>
-            <p className="mt-4 max-w-[64ch] text-sm leading-relaxed text-ink-foreground/80">{site.compliance.tradeNotice}</p>
+            <p className="text-secondary mt-4 max-w-[40rem] text-ink-foreground/80">{site.compliance.tradeNotice}</p>
           </div>
           <div className="flex items-center border-t py-10 lg:col-span-4 lg:border-l lg:border-t-0 lg:py-14 lg:pl-12">
             <p
               role="note"
-              className="w-full border border-ink-foreground/70 px-5 py-4 font-sans text-sm font-semibold uppercase leading-snug tracking-[0.08em] text-ink-foreground"
+              className="w-full border border-ink-foreground/70 px-5 py-4 font-sans text-base font-semibold uppercase leading-snug tracking-[0.06em] text-ink-foreground"
             >
               {site.compliance.healthWarning}
             </p>
@@ -222,7 +225,7 @@ const Footer = () => {
 
       <div className="border-t">
         <div className={cn(CONTAINER, 'flex items-center justify-between gap-6 py-5')}>
-          <div className="flex flex-col gap-x-10 gap-y-1.5 font-mono text-[11px] uppercase leading-normal tracking-[0.18em] text-ink-muted sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-x-10 gap-y-1.5 font-mono text-[0.8125rem] uppercase leading-normal tracking-[0.14em] text-ink-muted sm:flex-row sm:items-center">
             <p>
               {/* The legal name ends in "Ltd." — drop its full stop so the sentence has just one. */}
               © {new Date().getFullYear()} {site.legalName.replace(/\.$/, '')}. All rights reserved.

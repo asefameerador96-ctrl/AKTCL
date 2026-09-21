@@ -24,16 +24,13 @@ export const WRAP = 'mx-auto max-w-7xl px-4 sm:px-6';
 export const DISPLAY_H1 = 'display-xl text-foreground';
 /** Masthead <h1> of the long-form pages (detail, legal), where titles run to a sentence. */
 export const DISPLAY_H1_COMPACT = 'display-lg text-foreground';
-/** Section <h2>. */
-export const DISPLAY_H2 = 'display-md text-foreground';
-/** Quiet mono label: the counterweight to the display type (.eyebrow in index.css). */
-export const LABEL = 'eyebrow';
 /**
- * Running copy: body size, relaxed, about 70 characters a line. The measure is in rem
- * because the sans has a wide zero (1ch is 0.73em): "62ch" would be some 95 characters.
- * Scale contrast is the display type's job, never a larger sans.
+ * Running copy: the type scale's .text-body (17px, 16px on a phone; index.css), muted,
+ * about 68 characters a line. The measure is in rem because the sans has a wide zero
+ * (1ch is 0.73em): "62ch" would be some 95 characters. Scale contrast is still the
+ * display type's job.
  */
-export const BODY = 'max-w-[36rem] text-base leading-relaxed text-muted-foreground';
+export const BODY = 'max-w-[38rem] text-body text-muted-foreground';
 /**
  * .link-underline (index.css) for a word inside a larger `group` link — label plus
  * arrow, say — so the rule is drawn when any part of the link is hovered or focused.
@@ -43,10 +40,10 @@ export const GROUP_UNDERLINE =
 /**
  * Text link with a travelling arrow:
  * <Link className={TEXT_LINK}><span className={GROUP_UNDERLINE}>…</span><ArrowTravel /></Link>.
- * Espresso at rest; the accent is spent on the hover only.
+ * Black at rest; the accent is spent on the hover only.
  */
 export const TEXT_LINK =
-  'group inline-flex min-h-11 items-center gap-3 rounded-sm font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-foreground transition-colors hover:text-accent focus-visible:text-accent';
+  'mono-label group inline-flex min-h-11 items-center gap-3 rounded-sm text-foreground transition-colors hover:text-accent focus-visible:text-accent';
 /**
  * Directory rows. Put `group relative` and a 1px top border on the row — the link
  * itself, or an element whose link is stretched over it — and ROW_LINE on an empty
@@ -105,12 +102,8 @@ export const ArrowTravel = ({ direction = 'right', className, strokeWidth }: Arr
 };
 
 interface SectionHeadProps {
-  /** The section's place on the page, as printed: "02". */
-  number: string;
   /** Mono label — an eyebrow from src/content, or UI microcopy. */
   label: string;
-  /** Right-hand mono note: counts or names taken from src/content, never new facts. */
-  meta?: string;
   /** Rendered as the section's <h2>. */
   title: string;
   /** For aria-labelledby on the enclosing <section>. */
@@ -126,25 +119,15 @@ interface SectionHeadProps {
 
 /**
  * How a section of an inner page opens — the same way the homepage's do, and with the
- * same piece (Ruled's SectionHead): a hairline drawn across the full measure, one mono
- * row ("02 —— Product Range" left, a quiet note right). Then the fluid display <h2>
- * over the wide seven columns with whatever goes with it over the narrow five.
- * Left-aligned; never centred.
+ * same piece (Ruled's SectionHead): a hairline drawn across the full measure and the
+ * mono label under it. No section number and no count beside it: they were decoration
+ * the visitor had to read past. Then the fluid display <h2> over the wide seven columns
+ * with whatever goes with it over the narrow five. Left-aligned; never centred.
  */
-export const SectionHead = ({
-  number,
-  label,
-  meta,
-  title,
-  id,
-  italicWords,
-  size = 'md',
-  children,
-  className,
-}: SectionHeadProps) => (
+export const SectionHead = ({ label, title, id, italicWords, size = 'md', children, className }: SectionHeadProps) => (
   <div className={className}>
     {/* The rule and the mono row are the homepage's own (components/Ruled): one drawing. */}
-    <RuledHead number={number} label={label} meta={meta} />
+    <RuledHead label={label} />
     <div className="mt-12 grid gap-y-8 md:mt-16 lg:mt-20 lg:grid-cols-12 lg:items-end">
       <SplitReveal
         as="h2"
@@ -172,7 +155,10 @@ interface PageHeaderProps {
   italicWords?: string[];
   /** Offset into the right-hand columns on desktop. */
   lead?: string;
-  /** Mono note opposite the eyebrow: a position ("01 / 02"), a count or a date. */
+  /**
+   * Mono note opposite the eyebrow: a stage's place in a sequence whose order means
+   * something ("03 / 07" on the journey). Never a decorative index or a count.
+   */
   meta?: string;
   /** 'compact' for titles that run long (detail and legal pages). */
   size?: 'display' | 'compact';
@@ -182,7 +168,7 @@ interface PageHeaderProps {
 /**
  * Editorial masthead shared by every inner page, set like the head of a printed
  * sheet: the breadcrumb trail as a running head, a hairline drawn across the measure,
- * a mono label row (eyebrow left, index right), then a monumental fluid <h1> that
+ * a mono label row (eyebrow left, a journey stage's position right), then a monumental fluid <h1> that
  * rises word by word, the lead set off in the right-hand columns, and a second
  * hairline that closes the region — so whatever follows hangs from it and draws no
  * top rule of its own. Left-aligned throughout.

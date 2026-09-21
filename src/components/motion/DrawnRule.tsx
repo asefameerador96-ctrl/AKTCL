@@ -1,23 +1,24 @@
 import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
+import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
 
 export interface DrawnRuleProps {
   /** Layout of the rule's box: margins, width (or height for axis "y"). */
   className?: string;
-  /** Colour of the line itself. Default: the neutral hairline (ink hairline inside bg-ink). Over photography pass a chalk tint. */
+  /** Colour of the line itself. Default: the neutral hairline (ink hairline inside bg-ink). Over photography pass a white tint. */
   lineClassName?: string;
   /** Seconds. */
   delay?: number;
-  /** 'view': first time on screen. 'enter': page-load choreography (first screen only). */
+  /** 'view': every time on screen, withdrawn as it leaves. 'enter': page-load choreography (first screen only), once. */
   trigger?: 'view' | 'enter';
   /** 'x' draws left to right, 'y' top to bottom. */
   axis?: 'x' | 'y';
 }
 
 /**
- * A hairline that is drawn, not shown: scales out from its origin with expo-out.
- * The outer box keeps its full size for the observer; only the inner line scales.
+ * A hairline that is drawn, not shown: scales out from its origin with expo-out, and
+ * back into it as it leaves the screen. The outer box keeps its full size for the
+ * observer; only the inner line scales.
  *
  * Its own module (re-exported by PageHeader, where the inner pages pick it up) so the
  * homepage hero can draw one without pulling the masthead into the eager bundle.
@@ -48,7 +49,7 @@ const DrawnRule = ({
             ? undefined
             : {
                 transform: shown ? 'none' : axis === 'x' ? 'scaleX(0)' : 'scaleY(0)',
-                transition: `transform 1.2s ${EASE.expoOut} ${delay}s`,
+                transition: revealTransition(shown, 'transform', 1.2, delay),
               }
         }
       />

@@ -31,7 +31,7 @@ const PageLayout = ({
   <>
     <a
       href="#main"
-      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[110] focus:rounded-sm focus:bg-primary focus:px-5 focus:py-3 focus:font-mono focus:text-[12px] focus:font-medium focus:uppercase focus:tracking-[0.18em] focus:text-primary-foreground"
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[110] focus:rounded-sm focus:bg-primary focus:px-5 focus:py-3 focus:font-mono focus:text-[0.8125rem] focus:font-medium focus:uppercase focus:tracking-[0.15em] focus:text-primary-foreground"
     >
       Skip to content
     </a>

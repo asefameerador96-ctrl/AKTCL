@@ -9,12 +9,10 @@ import Reveal from '@/components/Reveal';
 import SectionMarker from '@/components/SectionMarker';
 import ImageReveal from '@/components/motion/ImageReveal';
 import NotFound from '@/pages/NotFound';
-import { categories, categoryBySlug } from '@/content/products';
+import { categoryBySlug, productsIntro } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
-
-const pad = (n: number) => String(n).padStart(2, '0');
 
 const enquiryHref = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
@@ -43,9 +41,10 @@ const CategoryPage = () => {
               { name: category.label, path },
             ]
           }
-          eyebrow={category.eyebrow}
+          // Not the workbook's "Category 01": that numbering was decoration. The
+          // products' own eyebrow says what the page is.
+          eyebrow={productsIntro.eyebrow}
           title={category.title}
-          meta={`${pad(categories.indexOf(category) + 1)} / ${pad(categories.length)}`}
           lead={category.short}
         />
 
@@ -62,18 +61,16 @@ const CategoryPage = () => {
               )}
             />
 
+            {/* The marker and its copy stay together at the head of the cell, even beside
+                the tall pack shot: a label pushed away from what it labels reads as a gap. */}
             <Reveal
               className={cn(
-                'grid gap-y-5 pb-12 pt-6 lg:pt-10',
-                // Beside the tall pack shot the marker holds the head of the cell and
-                // the copy its foot.
-                showCover ? 'content-between lg:col-span-7 lg:pb-10 lg:pr-8' : 'content-start lg:col-span-12 lg:grid-cols-12 lg:pb-24'
+                'grid content-start gap-y-5 pb-12 pt-6 lg:pt-10',
+                showCover ? 'lg:col-span-7 lg:pb-10 lg:pr-8' : 'lg:col-span-12 lg:grid-cols-12 lg:pb-24'
               )}
             >
-              <SectionMarker number="01" className={cn(!showCover && 'lg:col-span-5')}>
-                Overview
-              </SectionMarker>
-              <p className={cn(BODY, !showCover && 'lg:col-span-7 lg:pl-8')}>{category.long}</p>
+              <SectionMarker className={cn(!showCover && 'lg:col-span-5')}>Overview</SectionMarker>
+              <p className={showCover ? BODY : `${BODY} lg:col-span-7 lg:pl-8`}>{category.long}</p>
             </Reveal>
 
             {showCover && cover && (
@@ -93,13 +90,7 @@ const CategoryPage = () => {
         </section>
 
         <section aria-labelledby="range-heading" className={cn(WRAP, 'pb-24 pt-24 md:pb-36 md:pt-36')}>
-          <SectionHead
-            number="02"
-            label={category.label}
-            meta={`${pad(category.products.length)} ${isFormats ? 'Formats' : 'Products'}`}
-            title="Product Range"
-            id="range-heading"
-          />
+          <SectionHead label={category.label} title="Product Range" id="range-heading" />
 
           {isFormats ? (
             // Each row draws its own top hairline; the list closes the last one.
@@ -108,7 +99,6 @@ const CategoryPage = () => {
                 <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
                   <FormatCard
                     layout="row"
-                    number={i + 1}
                     name={product.name}
                     short={product.short}
                     rows={product.specs}
@@ -128,7 +118,6 @@ const CategoryPage = () => {
                     short={product.short}
                     // Only the column matters: the stagger restarts on every row of the grid.
                     index={i}
-                    number={i + 1}
                   />
                 </li>
               ))}

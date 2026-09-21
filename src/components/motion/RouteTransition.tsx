@@ -152,7 +152,7 @@ const RouteTransition = () => {
       ref={curtainRef}
       aria-hidden="true"
       data-route-curtain={phase}
-      // Flat ink and the monogram in chalk — nothing else. It is on screen for well under
+      // Flat ink and the monogram in white — nothing else. It is on screen for well under
       // a second, so there is no lockup to read, no grain to repaint and no rule to draw.
       className="fixed inset-0 z-[150] flex items-center justify-center bg-ink text-ink-foreground"
     >

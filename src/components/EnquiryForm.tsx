@@ -55,9 +55,8 @@ const CELL_WIDE = `${CELL} sm:col-span-2`;
 const HELP = 'pt-1';
 // Validation text is mounted only when there is something to say, so it can arrive.
 const MESSAGE = 'pt-1 animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out';
-const MONO = 'font-mono text-[12px] font-medium uppercase tracking-[0.18em]';
 // A directory row that is a link: the label shifts 8px and the arrow darkens, nothing more.
-const ROW_LINK = `group/row flex min-h-14 w-full items-center justify-between gap-6 text-left text-foreground ${MONO}`;
+const ROW_LINK = 'mono-label group/row flex min-h-14 w-full items-center justify-between gap-6 text-left text-foreground';
 const ROW_LABEL = 'transition-transform group-hover/row:translate-x-2 group-focus-visible/row:translate-x-2';
 const ROW_ARROW =
   'h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover/row:text-accent group-focus-visible/row:text-accent';
@@ -69,18 +68,11 @@ const Required = () => (
   </span>
 );
 
-/** A numbered part of the form: "01 Your details". The legend names the group to assistive tech. */
-const FieldGroup = ({ index, title, children }: { index: string; title: string; children: ReactNode }) => (
+/** A part of the form: "Your details". The legend names the group to assistive tech. */
+const FieldGroup = ({ title, children }: { title: string; children: ReactNode }) => (
   // min-w-0: a fieldset is otherwise as wide as its longest <option>, which overflows a phone.
   <fieldset className="min-w-0">
-    <legend className="w-full pb-6">
-      <span className="flex items-baseline gap-5">
-        <span aria-hidden="true" className="index-num">
-          {index}
-        </span>
-        <span className="display-xs text-foreground">{title}</span>
-      </span>
-    </legend>
+    <legend className="display-xs w-full pb-6 text-foreground">{title}</legend>
     <div className="grid border-b border-border sm:grid-cols-2">{children}</div>
   </fieldset>
 );
@@ -126,10 +118,8 @@ const FormAlert = ({ children }: { children: ReactNode }) => (
     role="alert"
     className="border-l-2 border-destructive py-1 pl-5 animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out"
   >
-    <p className="font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em] text-destructive">
-      Not sent
-    </p>
-    <div className="mt-2 max-w-prose text-sm leading-relaxed text-foreground">{children}</div>
+    <p className="mono-label text-destructive">Not sent</p>
+    <div className="mt-2 max-w-[38rem] text-secondary text-foreground">{children}</div>
   </div>
 );
 
@@ -262,7 +252,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
               text="Thank you. Your enquiry has been sent."
               className="display-md max-w-[14ch] text-foreground"
             />
-            <p className="mt-8 max-w-[52ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+            <p className="mt-8 max-w-[38rem] text-body text-muted-foreground">
               We have received your details and will reply to the email address you provided.
             </p>
           </div>
@@ -301,7 +291,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
         onSubmit={form.handleSubmit(onSubmit)}
         className={cn('space-y-16 md:space-y-20', className)}
       >
-        <FieldGroup index="01" title="Your details">
+        <FieldGroup title="Your details">
           <FormField
             control={form.control}
             name="name"
@@ -421,7 +411,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
           </p>
         </FieldGroup>
 
-        <FieldGroup index="02" title="Your requirement">
+        <FieldGroup title="Your requirement">
           <FormField
             control={form.control}
             name="product"
@@ -522,7 +512,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                 </FormControl>
                 <div className="max-w-[60ch] space-y-1.5">
                   {/* A sentence, not a field name: the label's mono caps are set aside here. */}
-                  <FormLabel className="cursor-pointer font-sans text-sm font-normal normal-case leading-relaxed tracking-normal text-foreground">
+                  <FormLabel className="cursor-pointer font-sans text-base font-normal normal-case leading-[1.6] tracking-normal text-foreground">
                     I confirm I am a tobacco trade professional of legal age and I agree to {site.shortName}{' '}
                     contacting me about this enquiry.
                     <Required />
@@ -572,7 +562,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             </FormAlert>
           )}
 
-          {/* Solid espresso (chalk in the dark theme), the full width of a phone. */}
+          {/* Solid black (white in the dark theme), the full width of a phone. */}
           <Magnetic>
             {/* min-w: "Send enquiry" and "Sending…" take the same room, so nothing jumps. */}
             <CtaButton

@@ -4,8 +4,8 @@
   "description": "From Seed to Smoke — leaf tobacco, processed tobacco and finished cigarettes for export. Trade enquiries only.",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#10100e",
-  "theme_color": "#10100e",
+  "background_color": "#262626",
+  "theme_color": "#262626",
   "icons": [
     {
       "src": "/icon-192.png",

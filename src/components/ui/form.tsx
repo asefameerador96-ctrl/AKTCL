@@ -103,12 +103,13 @@ const FormDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
   ({ className, ...props }, ref) => {
     const { formDescriptionId } = useFormField();
 
-    // Help text stays in the sans: a sentence to read, not a label.
+    // Help text stays in the sans: a sentence to read, not a label. 16px, the type
+    // scale's secondary step (index.css), one under the 17px typed into the field above.
     return (
       <p
         ref={ref}
         id={formDescriptionId}
-        className={cn("text-[13px] leading-relaxed text-muted-foreground", className)}
+        className={cn("text-base leading-relaxed text-muted-foreground", className)}
         {...props}
       />
     );
@@ -126,12 +127,14 @@ const FormMessage = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<
     }
 
     // Validation text is data about the field: mono, in the destructive token (7.4:1 on
-    // paper, 6.1:1 in the dark theme). Sentence case — a full sentence in caps is hard to read.
+    // paper, 6.1:1 in the dark theme), at 15px — the mono sets a good deal wider than
+    // the 16px sans help text, so the two read as one size. Sentence case — a full
+    // sentence in caps is hard to read.
     return (
       <p
         ref={ref}
         id={formMessageId}
-        className={cn("font-mono text-[12px] leading-relaxed text-destructive", className)}
+        className={cn("font-mono text-[15px] leading-relaxed text-destructive", className)}
         {...props}
       >
         {body}
