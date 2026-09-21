@@ -78,8 +78,13 @@ hidden or shows an honest "on request" state.
 2. **Enquiry delivery** — the mailbox that should receive enquiries, plus SMTP
    credentials (or approval to use another mail service). Until then enquiries are only
    stored in Azure Table Storage. See `docs/enquiry-api.md`.
-3. **Logo** — official AKTCL logo (SVG preferred), plus Abul Khair Group mark if it should
-   appear. The site currently uses a typographic "AKTCL" wordmark and a placeholder favicon.
+3. ~~**Logo**~~ — **supplied 2026-09-21** ("AKT_LOGO ONLY.psd"). The vector was taken from
+   the Illustrator smart object inside the PSD and is used in the header, footer, age gate,
+   page sign-off, favicon/app icons, share image and Google structured data
+   (`src/components/LogoMark.tsx`, `npm run brand-assets`). The file is single-colour grey
+   and mark-only, so on the site it takes the surface's text colour and the company name is
+   set in the site's type. **Still welcome:** official brand colours / a full lockup if one
+   exists, and the Abul Khair Group mark if it should appear.
 4. **Legal/regulatory sign-off** — age gate wording, footer health warning, Privacy
    Notice and Terms of Use are drafts. Terms has no governing-law clause yet.
 
