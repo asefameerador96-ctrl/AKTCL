@@ -7,14 +7,14 @@ interface SectionMarkerProps {
   number: string;
   /** Short label — UI microcopy, or an eyebrow from src/content. */
   children: string;
-  /** On the always-dark bands the label takes the bright gold. */
+  /** On the always-dark bands (and over photography) the label takes the ink palette. */
   onInk?: boolean;
   className?: string;
 }
 
 /**
  * "02 —— What We Export": the small-caps marker that opens a homepage section. The
- * numeral and the label fade in while the gold hairline between them draws out from
+ * numeral and the label fade in while the hairline between them draws out from
  * the numeral. One <p>, read out as "02 What We Export".
  */
 const SectionMarker = ({ number, children, onInk = false, className }: SectionMarkerProps) => {
@@ -27,13 +27,13 @@ const SectionMarker = ({ number, children, onInk = false, className }: SectionMa
     still ? undefined : { opacity: shown ? 1 : 0, transition: `opacity 0.9s ${EASE.expoOut} ${delay}s` };
 
   return (
-    <p ref={ref} className={cn('eyebrow flex items-center gap-4', onInk && 'text-gold', className)}>
+    <p ref={ref} className={cn('eyebrow flex items-center gap-4', onInk && 'text-ink-muted', className)}>
       <span className="tabular-nums" style={fade(0)}>
         {number}
       </span>
       <span
         aria-hidden="true"
-        className="h-px w-10 shrink-0 origin-left bg-gold/70 md:w-14"
+        className="h-px w-10 shrink-0 origin-left bg-current opacity-40 md:w-14"
         style={
           still
             ? undefined

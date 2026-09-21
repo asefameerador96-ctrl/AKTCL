@@ -1,15 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FocusEvent, ReactNode } from 'react';
 import Autoplay from 'embla-carousel-autoplay';
-import { Pause, Play } from 'lucide-react';
-import {
-  Carousel,
-  type CarouselApi,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel';
+import { ArrowLeft, ArrowRight, Pause, Play } from 'lucide-react';
+import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import LazyImage from '@/components/LazyImage';
 import ImageReveal from '@/components/motion/ImageReveal';
 import { EASE, isStill } from '@/lib/motion';
@@ -19,8 +12,8 @@ import { cn } from '@/lib/utils';
 interface ImageCarouselProps {
   images: SiteImage[];
   /**
-   * Tailwind aspect class(es) for the frame. Default: 4:3 (5:4 from md) for
-   * photography; with `contain`, the first image's own ratio.
+   * Tailwind aspect class(es) for the frame. Default: 4:3 for photography; with
+   * `contain`, the first image's own ratio.
    */
   aspect?: string;
   /**
@@ -42,16 +35,11 @@ interface ImageCarouselProps {
 
 const AUTOPLAY_DELAY = 5000;
 
-// Round controls under the photograph, never over it. The fill rises from the foot of
-// the button on hover; the icon and border turn with it. `relative` also overrides the
-// absolute placement CarouselPrevious/Next carry for the over-the-image layout.
-const CONTROL = [
-  'relative isolate left-auto right-auto top-auto h-11 w-11 shrink-0 translate-y-0 overflow-hidden rounded-full',
-  'border border-foreground/25 bg-transparent text-foreground transition-colors duration-500 ease-expo-out',
-  'hover:border-foreground hover:bg-transparent hover:text-background disabled:opacity-30',
-  'before:absolute before:inset-0 before:-z-10 before:origin-bottom before:scale-y-0 before:rounded-full before:bg-foreground',
-  'before:transition-transform before:duration-500 before:ease-expo-out hover:before:scale-y-100',
-].join(' ');
+// The controls are cells of one ruled strip under the photograph, never over it:
+// square, 44px, sharing their hairlines. Hover and keyboard focus invert the cell —
+// colour only, nothing moves. The ring is lifted above the neighbouring cells.
+const CELL =
+  'flex h-11 w-11 shrink-0 items-center justify-center border-l border-border text-foreground transition-colors focus-visible:relative focus-visible:z-10 focus-visible:bg-foreground focus-visible:text-background [@media(hover:hover)]:hover:bg-foreground [@media(hover:hover)]:hover:text-background';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -73,9 +61,10 @@ interface FrameProps {
   eager?: boolean;
 }
 
+// Square-cornered on purpose: the frame sits flush against the page's hairlines.
 const Frame = ({ item, aspect, ratio, contain, sizes, priority, eager }: FrameProps) => (
   <div
-    className={cn('relative overflow-hidden rounded-lg', aspect, contain ? 'bg-tile' : 'bg-secondary')}
+    className={cn('relative overflow-hidden', aspect, contain ? 'bg-tile' : 'bg-secondary')}
     style={aspect ? undefined : { aspectRatio: ratio }}
   >
     {/* Absolutely placed so the frame, not the file's own ratio, sets the size. */}
@@ -96,11 +85,11 @@ const Frame = ({ item, aspect, ratio, contain, sizes, priority, eager }: FramePr
   </div>
 );
 
-/** The frame's entrance, when asked for. The mask takes the frame's own rounding. */
+/** The frame's entrance, when asked for. */
 const Unmask = ({ on, children }: { on: boolean; children: ReactNode }) =>
   on ? (
     <div data-enter="">
-      <ImageReveal className="rounded-lg">{children}</ImageReveal>
+      <ImageReveal>{children}</ImageReveal>
     </div>
   ) : (
     <>{children}</>
@@ -109,8 +98,9 @@ const Unmask = ({ on, children }: { on: boolean; children: ReactNode }) =>
 /**
  * Photo carousel for the detail pages: Embla with a 5 s autoplay that stops while
  * the pointer or keyboard focus is inside it, and can be paused outright. Under the
- * frame sit a numbered index ("01 / 04"), a hairline that fills as the set advances,
- * and the controls.
+ * frame runs one ruled strip: a mono index ("01 / 04"), then the pause and arrow
+ * cells. The strip's top rule doubles as the progress line — a 1px fill of accent
+ * that lengthens as the set advances.
  *
  * Every slide is in the DOM from the first render (prerender-safe); <LazyImage>
  * defers the files of the slides that are still clipped out of view.
@@ -134,7 +124,7 @@ const ImageCarousel = ({
   // of tile beside the picture. Left to itself the frame therefore takes the first
   // image's exact ratio and every slide meets it edge to edge.
   const first = images[0]?.image.img;
-  const aspect = aspectProp ?? (contain ? undefined : 'aspect-[4/3] md:aspect-[5/4]');
+  const aspect = aspectProp ?? (contain ? undefined : 'aspect-[4/3]');
   const ratio = first ? `${first.w} / ${first.h}` : undefined;
   const frame = { aspect, ratio, contain, sizes };
 
@@ -218,19 +208,10 @@ const ImageCarousel = ({
         </div>
       </Unmask>
 
-      <div className="mt-4 flex items-center gap-3 sm:gap-5">
-        <p className="shrink-0 font-display text-base tabular-nums text-foreground">
-          <span className="sr-only">
-            Image {selected + 1} of {images.length}
-          </span>
-          <span aria-hidden="true">
-            {pad(selected + 1)}
-            <span className="text-muted-foreground"> / {pad(images.length)}</span>
-          </span>
-        </p>
-
-        {/* Progress through the set. Decorative: the index beside it says the same. */}
-        <span aria-hidden="true" className="relative h-px min-w-0 flex-1 bg-foreground/15">
+      <div className="relative flex items-stretch border-b border-border">
+        {/* Progress through the set, drawn on the strip's top rule. Decorative: the
+            index beside it says the same. */}
+        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-border">
           <span
             className="absolute inset-0 origin-left bg-accent"
             style={{
@@ -240,23 +221,36 @@ const ImageCarousel = ({
           />
         </span>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <p className="index-num flex items-center pr-4 leading-normal">
+          <span className="sr-only">
+            Image {selected + 1} of {images.length}
+          </span>
+          <span aria-hidden="true">
+            <span className="text-foreground">{pad(selected + 1)}</span> / {pad(images.length)}
+          </span>
+        </p>
+
+        <div className="ml-auto flex">
           {allowed && (
             <button
               type="button"
               aria-label={paused ? 'Play slideshow' : 'Pause slideshow'}
               onClick={() => setPaused((p) => !p)}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-300 ease-expo-out hover:text-foreground"
+              className={CELL}
             >
               {paused ? (
-                <Play className="h-3.5 w-3.5" aria-hidden="true" />
+                <Play strokeWidth={1.5} className="h-3.5 w-3.5" aria-hidden="true" />
               ) : (
-                <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+                <Pause strokeWidth={1.5} className="h-3.5 w-3.5" aria-hidden="true" />
               )}
             </button>
           )}
-          <CarouselPrevious aria-label="Previous image" className={CONTROL} />
-          <CarouselNext aria-label="Next image" className={CONTROL} />
+          <button type="button" aria-label="Previous image" onClick={() => api?.scrollPrev()} className={CELL}>
+            <ArrowLeft strokeWidth={1.5} className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <button type="button" aria-label="Next image" onClick={() => api?.scrollNext()} className={CELL}>
+            <ArrowRight strokeWidth={1.5} className="h-4 w-4" aria-hidden="true" />
+          </button>
         </div>
       </div>
     </Carousel>

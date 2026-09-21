@@ -23,10 +23,11 @@ export interface LogoProps {
   className?: string;
 }
 
-const TONE: Record<NonNullable<LogoProps['variant']>, { mark: string; name: string }> = {
-  onDark: { mark: 'text-ink-foreground', name: 'text-ink-muted' },
-  onLight: { mark: 'text-tile-foreground', name: 'text-tile-foreground/70' },
-  auto: { mark: 'text-foreground', name: 'text-muted-foreground' },
+// rule: the divider between mark and name — a neutral hairline, never the accent.
+const TONE: Record<NonNullable<LogoProps['variant']>, { mark: string; name: string; rule: string }> = {
+  onDark: { mark: 'text-ink-foreground', name: 'text-ink-muted', rule: 'bg-ink-foreground/25' },
+  onLight: { mark: 'text-tile-foreground', name: 'text-tile-foreground/70', rule: 'bg-tile-foreground/20' },
+  auto: { mark: 'text-foreground', name: 'text-muted-foreground', rule: 'bg-border' },
 };
 
 const SIZE: Record<
@@ -59,7 +60,7 @@ const Logo = ({ variant = 'auto', size = 'md', withName = true, className }: Log
       />
       {withName && (
         <>
-          <span aria-hidden="true" className={cn('w-px shrink-0 bg-gold/70', scale.rule)} />
+          <span aria-hidden="true" className={cn('w-px shrink-0 transition-colors duration-300', tone.rule, scale.rule)} />
           <span
             className={cn(
               'flex flex-col gap-[0.45em] whitespace-nowrap font-sans font-semibold uppercase leading-none transition-colors duration-300',

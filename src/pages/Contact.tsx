@@ -1,10 +1,11 @@
 import { useId } from 'react';
 import type { ReactNode } from 'react';
-import { Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import PageLayout from '@/components/PageLayout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import EnquiryForm from '@/components/EnquiryForm';
 import Reveal from '@/components/Reveal';
+import DrawnRule from '@/components/motion/DrawnRule';
 import SplitReveal from '@/components/motion/SplitReveal';
 import { site } from '@/content/site';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
@@ -19,17 +20,21 @@ const INCLUDE = [
   { term: 'Packing', detail: 'Packing, labelling or specification requirements for your market.' },
 ];
 
-const SMALL_CAPS = 'font-sans text-xs font-semibold uppercase tracking-[0.24em]';
-// bg-origin-content: the drawn underline sits under the words, not under the 44px row.
-const CONTACT_LINK =
-  'link-underline inline-flex min-h-11 items-center gap-3 rounded-sm bg-origin-content py-2.5 text-base text-foreground transition-colors duration-300 ease-quart-out hover:text-accent';
+const MONO = 'font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em]';
+// A direct line as a directory row: mono label, the detail, an arrow that darkens as
+// the detail shifts 8px. The whole row is the link (and well over 44px tall).
+const CONTACT_ROW = 'group flex min-h-14 items-center gap-4 py-3 text-sm text-foreground';
+const CONTACT_LABEL = `${MONO} w-24 shrink-0 text-muted-foreground`;
+const CONTACT_VALUE = 'min-w-0 flex-1 transition-transform group-hover:translate-x-2 group-focus-visible:translate-x-2';
+const CONTACT_ARROW =
+  'h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent';
 
-/** One ruled block of the side panel: small-caps heading over a hairline. */
-const PanelSection = ({ title, delay, children }: { title: string; delay: number; children: ReactNode }) => (
-  <Reveal as="section" delay={delay}>
-    <h2 className={`${SMALL_CAPS} border-b border-foreground pb-4 text-foreground`}>{title}</h2>
+/** One block of the side panel: a mono heading, then ruled rows or a note beneath it. */
+const PanelSection = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section>
+    <h2 className={`${MONO} pb-4 text-foreground`}>{title}</h2>
     {children}
-  </Reveal>
+  </section>
 );
 
 const Contact = () => {
@@ -42,60 +47,75 @@ const Contact = () => {
   return (
     // The page is the enquiry form, so the closing "request a quote" band is dropped.
     <PageLayout showEnquiryCta={false}>
-      <div className="mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 md:pb-36 md:pt-14">
-        <Breadcrumbs items={route.breadcrumbs} />
+      {/*
+        Drawn like a plan: one vertical hairline at the eighth column runs from the
+        masthead to the foot of the page, and one horizontal rule crosses it edge to
+        edge. Headline and form take the wide side (8), the lead and the guidance the
+        narrow one (4). On a phone the same source order reads masthead, form, fine print.
+      */}
+      <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 md:pt-12">
+        <Reveal trigger="enter" from="none">
+          <Breadcrumbs items={route.breadcrumbs} />
+        </Reveal>
 
-        {/*
-          Source order is masthead, form, guidance — what a phone shows, form before
-          the fine print. From lg the masthead and guidance share the left column and
-          the form runs the full height of the right one, level with the headline.
-        */}
-        <div className="mt-8 grid gap-x-10 gap-y-16 md:mt-12 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-y-20">
-          <header className="lg:col-span-5">
-            <Reveal trigger="enter" from="none">
-              <p className="eyebrow">Contact</p>
+        <header className="mt-10 grid md:mt-16 lg:grid-cols-12">
+          <div className="lg:col-span-8 lg:pb-20 lg:pr-12">
+            <Reveal as="p" trigger="enter" from="none" delay={0.05} className="eyebrow">
+              Contact
             </Reveal>
             <SplitReveal
               as="h1"
               trigger="enter"
-              delay={0.1}
+              delay={0.12}
               text="Trade Enquiries"
-              className="mt-6 font-display text-[length:clamp(3rem,7vw,6.5rem)] font-medium leading-[0.95] tracking-[-0.03em] text-foreground"
+              italicWords={['enquiries']}
+              className="display-xl mt-5 text-foreground md:mt-6"
             />
-            <Reveal trigger="enter" delay={0.35}>
-              <div className="rule mt-10" aria-hidden="true" />
-              <p className="mt-8 max-w-md text-lg/relaxed text-muted-foreground">
-                For importers, distributors and manufacturers. Tell us the product, volume and destination you have in
-                mind and {site.shortName} will respond to your enquiry.
-              </p>
+          </div>
+          <div className="flex items-end pb-12 pt-8 lg:col-span-4 lg:border-l lg:border-border lg:pb-20 lg:pl-12 lg:pt-0">
+            <Reveal as="p" trigger="enter" delay={0.4} className="lead">
+              For importers, distributors and manufacturers. Tell us the product, volume and destination you have in
+              mind and {site.shortName} will respond to your enquiry.
             </Reveal>
-          </header>
+          </div>
+        </header>
+      </div>
 
-          <section
-            aria-labelledby={formTitleId}
-            className="lg:col-span-6 lg:col-start-7 lg:row-span-2 lg:row-start-1"
-          >
-            <Reveal trigger="enter" delay={0.45}>
-              <div className="flex items-baseline justify-between gap-6 border-t border-foreground pt-5">
-                <p className="eyebrow">Enquire</p>
-                <p className={`${SMALL_CAPS} text-muted-foreground`}>Business enquiries only</p>
-              </div>
-              <h2 id={formTitleId} className="mt-10 text-3xl font-medium tracking-[-0.02em] md:text-4xl">
+      {/* Outside the container: the rule runs the full width of the window. */}
+      <DrawnRule trigger="enter" delay={0.45} />
+
+      <div className="mx-auto grid max-w-7xl px-4 sm:px-6 lg:grid-cols-12">
+        <section aria-labelledby={formTitleId} className="py-16 md:py-24 lg:col-span-8 lg:pb-36 lg:pr-12">
+          <Reveal trigger="enter" delay={0.5}>
+            <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-3">
+              <h2 id={formTitleId} className="display-md text-foreground">
                 Send an enquiry
               </h2>
-              <EnquiryForm className="mt-12" />
-            </Reveal>
-          </section>
+              <p className="eyebrow md:pb-2">Business enquiries only</p>
+            </div>
+            <EnquiryForm className="mt-12 md:mt-16" />
+          </Reveal>
+        </section>
 
-          <aside aria-label="Enquiry guidance" className="space-y-14 lg:col-span-4 lg:row-start-2">
-            <PanelSection title="What to include" delay={0.05}>
-              <dl className="divide-y divide-border border-b border-border">
+        <aside
+          aria-label="Enquiry guidance"
+          className="border-t border-border py-16 md:py-24 lg:col-span-4 lg:border-l lg:border-t-0 lg:pb-36 lg:pl-12"
+        >
+          {/* The guidance stays beside the form while it is being filled in — only on a
+              screen tall enough to hold all of it; top-28 clears the navbar. */}
+          <Reveal
+            trigger="enter"
+            delay={0.6}
+            className="space-y-14 lg:top-28 lg:[@media(min-height:880px)]:sticky"
+          >
+            <PanelSection title="What to include">
+              <dl className="hairline-rows">
                 {INCLUDE.map((item, index) => (
-                  <div key={item.term} className="grid grid-cols-[2.25rem_1fr] gap-x-3 gap-y-1.5 py-5">
-                    <span aria-hidden="true" className="row-span-2 font-display text-base italic text-accent">
+                  <div key={item.term} className="grid grid-cols-[2.5rem_1fr] gap-x-3 gap-y-1.5 py-5">
+                    <span aria-hidden="true" className="index-num row-span-2 pt-1">
                       {String(index + 1).padStart(2, '0')}
                     </span>
-                    <dt className={`${SMALL_CAPS} pt-1 text-foreground`}>{item.term}</dt>
+                    <dt className={`${MONO} text-foreground`}>{item.term}</dt>
                     <dd className="text-sm leading-relaxed text-muted-foreground">{item.detail}</dd>
                   </div>
                 ))}
@@ -103,64 +123,69 @@ const Contact = () => {
             </PanelSection>
 
             {hasDirectContact && (
-              <PanelSection title="Direct contact" delay={0.1}>
-                <ul className="divide-y divide-border border-b border-border">
+              <PanelSection title="Direct contact">
+                <ul className="hairline-rows">
                   {email && (
-                    <li className="py-1.5">
-                      <a href={`mailto:${email}`} data-lead="contact-email" className={`${CONTACT_LINK} break-all`}>
-                        <Mail aria-hidden="true" strokeWidth={1.5} className="h-4 w-4 shrink-0 text-accent" />
-                        {email}
+                    <li>
+                      <a href={`mailto:${email}`} data-lead="contact-email" className={CONTACT_ROW}>
+                        <span className={CONTACT_LABEL}>Email</span>
+                        <span className={`${CONTACT_VALUE} break-all`}>{email}</span>
+                        <ArrowUpRight aria-hidden="true" className={CONTACT_ARROW} />
                       </a>
                     </li>
                   )}
                   {phone && (
-                    <li className="py-1.5">
-                      <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} data-lead="contact-phone" className={CONTACT_LINK}>
-                        <Phone aria-hidden="true" strokeWidth={1.5} className="h-4 w-4 shrink-0 text-accent" />
-                        {phone}
+                    <li>
+                      <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} data-lead="contact-phone" className={CONTACT_ROW}>
+                        <span className={CONTACT_LABEL}>Telephone</span>
+                        <span className={CONTACT_VALUE}>{phone}</span>
+                        <ArrowUpRight aria-hidden="true" className={CONTACT_ARROW} />
                       </a>
                     </li>
                   )}
                   {whatsapp && (
-                    <li className="py-1.5">
+                    <li>
                       <a
                         href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         data-lead="contact-whatsapp"
-                        className={CONTACT_LINK}
+                        className={CONTACT_ROW}
                       >
-                        <MessageCircle aria-hidden="true" strokeWidth={1.5} className="h-4 w-4 shrink-0 text-accent" />
-                        WhatsApp
-                        <span className="sr-only"> (opens in a new tab)</span>
+                        <span className={CONTACT_LABEL}>WhatsApp</span>
+                        <span className={CONTACT_VALUE}>
+                          Open a chat
+                          <span className="sr-only"> (opens in a new tab)</span>
+                        </span>
+                        <ArrowUpRight aria-hidden="true" className={CONTACT_ARROW} />
                       </a>
                     </li>
                   )}
+                  {addressLines && addressLines.length > 0 && (
+                    <li className="flex gap-4 py-5 text-sm">
+                      <span className={CONTACT_LABEL}>Address</span>
+                      <address className="not-italic leading-relaxed text-muted-foreground">
+                        {addressLines.map((line) => (
+                          <span key={line} className="block">
+                            {line}
+                          </span>
+                        ))}
+                      </address>
+                    </li>
+                  )}
                 </ul>
-                {addressLines && addressLines.length > 0 && (
-                  <address className="mt-5 flex gap-3 text-sm not-italic leading-relaxed text-muted-foreground">
-                    <MapPin aria-hidden="true" strokeWidth={1.5} className="mt-1 h-4 w-4 shrink-0 text-accent" />
-                    <span>
-                      {addressLines.map((line) => (
-                        <span key={line} className="block">
-                          {line}
-                        </span>
-                      ))}
-                    </span>
-                  </address>
-                )}
               </PanelSection>
             )}
 
-            <PanelSection title="Trade only" delay={0.15}>
-              <p className="pt-5 text-sm leading-relaxed text-muted-foreground">
+            <PanelSection title="Trade only">
+              <p className="border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
                 This website is intended for tobacco trade professionals of legal age ({site.legalAge}+).{' '}
                 {site.shortName} does not sell tobacco products to consumers through this website, and this form is for
                 business enquiries only.
               </p>
             </PanelSection>
-          </aside>
-        </div>
+          </Reveal>
+        </aside>
       </div>
     </PageLayout>
   );

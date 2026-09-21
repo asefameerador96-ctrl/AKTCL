@@ -5,7 +5,7 @@ import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
 export interface DrawnRuleProps {
   /** Layout of the rule's box: margins, width (or height for axis "y"). */
   className?: string;
-  /** Colour of the line itself. */
+  /** Colour of the line itself. Default: the neutral hairline (ink hairline inside bg-ink). Over photography pass a chalk tint. */
   lineClassName?: string;
   /** Seconds. */
   delay?: number;
@@ -24,7 +24,7 @@ export interface DrawnRuleProps {
  */
 const DrawnRule = ({
   className,
-  lineClassName = 'bg-gold/70',
+  lineClassName = 'hairline',
   delay = 0,
   trigger = 'view',
   axis = 'x',

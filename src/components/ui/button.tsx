@@ -5,32 +5,38 @@ import { ArrowRight, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors duration-300 ease-quart-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      // Nothing under 44px: every size is a touch target first.
-      size: {
-        default: "h-11 px-5",
-        sm: "h-11 px-4 text-[13px]",
-        lg: "h-12 px-8",
-        icon: "h-11 w-11",
-      },
+/*
+ * The button recipes live in src/index.css (.btn + one tone) so a <Link> can wear them
+ * without importing anything: className="btn btn-solid". This file is the same set
+ * for real <button>s. One label everywhere — mono, 12px, uppercase, tracked — 2px
+ * corners, solid high-contrast fills, 300ms expo-out, and hover only ever changes
+ * colour and border. Nothing scales.
+ */
+const buttonVariants = cva("btn", {
+  variants: {
+    variant: {
+      // Paper: solid espresso / ivory (chalk / charcoal in the dark theme).
+      default: "btn-solid",
+      // Ink bands and photography: solid chalk / charcoal.
+      onInk: "btn-ink",
+      // A 1px hairline that darkens on hover.
+      outline: "btn-outline",
+      outlineInk: "btn-outline-ink",
+      // No box: the label with a drawn underline.
+      link: "btn-link",
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
+    // Nothing under 44px: every size is a touch target first.
+    size: {
+      default: "",
+      lg: "btn-lg",
+      icon: "btn-icon",
     },
   },
-);
+  defaultVariants: {
+    variant: "default",
+    size: "default",
+  },
+});
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -41,94 +47,61 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    return <Comp className={cn(buttonVariants({ variant, size }), className)} ref={ref} {...props} />;
   },
 );
 Button.displayName = "Button";
 
-// ---- the site's one primary call to action ----------------------------------------
-// A pill whose arrow rides on a disc. The disc is not an element: it is the flood
-// layer, clipped to a circle. On hover, keyboard focus or press the circle opens
-// until the colour fills the pill, and the arrow leaves right as its twin arrives
-// from the left. Clip-path and transform only, so it never touches layout.
+// ---- the enquiry form's submit ------------------------------------------------------
+// The primary button with its arrow in a ruled-off cell of its own, like a row in a
+// directory. On hover or keyboard focus the arrow leaves right as its twin arrives
+// from the left (transform only); the fill changes with the rest of its .btn tone.
 
-// --disc (radius) and --disc-x (centre, from the right edge) are set on the pill so
-// the circle always sits exactly under the arrow box, at either size.
-const FLOOD_SHAPES = {
-  "--rest": "circle(var(--disc) at calc(100% - var(--disc-x)) 50%)",
-  "--flooded": "circle(150% at calc(100% - var(--disc-x)) 50%)",
-} as React.CSSProperties;
-
-const PILL_TONE = {
-  // Always-dark bands: outlined at rest, gold floods it.
-  ink: {
-    pill: "border-gold/60 text-ink-foreground hover:text-ink focus-visible:text-ink focus-visible:ring-gold focus-visible:ring-offset-ink active:text-ink data-[busy]:text-ink",
-    flood: "bg-gold",
-    arrow: "text-ink",
-  },
-  // Themed surfaces: solid accent at rest, the page's ink floods it. Both pairs
-  // (accent / accent-foreground, foreground / background) hold AA in either theme.
-  paper: {
-    pill: "border-accent bg-accent text-accent-foreground",
-    flood: "bg-foreground",
-    arrow: "text-background",
-  },
-} as const;
-
-export interface CtaPillProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  /** Render the child (a <Link>, an <a>) as the pill instead of a <button>. */
+export interface CtaButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Render the child (a <Link>, an <a>) as the button instead of a <button>. */
   asChild?: boolean;
-  tone?: keyof typeof PILL_TONE;
-  /** Work in progress: the pill stays flooded and a spinner takes the arrow's place. */
+  /** paper: solid espresso. ink: solid chalk, for ink bands and photography. */
+  tone?: "paper" | "ink";
+  /** Work in progress: a spinner takes the arrow's place and the button stops answering. */
   busy?: boolean;
 }
 
-const ARROW = "h-4 w-4 transition-transform duration-500 ease-expo-out";
+const ARROW = "h-4 w-4 transition-transform duration-300 ease-expo-out";
+const ARROW_OUT = "group-hover/cta:translate-x-[260%] group-focus-visible/cta:translate-x-[260%]";
+const ARROW_IN =
+  "absolute -translate-x-[260%] group-hover/cta:translate-x-0 group-focus-visible/cta:translate-x-0";
 
-const CtaPill = React.forwardRef<HTMLButtonElement, CtaPillProps>(
+const CtaButton = React.forwardRef<HTMLButtonElement, CtaButtonProps>(
   ({ className, asChild = false, tone = "paper", busy = false, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    const colours = PILL_TONE[tone];
     return (
       <Comp
         ref={ref}
         data-busy={busy ? "" : undefined}
         className={cn(
-          "group/pill relative isolate inline-flex min-h-14 items-center justify-between gap-5 overflow-hidden rounded-full border pl-7 pr-1.5 font-sans text-[13px] font-semibold uppercase tracking-[0.18em] transition-colors duration-500 ease-expo-out [--disc-x:1.75rem] [--disc:1.375rem] disabled:pointer-events-none md:min-h-16 md:pl-9 md:pr-2 md:[--disc-x:2rem] md:[--disc:1.5rem] [&:disabled:not([data-busy])]:opacity-50",
-          colours.pill,
+          "btn btn-lg group/cta justify-between gap-0 pl-8 pr-0 md:min-h-14",
+          tone === "ink" ? "btn-ink" : "btn-solid",
+          // Busy is not "disabled": it keeps its full colour while the request runs.
+          busy && "pointer-events-none",
           className,
         )}
         {...props}
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            "absolute inset-0 -z-10 transition-[clip-path] duration-700 ease-expo-out [clip-path:var(--rest)]",
-            "group-hover/pill:[clip-path:var(--flooded)] group-focus-visible/pill:[clip-path:var(--flooded)] group-active/pill:[clip-path:var(--flooded)] group-data-[busy]/pill:[clip-path:var(--flooded)]",
-            colours.flood,
-          )}
-          style={FLOOD_SHAPES}
-        />
+        {/* A direct child, or asChild cannot find it. */}
         <Slottable>{children}</Slottable>
+        {/* The divider follows the label's colour through every state of the tone. */}
+        <span aria-hidden="true" className="ml-8 w-px shrink-0 self-stretch bg-current opacity-20" />
         <span
           aria-hidden="true"
-          className={cn(
-            "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full md:h-12 md:w-12",
-            colours.arrow,
-          )}
+          className="relative flex w-12 shrink-0 items-center justify-center self-stretch overflow-hidden md:w-14"
         >
           {busy ? (
             // A spinner has to turn at a constant rate: the one place `linear` belongs.
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <>
-              <ArrowRight className={cn(ARROW, "group-hover/pill:translate-x-[240%] group-focus-visible/pill:translate-x-[240%]")} />
-              <ArrowRight
-                className={cn(
-                  ARROW,
-                  "absolute -translate-x-[240%] group-hover/pill:translate-x-0 group-focus-visible/pill:translate-x-0",
-                )}
-              />
+              <ArrowRight className={cn(ARROW, ARROW_OUT)} />
+              <ArrowRight className={cn(ARROW, ARROW_IN)} />
             </>
           )}
         </span>
@@ -136,6 +109,6 @@ const CtaPill = React.forwardRef<HTMLButtonElement, CtaPillProps>(
     );
   },
 );
-CtaPill.displayName = "CtaPill";
+CtaButton.displayName = "CtaButton";
 
-export { Button, CtaPill };
+export { Button, CtaButton };

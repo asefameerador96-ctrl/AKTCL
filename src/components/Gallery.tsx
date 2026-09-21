@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FocusEvent, PointerEvent } from 'react';
+import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
-import Reveal from '@/components/Reveal';
+import { SectionHead } from '@/components/Ruled';
+import SplitReveal from '@/components/motion/SplitReveal';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { cn } from '@/lib/utils';
 import { galleryImages } from '@/content/images';
 
 const images = galleryImages;
+const two = (n: number) => String(n).padStart(2, '0');
+const TOTAL = two(images.length);
 
 /**
  * The pinned, scroll-driven track is for viewports with room and visitors who have
@@ -20,21 +24,36 @@ const PINNED_QUERY =
 const SCROLL_PER_IMAGE_VH = 18;
 
 /**
- * Pinned tiles are sized from the viewport HEIGHT (44vh tall, 4:3), so the sticky
- * screen always has room for the heading and the tiles never letterbox; the plain
- * layout is a swipe row on phones and a 3/4-column grid above that.
+ * Pinned tiles are sized from the viewport HEIGHT (--tile: 46vh tall, 4:3 — less on a
+ * short window, where the navbar's clearance, the section head and the index cells take
+ * 23rem of the screen between them), so the sticky screen always has room for its
+ * heading and the tiles never letterbox; the plain layout is a swipe row on phones and
+ * a 3/4-column contact sheet above that.
+ *
+ * Either way it is a ruled strip, not a row of cards: square frames that share their
+ * 1px hairlines, each with a mono index cell underneath.
  */
-const PINNED_ITEM = 'w-[58.67vh] shrink-0';
-const PINNED_TILE = 'h-[44vh] w-full';
-const PINNED_SIZES = '59vh';
-const PLAIN_ITEM = 'w-[80vw] shrink-0 snap-start sm:w-[56vw] md:w-auto';
-const PLAIN_TILE = 'aspect-[4/3] w-full';
+const PINNED_FRAME = '[--tile:min(46vh,calc(100vh_-_23rem))]';
+const PINNED_ITEM = 'w-[calc(var(--tile)*4/3)] shrink-0 border-l last:border-r';
+const PINNED_TILE = 'h-[var(--tile)]';
+const PINNED_SIZES = '62vh';
+const PLAIN_ITEM = 'w-[80vw] shrink-0 snap-start border-l last:border-r sm:w-[56vw] md:w-auto md:border-t md:last:border-r-0';
+const PLAIN_TILE = 'aspect-[4/3]';
 const PLAIN_SIZES =
   '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 56vw, 80vw';
-const LIGHTBOX_SIZES = '(min-width: 768px) 75vw, 92vw';
+const LIGHTBOX_SIZES = '(min-width: 768px) 85vw, 92vw';
 
-const LIGHTBOX_BUTTON =
-  'absolute z-10 flex h-12 w-12 items-center justify-center rounded-full border border-ink-foreground/20 bg-ink/60 text-ink-foreground backdrop-blur-sm transition-colors hover:bg-ink/85 focus-visible:ring-gold focus-visible:ring-offset-ink';
+// The tiles sit edge to edge inside clipped strips, where the usual offset ring would
+// be cut off. Theirs is drawn inside the frame instead: the same 2px ring, with its
+// 2px of page colour on the inner side so it holds against any photograph.
+const TILE_FOCUS =
+  'pointer-events-none absolute inset-0 z-10 opacity-0 outline outline-2 -outline-offset-4 outline-background ring-2 ring-inset ring-ring group-focus-visible:opacity-100';
+const ON_TILE = 'group-hover:scale-x-100 group-focus-visible:scale-x-100';
+
+// The viewer's controls are cells of its frame, ruled off like the rest — not floating
+// discs. Chalk fill on hover; the focus ring is inset so the screen edge cannot crop it.
+const VIEWER_BUTTON =
+  'flex h-14 w-14 shrink-0 items-center justify-center border-l text-ink-foreground transition-colors focus-visible:ring-inset focus-visible:ring-offset-0 md:h-16 md:w-16 [@media(hover:hover)]:hover:bg-ink-foreground [@media(hover:hover)]:hover:text-ink';
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
@@ -106,6 +125,21 @@ const Lightbox = ({ index, opener, onClose, onStep }: LightboxProps) => {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose, onStep]);
 
+  const stay = (e: MouseEvent) => e.stopPropagation();
+
+  // The photograph is letterboxed inside its box (object-contain). A click on the
+  // picture stays; a click on the dark beside it is a click on the backdrop and closes.
+  const onFrameClick = (e: MouseEvent<HTMLDivElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const ratio = image.image.img.w / image.image.img.h;
+    const width = Math.min(box.width, box.height * ratio);
+    const height = width / ratio;
+    const onPicture =
+      Math.abs(e.clientX - (box.left + box.width / 2)) <= width / 2 &&
+      Math.abs(e.clientY - (box.top + box.height / 2)) <= height / 2;
+    if (onPicture) e.stopPropagation();
+  };
+
   // Touch swipe only — a mouse drag on an <img> starts a native image drag instead.
   const onPointerDown = (e: PointerEvent) => {
     swipeStart.current = e.pointerType === 'mouse' ? null : e.clientX;
@@ -119,6 +153,9 @@ const Lightbox = ({ index, opener, onClose, onStep }: LightboxProps) => {
   };
 
   return (
+    // A ruled frame on solid ink: label and close above, the photograph, then index,
+    // caption and the two arrows below. bg-ink also switches hairlines and focus rings
+    // to their ink values for everything inside.
     // touch-none: body overflow:hidden does not stop iOS from panning the page
     // underneath, refusing the gesture here does.
     <div
@@ -126,73 +163,67 @@ const Lightbox = ({ index, opener, onClose, onStep }: LightboxProps) => {
       role="dialog"
       aria-modal="true"
       aria-label="Gallery image viewer"
-      className="fixed inset-0 z-[110] flex touch-none flex-col items-center justify-center gap-5 bg-ink/95 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-[110] flex touch-none flex-col bg-ink pb-[env(safe-area-inset-bottom)] text-ink-foreground duration-300 animate-in fade-in"
       onClick={onClose}
     >
-      <button
-        ref={closeRef}
-        type="button"
-        onClick={onClose}
-        aria-label="Close image viewer"
-        className={`${LIGHTBOX_BUTTON} right-4 top-4 md:right-6 md:top-6`}
-      >
-        <X aria-hidden="true" className="h-6 w-6" />
-      </button>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onStep(-1);
-        }}
-        aria-label="Previous image"
-        className={`${LIGHTBOX_BUTTON} left-3 top-1/2 -translate-y-1/2 md:left-8`}
-      >
-        <ChevronLeft aria-hidden="true" className="h-6 w-6" />
-      </button>
-
-      <div
-        className="relative aspect-[4/3] max-h-[68vh] w-[92vw] md:aspect-auto md:h-[74vh] md:max-h-none md:w-[75vw]"
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-      >
-        {/* The viewer fills the screen, so it asks for the largest variant rather
-            than reusing the thumbnail-sized one. */}
-        <LazyImage
-          image={image.image}
-          alt={image.alt}
-          sizes={LIGHTBOX_SIZES}
-          className="absolute inset-0 h-full w-full object-contain"
-        />
+      <div className="flex shrink-0 items-stretch justify-between border-b" onClick={stay}>
+        <p className="eyebrow flex items-center px-4 sm:px-6">Gallery</p>
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Close image viewer"
+          className={VIEWER_BUTTON}
+        >
+          <X aria-hidden="true" className="h-5 w-5" />
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onStep(1);
-        }}
-        aria-label="Next image"
-        className={`${LIGHTBOX_BUTTON} right-3 top-1/2 -translate-y-1/2 md:right-8`}
-      >
-        <ChevronRight aria-hidden="true" className="h-6 w-6" />
-      </button>
+      <div className="relative min-h-0 flex-1">
+        {/* Keyed, so each photograph fades in as it takes the frame. The viewer fills the
+            screen: it asks for the largest variant, not the thumbnail's, and at once. */}
+        <div
+          key={index}
+          className="absolute inset-x-4 inset-y-5 duration-300 animate-in fade-in md:inset-x-16 md:inset-y-10"
+          onClick={onFrameClick}
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
+        >
+          <LazyImage
+            image={image.image}
+            alt={image.alt}
+            sizes={LIGHTBOX_SIZES}
+            priority
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+        </div>
+      </div>
 
-      {/* Live region: arrow-key navigation announces the new image. */}
-      <p
-        aria-live="polite"
-        className="max-w-2xl px-6 text-center text-sm leading-relaxed text-ink-muted"
-        onClick={(e) => e.stopPropagation()}
+      {/* Phones: the caption takes its own row above index and arrows. From md: one row. */}
+      <div
+        className="grid shrink-0 grid-cols-[1fr_auto_auto] border-t md:grid-cols-[auto_1fr_auto_auto]"
+        onClick={stay}
       >
-        <span aria-hidden="true" className="mr-3 tracking-widest text-ink-foreground">
-          {index + 1} / {images.length}
-        </span>
-        <span className="sr-only">
-          Image {index + 1} of {images.length}:{' '}
-        </span>
-        {image.alt}
-      </p>
+        <p aria-hidden="true" className="index-num flex items-center gap-2 px-4 sm:px-6 md:border-r">
+          <span className="text-ink-foreground">{two(index + 1)}</span>/<span>{TOTAL}</span>
+        </p>
+        {/* Live region: arrow-key navigation announces the new image. */}
+        <p
+          aria-live="polite"
+          className="order-first col-span-3 border-b px-4 py-3 text-sm leading-relaxed text-ink-muted sm:px-6 md:order-none md:col-span-1 md:flex md:items-center md:border-b-0 md:py-2"
+        >
+          <span className="sr-only">
+            Image {index + 1} of {images.length}:{' '}
+          </span>
+          {image.alt}
+        </p>
+        <button type="button" onClick={() => onStep(-1)} aria-label="Previous image" className={VIEWER_BUTTON}>
+          <ArrowLeft aria-hidden="true" className="h-5 w-5" />
+        </button>
+        <button type="button" onClick={() => onStep(1)} aria-label="Next image" className={VIEWER_BUTTON}>
+          <ArrowRight aria-hidden="true" className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 };
@@ -208,10 +239,11 @@ const Gallery = () => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLUListElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
+  const countRef = useRef<HTMLSpanElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [opener, setOpener] = useState<HTMLElement | null>(null);
   // Pinned mode only: how many tiles, from the left, have been told to load. The
-  // track's clip hides the off-screen ones from LazyImage's observer, so the tile
+  // strip's clip hides the off-screen ones from LazyImage's observer, so the tile
   // about to slide in is asked for one step ahead. Only ever grows.
   const [loadUpTo, setLoadUpTo] = useState(0);
 
@@ -223,43 +255,52 @@ const Gallery = () => {
     const section = sectionRef.current;
     const viewport = viewportRef.current;
     const track = trackRef.current;
-    const bar = barRef.current;
     if (!section || !viewport || !track) return;
 
     let frame = 0;
     const update = () => {
-      frame = 0;
+      const { top, bottom } = section.getBoundingClientRect();
       const scrollable = section.offsetHeight - window.innerHeight;
-      const progress =
-        scrollable > 0 ? clamp(-section.getBoundingClientRect().top / scrollable, 0, 1) : 0;
+      const progress = scrollable > 0 ? clamp(-top / scrollable, 0, 1) : 0;
+      // The track starts on the page margin and ends on it: `viewport` is the
+      // container's content box, the strip around it is what clips.
       const maxTranslate = Math.max(0, track.offsetWidth - viewport.clientWidth);
-      track.style.transform = `translate3d(${-progress * maxTranslate}px, 0, 0)`;
-      if (bar) bar.style.transform = `scaleX(${progress})`;
+      track.style.transform = `translate3d(${(-progress * maxTranslate).toFixed(1)}px, 0, 0)`;
+      if (barRef.current) barRef.current.style.transform = `scaleX(${progress.toFixed(4)})`;
+      if (countRef.current) countRef.current.textContent = two(Math.round(progress * (images.length - 1)) + 1);
 
       // Nothing is prefetched until the section is within a screen of the viewport.
-      const { top, bottom } = section.getBoundingClientRect();
       if (top < window.innerHeight * 2 && bottom > -window.innerHeight) {
         const tileSpan = track.offsetWidth / images.length;
-        const reached = Math.ceil((progress * maxTranslate + viewport.clientWidth) / tileSpan) + 1;
+        const reached = Math.ceil((progress * maxTranslate + window.innerWidth) / tileSpan) + 1;
         setLoadUpTo((n) => Math.max(n, Math.min(reached, images.length)));
       }
     };
     const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(update);
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          update();
+        });
+      }
     };
 
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
+    // Lenis moves the page inside its own animation frame; painting from its event
+    // keeps the track on the same frame as the scroll instead of one behind it.
+    const offLenis = window.__lenis?.on('scroll', update);
     update();
     return () => {
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
+      offLenis?.();
       if (frame) cancelAnimationFrame(frame);
       track.style.transform = '';
     };
   }, [pinned]);
 
-  // Pinned mode hides most thumbnails off to the right, and the clipped viewport
+  // Pinned mode hides most thumbnails off to the right, and the clipped strip
   // cannot scroll to them. When the keyboard lands on one, scroll the PAGE to the
   // point where the track brings it to the centre, so focus is never off-screen.
   const revealThumb = (e: FocusEvent<HTMLButtonElement>) => {
@@ -292,17 +333,36 @@ const Gallery = () => {
     []
   );
 
+  // Opens as every homepage section does: the drawn rule, one mono row, then the
+  // headline, left-aligned. Closer together inside the pinned screen, which has to
+  // hold the head, the strip and the progress rule at once.
   const heading = (
-    <Reveal className="mx-auto flex max-w-7xl flex-col items-center px-4 text-center sm:px-6">
-      <p className="eyebrow">Gallery</p>
-      <h2
-        id="gallery-heading"
-        className="mt-4 text-3xl font-medium leading-tight md:text-4xl lg:text-5xl"
-      >
-        Inside the Value Chain
-      </h2>
-      <div className="rule mt-6" aria-hidden="true" />
-    </Reveal>
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+      <SectionHead number="06" label="Gallery" meta={`${TOTAL} Photographs`} />
+      <div className={cn('flex items-end justify-between gap-10', pinned ? 'mt-6 lg:mt-8' : 'mt-12 md:mt-16')}>
+        <SplitReveal
+          as="h2"
+          id="gallery-heading"
+          text="Inside the Value Chain"
+          italicWords={['Value']}
+          className="display-md text-foreground"
+        />
+        {/* Where the track is: current frame, a hairline that fills in accent, the total.
+            Opposite the headline, on its baseline — the foot of the pinned screen stays
+            clear for the floating enquiry button. */}
+        {pinned && (
+          <div aria-hidden="true" className="flex w-[30%] max-w-sm shrink-0 items-center gap-5 pb-[0.6em]">
+            <span ref={countRef} className="index-num text-foreground">
+              01
+            </span>
+            <span className="relative h-px flex-1 bg-border">
+              <span ref={barRef} className="absolute inset-0 origin-left scale-x-0 bg-accent" />
+            </span>
+            <span className="index-num">{TOTAL}</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 
   const thumbs = images.map((img, i) => (
@@ -315,27 +375,39 @@ const Gallery = () => {
         }}
         onFocus={revealThumb}
         aria-label={`Enlarge image ${i + 1} of ${images.length}: ${img.alt}`}
-        className={`group relative block overflow-hidden rounded-md bg-secondary ${
-          pinned ? PINNED_TILE : PLAIN_TILE
-        }`}
+        data-cursor="view"
+        className="group relative block w-full text-left focus-visible:ring-0 focus-visible:ring-offset-0"
       >
-        {/* The button's aria-label names the control; the alt stays on the image
-            for crawlers and image search. */}
-        <LazyImage
-          image={img.image}
-          alt={img.alt}
-          sizes={pinned ? PINNED_SIZES : PLAIN_SIZES}
-          eager={pinned && i < loadUpTo}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-          style={{ objectPosition: img.position }}
-        />
-        {/* Always shown on touch screens (nothing hovers there); on hover/focus otherwise. */}
-        <span
-          aria-hidden="true"
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink/60 text-ink-foreground backdrop-blur-sm transition-opacity duration-300 md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100"
-        >
-          <Expand className="h-4 w-4" />
+        <span className={cn('relative block overflow-hidden bg-secondary', pinned ? PINNED_TILE : PLAIN_TILE)}>
+          {/* The button's aria-label names the control; the alt stays on the image
+              for crawlers and image search. */}
+          <LazyImage
+            image={img.image}
+            alt={img.alt}
+            sizes={pinned ? PINNED_SIZES : PLAIN_SIZES}
+            eager={pinned && i < loadUpTo}
+            className="absolute inset-0 h-full w-full object-cover transition-transform motion-safe:group-hover:scale-[1.02]"
+            style={{ objectPosition: img.position }}
+          />
         </span>
+        {/* The index cell: ruled off under the frame. On hover or focus its rule darkens
+            from the left and the word arrives; the plus is always there for touch. */}
+        <span className="relative flex h-11 items-center justify-between gap-4 border-t px-3 md:px-4">
+          <span
+            aria-hidden="true"
+            className={cn('absolute inset-x-0 -top-px h-px origin-left scale-x-0 bg-foreground transition-transform', ON_TILE)}
+          />
+          <span className="index-num">
+            <span className="text-foreground">{two(i + 1)}</span> / {TOTAL}
+          </span>
+          <span className="flex items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+            <span className="hidden translate-x-2 opacity-0 transition-[opacity,transform] group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 md:inline">
+              View
+            </span>
+            <Plus className="h-3.5 w-3.5" />
+          </span>
+        </span>
+        <span aria-hidden="true" className={TILE_FOCUS} />
       </button>
     </li>
   ));
@@ -349,32 +421,38 @@ const Gallery = () => {
           className="relative bg-background"
           style={{ height: `calc(100vh + ${images.length * SCROLL_PER_IMAGE_VH}vh)` }}
         >
-          <div className="sticky top-0 flex h-screen-safe flex-col justify-center overflow-hidden pb-8 pt-24">
+          <div
+            className={cn(
+              'sticky top-0 flex h-screen-safe flex-col justify-center overflow-hidden pb-8 pt-20 lg:pt-24',
+              PINNED_FRAME
+            )}
+          >
             {heading}
-            {/* overflow-clip (where supported) cannot be scrolled at all, so tabbing
+            {/* The strip is ruled off edge to edge and is what clips the track.
+                overflow-clip (where supported) cannot be scrolled at all, so tabbing
                 to an off-screen thumbnail cannot drag the track sideways; the
                 handler covers browsers that fall back to overflow-hidden. */}
             <div
-              ref={viewportRef}
-              className="mt-10 overflow-hidden overflow-clip md:mt-12"
+              className="mt-8 overflow-hidden overflow-clip border-y lg:mt-10"
               onScroll={(e) => {
                 e.currentTarget.scrollLeft = 0;
               }}
             >
-              <ul ref={trackRef} className="flex w-max gap-4 px-4 will-change-transform sm:px-6 md:gap-6">
-                {thumbs}
-              </ul>
-            </div>
-            <div aria-hidden="true" className="mx-auto mt-10 h-px w-48 bg-border">
-              <span ref={barRef} className="block h-full origin-left scale-x-0 bg-gold" />
+              <div className="mx-auto max-w-7xl px-4 sm:px-6">
+                <div ref={viewportRef}>
+                  <ul ref={trackRef} className="flex w-max will-change-transform">
+                    {thumbs}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </section>
       ) : (
-        <section aria-labelledby="gallery-heading" className="bg-background py-20 md:py-28">
+        <section aria-labelledby="gallery-heading" className="bg-background py-24 md:py-32">
           {heading}
           <div className="mt-10 md:mx-auto md:mt-14 md:max-w-7xl md:px-6">
-            <ul className="flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-4 sm:scroll-px-6 sm:px-6 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:p-0 lg:grid-cols-4">
+            <ul className="flex snap-x snap-mandatory scroll-px-4 overflow-x-auto border-y px-4 sm:scroll-px-6 sm:px-6 md:grid md:grid-cols-3 md:overflow-visible md:border-r md:border-t-0 md:p-0 lg:grid-cols-4">
               {thumbs}
             </ul>
           </div>

@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '@/components/PageLayout';
-import PageHeader, { ArrowTravel, DISPLAY_H2, GROUP_UNDERLINE, TEXT_LINK } from '@/components/PageHeader';
+import PageHeader, {
+  ArrowTravel,
+  GROUP_UNDERLINE,
+  ROW_LINE,
+  ROW_SHIFT,
+  TEXT_LINK,
+  WRAP,
+} from '@/components/PageHeader';
 import LazyImage from '@/components/LazyImage';
 import Reveal from '@/components/Reveal';
 import ImageReveal from '@/components/motion/ImageReveal';
-import Parallax from '@/components/motion/Parallax';
-import SplitReveal from '@/components/motion/SplitReveal';
 import { journey, journeyIntro } from '@/content/journey';
 import { journeyImages } from '@/content/images';
 import { hero } from '@/content/site';
@@ -14,23 +19,29 @@ import { isStill } from '@/lib/motion';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
 
-const SIZES = '(min-width: 1280px) 560px, (min-width: 768px) 45vw, calc(100vw - 60px)';
+// Painted width of a row's photograph: a quarter of the sheet from lg, a thumbnail below.
+const SIZES = '(min-width: 1280px) 308px, (min-width: 1024px) 25vw, (min-width: 640px) 192px, 104px';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** How far down the screen the gold line has been "poured": a little past the middle. */
+/** How far down the screen the line has been "poured": a little past the middle. */
 const POUR_LINE = 0.6;
 
 /**
- * The seven stages on one thread. A hairline runs the length of the list — down the
- * left edge on a phone, down the middle from md, where the rows alternate sides — and
- * a gold line fills it as the page is scrolled, lighting each stage's node as it
- * passes. Scroll work is one passive, rAF-throttled listener that writes a transform
- * and toggles an attribute: no React state, no layout written.
+ * The seven stages as a ruled ledger: one wide row each — mono index, the stage in
+ * the display serif, its line of copy, and the photograph flush against the rules on
+ * the right. The whole row opens the stage (the "Read More" link is stretched over
+ * it); on hover or focus the row's hairline is redrawn in the accent, the name steps
+ * 8px and the arrow travels. The photograph stays still.
  *
- * isStill() (prerender, reduced motion): the thread is simply drawn in full.
+ * Down the ledger's margin runs one hairline that a 1px line of accent fills as the
+ * page is scrolled, squaring off each row's tick as it passes. Scroll work is one
+ * passive, rAF-throttled listener that writes a transform and toggles an attribute:
+ * no React state, no layout written.
+ *
+ * isStill() (prerender, reduced motion): the margin line is simply drawn in full.
  */
-const Timeline = () => {
+const Ledger = () => {
   const [still] = useState(isStill);
   const threadRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLSpanElement>(null);
@@ -40,16 +51,16 @@ const Timeline = () => {
     const fill = fillRef.current;
     if (still || !thread || !fill) return;
 
-    const nodes = Array.from(thread.querySelectorAll<HTMLElement>('[data-node]'));
+    const rows = Array.from(thread.querySelectorAll<HTMLElement>('ol > li'));
     let frame = 0;
     const update = () => {
       frame = 0;
-      // Reads first, then writes. A node's offset is within its <li>, the <li>'s within the thread.
+      // Reads first, then writes. A row's offset is within the thread.
       const rect = thread.getBoundingClientRect();
       const poured = Math.max(0, Math.min(rect.height, window.innerHeight * POUR_LINE - rect.top));
-      const reached = nodes.map((node) => (node.parentElement?.offsetTop ?? 0) + node.offsetTop <= poured);
+      const reached = rows.map((row) => row.offsetTop <= poured);
       fill.style.transform = `scaleY(${(rect.height ? poured / rect.height : 0).toFixed(4)})`;
-      nodes.forEach((node, i) => node.toggleAttribute('data-on', reached[i]));
+      rows.forEach((row, i) => row.toggleAttribute('data-on', reached[i]));
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -65,13 +76,13 @@ const Timeline = () => {
   }, [still]);
 
   return (
-    <div className="mx-auto max-w-7xl overflow-x-clip px-4 pb-24 sm:px-6 md:pb-36">
+    <section aria-label={`${journeyIntro.eyebrow}: the ${journey.length} stages`} className={cn(WRAP, 'pb-24 md:pb-36')}>
       <div ref={threadRef} className="relative">
-        {/* The thread and its fill. The fill only ever scales. */}
-        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-px bg-border md:left-1/2">
+        {/* The margin line and its fill. The fill only ever scales. */}
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 z-10 w-px bg-border">
           <span
             ref={fillRef}
-            className="absolute inset-0 origin-top bg-gold will-change-transform"
+            className="absolute inset-0 origin-top bg-accent will-change-transform"
             style={still ? undefined : { transform: 'scaleY(0)' }}
           />
         </span>
@@ -79,82 +90,88 @@ const Timeline = () => {
         <ol
           // Preflight removes the markers, and with them the list role in Safari.
           role="list"
-          className="space-y-20 md:space-y-36"
+          // The masthead's closing hairline is the first row's top rule.
+          className="border-b border-border"
         >
           {journey.map((stage, i) => {
             const cover = journeyImages[stage.slug]?.[0];
-            const flip = i % 2 === 1;
-            const picture = cover && (
-              <ImageReveal direction={flip ? 'left' : 'right'} className="aspect-[4/3] rounded-lg bg-secondary">
-                <LazyImage
-                  image={cover.image}
-                  alt={cover.alt}
-                  sizes={SIZES}
-                  priority={i === 0}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  style={{ objectPosition: cover.position }}
-                />
-              </ImageReveal>
-            );
-
             return (
-              <li key={stage.slug} className="relative pl-7 md:pl-0">
-                {/* The stage's node on the thread: hollow until the gold reaches it. */}
+              <li
+                key={stage.slug}
+                data-on={still ? '' : undefined}
+                className={cn('group relative', i > 0 && 'border-t border-border')}
+              >
+                <span aria-hidden="true" className={ROW_LINE} />
+                {/* The row's tick on the margin line: hollow until the fill reaches it. */}
                 <span
                   aria-hidden="true"
-                  data-node=""
-                  data-on={still ? '' : undefined}
-                  className="absolute left-0 top-0 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-gold bg-background transition-[background-color,transform] duration-700 ease-expo-out data-[on]:scale-125 data-[on]:bg-gold md:left-1/2 md:top-1/2"
+                  className="absolute left-0 top-0 z-20 h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 border border-accent bg-background transition-colors duration-500 ease-expo-out group-data-[on]:bg-accent"
                 />
 
-                <article className="grid items-center gap-x-24 gap-y-8 md:grid-cols-2 lg:gap-x-32">
-                  {picture && (
-                    <div className={cn('min-w-0', flip && 'md:order-2')}>
-                      {/* The first photograph can open the page on a tall screen: see
-                          data-enter in index.css. */}
-                      {i === 0 ? <div data-enter="">{picture}</div> : picture}
-                    </div>
-                  )}
-
-                  <div className="min-w-0">
+                {/* The first row can open the page on a tall screen, so it plays with
+                    the masthead (data-enter, see index.css); the rest play on view. */}
+                <Reveal
+                  trigger={i === 0 ? 'enter' : 'view'}
+                  delay={i === 0 ? 0.6 : 0}
+                  className="grid grid-cols-[minmax(0,1fr)_6.5rem] sm:grid-cols-[minmax(0,1fr)_12rem] lg:grid-cols-12"
+                >
+                  <div className="col-start-1 row-start-1 pb-2 pl-5 pr-4 pt-7 sm:pl-8 lg:col-span-5 lg:grid lg:grid-cols-5 lg:pb-10 lg:pr-0 lg:pt-10">
                     {/* The <ol> carries the order; the numeral is its visual echo. */}
-                    <div aria-hidden="true">
-                      <Parallax speed={0.05}>
-                        <Reveal
-                          as="p"
-                          className="font-display text-[length:clamp(5.5rem,12vw,10.5rem)] font-normal tabular-nums leading-[0.8] tracking-[-0.04em] text-outline text-accent"
-                        >
-                          {pad(i + 1)}
-                        </Reveal>
-                      </Parallax>
-                    </div>
-                    <SplitReveal as="h2" text={stage.label} className={cn('mt-8 md:mt-10', DISPLAY_H2)} />
-                    <Reveal delay={0.12}>
-                      <p className="mt-3 font-display text-xl/snug italic text-foreground/80 md:text-2xl/snug">
-                        {stage.title}
-                      </p>
-                      <p className="mt-5 max-w-[52ch] text-base/relaxed text-muted-foreground md:text-[1.0625rem]/[1.75]">
-                        {stage.short}
-                      </p>
-                      <Link to={`/journey/${stage.slug}`} data-cursor="open" className={cn(TEXT_LINK, 'mt-6')}>
-                        <span className={GROUP_UNDERLINE}>
-                          Read More
-                          <span className="sr-only">
-                            {' '}
-                            — {stage.label}: {stage.title}
-                          </span>
-                        </span>
-                        <ArrowTravel />
-                      </Link>
-                    </Reveal>
+                    <p
+                      aria-hidden="true"
+                      className="index-num transition-colors duration-500 ease-expo-out group-data-[on]:text-foreground lg:pt-3"
+                    >
+                      {pad(i + 1)}
+                    </p>
+                    <h2 className={cn('display-md mt-4 text-foreground lg:col-span-4 lg:mt-0', ROW_SHIFT)}>
+                      {stage.label}
+                    </h2>
                   </div>
-                </article>
+
+                  <div className="col-span-2 row-start-2 pb-8 pl-5 pr-4 pt-3 sm:pl-8 lg:col-span-4 lg:col-start-6 lg:row-start-1 lg:py-10 lg:pl-0 lg:pr-10">
+                    <p className="eyebrow lg:pt-3">{stage.title}</p>
+                    <p className="mt-4 max-w-[46ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+                      {stage.short}
+                    </p>
+                    {/* Stretched over the row, so the whole row is one target with one name. */}
+                    <Link
+                      to={`/journey/${stage.slug}`}
+                      data-cursor="open"
+                      className={cn(TEXT_LINK, 'mt-3 after:absolute after:inset-0 after:z-10')}
+                    >
+                      <span className={GROUP_UNDERLINE}>
+                        Read More
+                        <span className="sr-only">
+                          {' '}
+                          — {stage.label}: {stage.title}
+                        </span>
+                      </span>
+                      <ArrowTravel />
+                    </Link>
+                  </div>
+
+                  {cover && (
+                    <ImageReveal
+                      direction="left"
+                      className="col-start-2 row-start-1 aspect-square self-start bg-secondary lg:col-span-3 lg:col-start-10 lg:aspect-auto lg:h-full lg:min-h-[16rem] lg:self-stretch"
+                    >
+                      <LazyImage
+                        image={cover.image}
+                        alt={cover.alt}
+                        sizes={SIZES}
+                        priority={i === 0}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        style={{ objectPosition: cover.position }}
+                      />
+                    </ImageReveal>
+                  )}
+                </Reveal>
               </li>
             );
           })}
         </ol>
       </div>
-    </div>
+    </section>
   );
 };
 
@@ -171,7 +188,8 @@ const JourneyIndex = () => (
       meta={`${pad(1)} — ${pad(journey.length)}`}
       lead={hero.body}
     />
-    <Timeline />
+    {/* The ledger hangs from the masthead's closing hairline: the two read as one sheet. */}
+    <Ledger />
   </PageLayout>
 );
 

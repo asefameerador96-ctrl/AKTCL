@@ -103,7 +103,15 @@ const FormDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
   ({ className, ...props }, ref) => {
     const { formDescriptionId } = useFormField();
 
-    return <p ref={ref} id={formDescriptionId} className={cn("text-sm text-muted-foreground", className)} {...props} />;
+    // Help text stays in the sans: a sentence to read, not a label.
+    return (
+      <p
+        ref={ref}
+        id={formDescriptionId}
+        className={cn("text-[13px] leading-relaxed text-muted-foreground", className)}
+        {...props}
+      />
+    );
   },
 );
 FormDescription.displayName = "FormDescription";
@@ -117,8 +125,15 @@ const FormMessage = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<
       return null;
     }
 
+    // Validation text is data about the field: mono, in the destructive token (7.4:1 on
+    // paper, 6.1:1 in the dark theme). Sentence case — a full sentence in caps is hard to read.
     return (
-      <p ref={ref} id={formMessageId} className={cn("text-sm font-medium text-destructive", className)} {...props}>
+      <p
+        ref={ref}
+        id={formMessageId}
+        className={cn("font-mono text-[12px] leading-relaxed text-destructive", className)}
+        {...props}
+      >
         {body}
       </p>
     );

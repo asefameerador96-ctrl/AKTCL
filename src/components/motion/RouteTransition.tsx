@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { useLocation } from 'react-router-dom';
 import { EASE, holdEntrancesUntil, isStill } from '@/lib/motion';
 import { normalisePath } from '@/seo/routeMeta';
-import Logo from '@/components/Logo';
+import LogoMark from '@/components/LogoMark';
 
 const COVER_MS = 300;
 const LIFT_MS = 300;
@@ -33,7 +33,7 @@ const letThrough = () => {
  * Ink curtain between pages, mounted once in App (inside the Router, inside its own
  * Suspense boundary): rises from the foot of the screen over the page being left,
  * the new page swaps in behind it at the top of its scroll, and it lifts away.
- * 300 ms each way with expo-in-out; a clip-path rather than scaleY so the wordmark
+ * 300 ms each way with expo-in-out; a clip-path rather than scaleY so the monogram
  * riding on it is uncovered, not squashed.
  *
  * Never on first load, never under isStill(), and never in the way for long: it
@@ -152,9 +152,11 @@ const RouteTransition = () => {
       ref={curtainRef}
       aria-hidden="true"
       data-route-curtain={phase}
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-ink"
+      // Flat ink and the monogram in chalk — nothing else. It is on screen for well under
+      // a second, so there is no lockup to read, no grain to repaint and no rule to draw.
+      className="fixed inset-0 z-[150] flex items-center justify-center bg-ink text-ink-foreground"
     >
-      <Logo variant="onDark" size="md" className="items-center" />
+      <LogoMark className="w-16 md:w-20" />
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Pause, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isStill } from '@/lib/motion';
 
@@ -13,15 +12,49 @@ export interface MarqueeProps {
   className?: string;
   /** Transparent letters with a hairline stroke (see .text-outline in index.css). */
   outlined?: boolean;
-  /** Sits after every item. Defaults to a short gold rule. */
+  /** Sits after every item. Defaults to a short hairline in the text colour. */
   separator?: ReactNode;
+  /**
+   * Controlled pause. Pass it (with a <MarqueePause> of your own, wherever the layout
+   * has a cell for one) and the band draws no button. Left out, the band keeps its own
+   * state and sets the button in a row under the type — never on top of it.
+   */
+  paused?: boolean;
 }
 
-const TYPE = 'font-display text-[length:clamp(3rem,9vw,8rem)] font-medium leading-none tracking-[-0.03em]';
+const TYPE = 'font-display text-[length:clamp(3rem,9vw,8rem)] font-normal leading-none tracking-[-0.03em]';
 /** How much faster the band may run while the page is being scrolled hard. */
 const MAX_BOOST = 2.5;
 
-const DEFAULT_SEPARATOR = <span className="inline-block h-px w-[0.5em] bg-gold/70 align-middle" />;
+const DEFAULT_SEPARATOR = <span className="inline-block h-px w-[0.5em] bg-current align-middle" />;
+
+interface MarqueePauseProps {
+  paused: boolean;
+  onToggle: () => void;
+  /** What is moving, for the accessible name: "Leaf Tobacco". */
+  of?: string;
+  className?: string;
+}
+
+/**
+ * The band's pause control (WCAG 2.2.2), set like the hero's: the mono word, no box, no
+ * icon — a 44px target whose label darkens on hover. Render it only where the band
+ * actually moves (not under isStill()).
+ */
+export const MarqueePause = ({ paused, onToggle, of, className }: MarqueePauseProps) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    // The name starts with the visible word (WCAG 2.5.3), so it changes with the state.
+    aria-label={`${paused ? 'Play' : 'Pause'} the moving text${of ? `: ${of}` : ''}`}
+    className={cn(
+      'inline-flex min-h-11 items-center rounded-sm font-mono text-[11px] font-medium uppercase not-italic leading-none tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground',
+      className
+    )}
+  >
+    {paused ? 'Play' : 'Pause'}
+  </button>
+);
 
 /**
  * Oversized running band of names. One CSS animation on the compositor moves a track
@@ -29,18 +62,27 @@ const DEFAULT_SEPARATOR = <span className="inline-block h-px w-[0.5em] bg-gold/7
  * velocity only nudges that animation's playbackRate, never the transform itself.
  *
  * Read out once: the first run of items is a real list, every repeat is aria-hidden.
- * Pauses on hover, on focus inside the band, off screen, and with its own button
- * (WCAG 2.2.2 — hover is no use to a keyboard or a thumb). Under isStill() it is a
- * plain wrapped list.
+ * Pauses on hover, on focus inside the band, off screen, and with a button
+ * (MarqueePause; WCAG 2.2.2 — hover is no use to a keyboard or a thumb). Under
+ * isStill() it is a plain wrapped list and there is nothing to pause.
  */
-const Marquee = ({ items, speed = 60, className, outlined = false, separator = DEFAULT_SEPARATOR }: MarqueeProps) => {
+const Marquee = ({
+  items,
+  speed = 60,
+  className,
+  outlined = false,
+  separator = DEFAULT_SEPARATOR,
+  paused: pausedProp,
+}: MarqueeProps) => {
   const [still] = useState(isStill);
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<HTMLUListElement>(null);
   // Runs of `items` per half: enough that one half always out-spans the container.
   const [runs, setRuns] = useState(1);
-  const [paused, setPaused] = useState(false);
+  const [ownPaused, setOwnPaused] = useState(false);
+  const controlled = pausedProp !== undefined;
+  const paused = controlled ? pausedProp : ownPaused;
 
   // Before first paint: fill the width, and turn px/s into the animation's duration.
   useLayoutEffect(() => {
@@ -141,19 +183,17 @@ const Marquee = ({ items, speed = 60, className, outlined = false, separator = D
 
   return (
     <div ref={rootRef} className={cn('marquee relative overflow-hidden', TYPE, className)} data-paused={paused ? '' : undefined}>
-      {/* The outline sits on the track, not the root, so the pause button keeps a solid icon. */}
+      {/* The outline sits on the track, not the root, so nothing else inherits the stroke. */}
       <div ref={trackRef} className={cn('marquee-track flex w-max', outlined && 'text-outline')}>
         {run(false, runRef)}
         {run(true)}
       </div>
-      <button
-        type="button"
-        onClick={() => setPaused((p) => !p)}
-        aria-label={paused ? 'Resume the moving text' : 'Pause the moving text'}
-        className="absolute bottom-0 right-2 flex h-11 w-11 items-center justify-center rounded-full font-sans opacity-50 transition-opacity duration-300 hover:opacity-100 focus-visible:opacity-100 sm:right-4"
-      >
-        {paused ? <Play aria-hidden="true" className="h-3.5 w-3.5" /> : <Pause aria-hidden="true" className="h-3.5 w-3.5" />}
-      </button>
+      {/* Its own row under the type: the control never sits on the running names. */}
+      {!controlled && (
+        <div className="flex justify-end px-4 sm:px-6">
+          <MarqueePause paused={paused} onToggle={() => setOwnPaused((p) => !p)} />
+        </div>
+      )}
     </div>
   );
 };

@@ -22,8 +22,11 @@ const BigBrandFooter = () => {
     <div
       ref={ref}
       aria-hidden="true"
-      // Last thing on the page, so it is what has to clear the phone's home indicator.
-      className="overflow-hidden bg-background px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-8 text-foreground sm:px-6 md:pb-[calc(2.5rem+env(safe-area-inset-bottom))] md:pt-12"
+      // Back on paper after the ink footer, in the espresso of the text (chalk in the
+      // dark theme) — never the accent. The hairline marks the step where the dark
+      // theme's page and the ink band are nearly one tone. Last thing on the page, so
+      // it is what has to clear the phone's home indicator.
+      className="overflow-hidden border-t border-border bg-background px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-14 text-foreground sm:px-6 md:pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pt-24"
     >
       {/* The mask hugs the mark, so it comes up from its own foot, not the page's. */}
       <div className="mx-auto max-w-[62rem] overflow-hidden">

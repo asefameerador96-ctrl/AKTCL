@@ -1,16 +1,15 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import DetailPage from '@/components/DetailPage';
-import { DISPLAY_H2, DrawnRule } from '@/components/PageHeader';
+import { ArrowTravel, SectionHead } from '@/components/PageHeader';
 import ProductCard from '@/components/ProductCard';
 import SpecCard from '@/components/SpecCard';
-import SplitReveal from '@/components/motion/SplitReveal';
 import NotFound from '@/pages/NotFound';
 import { categoryBySlug, productBySlug } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 
 /*
- * Row labels for the data card while the workbook holds no technical values: every
+ * Row labels for the data sheet while the workbook holds no technical values: every
  * one renders as "On request" (see SpecCard). Whole leaf is traded on grade and
  * chemistry, processed tobacco on its physical properties — hence two sets.
  */
@@ -47,7 +46,7 @@ const ProductPage = () => {
         ]
       }
       eyebrow={category.label}
-      // Its place in the range, set like the journey's stage numerals.
+      // Its place in the range, in the masthead's mono index.
       counter={`${pad(index + 1)} / ${pad(siblings.length)}`}
       title={product.name}
       lead={product.short}
@@ -65,27 +64,44 @@ const ProductPage = () => {
       related={
         others.length > 0 && (
           <section aria-labelledby="more-products-heading">
-            <p className="eyebrow">Product Range</p>
-            <SplitReveal
-              as="h2"
+            <SectionHead
+              number="02"
+              label="Product Range"
+              meta={`${pad(others.length)} Products`}
+              title={`More ${category.label}`}
               id="more-products-heading"
-              text={`More ${category.label}`}
-              className={`mt-4 ${DISPLAY_H2}`}
             />
-            <DrawnRule className="mt-8 md:mt-10" delay={0.2} />
-            <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:mt-14 lg:grid-cols-4">
+            <ul role="list" className="hairline-grid mt-14 grid grid-cols-2 md:mt-20 lg:grid-cols-4">
               {others.map((other, i) => (
-                <ProductCard
-                  key={other.slug}
-                  to={`${categoryPath}/${other.slug}`}
-                  image={productImages[other.slug]?.[0] ?? categoryImages[category.slug]}
-                  name={other.name}
-                  short={other.short}
-                  // The stagger restarts on every desktop row: a row is what comes into view.
-                  index={i % 4}
-                />
+                <li key={other.slug} className="min-w-0">
+                  <ProductCard
+                    to={`${categoryPath}/${other.slug}`}
+                    image={productImages[other.slug]?.[0] ?? categoryImages[category.slug]}
+                    name={other.name}
+                    short={other.short}
+                    // Only the column matters: the stagger restarts on every row of the grid.
+                    index={i}
+                    // Its number in the full range, so a product keeps it from page to page.
+                    number={siblings.indexOf(other) + 1}
+                  />
+                </li>
               ))}
-            </div>
+              {/* The grid's closing cell: back to the whole category. It also squares
+                  off a row the products alone would leave short. */}
+              <li className="min-w-0">
+                <Link
+                  to={categoryPath}
+                  data-cursor="open"
+                  className="group relative flex h-full min-h-40 flex-col justify-between gap-10 px-3.5 pb-6 pt-4 text-foreground transition-colors hover:text-accent focus-visible:z-10 focus-visible:text-accent sm:px-5 sm:pb-7 sm:pt-5"
+                >
+                  <span className="index-num uppercase">{pad(category.products.length)} Products</span>
+                  <span className="flex items-end justify-between gap-4">
+                    <span className="display-xs">All {category.label}</span>
+                    <ArrowTravel className="mb-1.5" />
+                  </span>
+                </Link>
+              </li>
+            </ul>
           </section>
         )
       }

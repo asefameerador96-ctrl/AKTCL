@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import SplitReveal from '@/components/motion/SplitReveal';
 import Reveal from '@/components/Reveal';
+import { RowLink, SectionHead, TravelArrow } from '@/components/Ruled';
 import LazyImage from '@/components/LazyImage';
 import { cn } from '@/lib/utils';
 import { EASE, isStill } from '@/lib/motion';
@@ -29,15 +29,17 @@ const STAGGER_S = 0.07;
 
 /** Photograph beside copy (tablets up, and any landscape phone); stacked otherwise. */
 const SIDE_QUERY = '(min-width: 768px), (orientation: landscape)';
+/** A landscape phone: the side-by-side panel is there, but only ~360px tall. */
+const SHORT_QUERY = '(max-height: 540px)';
 
-const LABEL_TYPE = 'font-display font-normal leading-[0.95] tracking-[-0.03em] text-foreground';
+// The giant numeral is drawn in the hairline colour: part of the plan drawing, not a
+// headline. Colour here, outline on the child — cn() would merge the pair away.
 const NUMERAL_TYPE =
-  'pointer-events-none select-none font-display text-[length:clamp(10rem,26vw,24rem)] font-normal leading-none tracking-[-0.04em] text-gold/70';
-// The colour transition is spelled out beside the underline's: a transition utility
-// would replace .link-underline's own and the rule would snap instead of drawing.
-// The ::after pads the tap target to 44px without moving the underline off the words.
-const TEXT_LINK =
-  'link-underline group relative inline-flex items-center gap-2 pb-1 text-xs font-medium uppercase tracking-[0.2em] text-accent [transition:background-size_0.6s_var(--ease-expo-out),color_0.4s_var(--ease-quart-out)] hover:text-foreground after:absolute after:-inset-x-2 after:-inset-y-4';
+  'pointer-events-none select-none font-display text-[length:clamp(10rem,26vw,24rem)] font-normal leading-none tracking-[-0.04em] text-border';
+// A directory row, not a button: ruled off above, label left, arrow right.
+const ROW_LINK =
+  'group relative flex w-full items-center justify-between gap-6 border-t font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-foreground';
+const ON_ROW = 'group-hover:scale-x-100 group-focus-visible:scale-x-100';
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -59,16 +61,15 @@ type Phase = 'before' | 'in' | 'out';
 interface StageCopyProps {
   stage: JourneyStage;
   index: number;
-  /** Right-align (side-by-side stages whose copy sits left of the photograph). */
-  alignEnd?: boolean;
   /** Scroller only. Without it the copy is simply there (plain list). */
   phase?: Phase;
-  /** The stacked phone panel is little over half a screen tall, so the text is clamped there. */
+  /** Little room (the stacked phone panel, a landscape phone): smaller steps, clamped text. */
   compact?: boolean;
-  labelClassName: string;
+  /** The fluid display step of the stage name. */
+  labelSize: 'display-lg' | 'display-md';
 }
 
-const StageCopy = ({ stage, index, alignEnd = false, phase, compact = false, labelClassName }: StageCopyProps) => {
+const StageCopy = ({ stage, index, phase, compact = false, labelSize }: StageCopyProps) => {
   const shown = phase === 'in';
   const timing = (order: number) =>
     shown ? `0.9s ${EASE.expoOut} ${(order * STAGGER_S).toFixed(2)}s` : `0.5s ${EASE.expoInOut}`;
@@ -84,85 +85,114 @@ const StageCopy = ({ stage, index, alignEnd = false, phase, compact = false, lab
       transform: shown ? 'none' : `translate3d(0, ${phase === 'out' ? -14 : 18}px, 0)`,
       transition: `opacity ${timing(order)}, transform ${timing(order)}`,
     };
+  // The catchy title: one quiet serif line under the name. Its own clamp where room is short.
+  const titleSize = compact ? 'text-[length:clamp(1.125rem,5vw,1.5rem)] leading-[1.15]' : 'display-xs';
 
   return (
     <>
-      <p className={cn('eyebrow flex items-center gap-3 text-[10px] md:text-xs', alignEnd && 'justify-end')} style={soft(0)}>
-        <span aria-hidden="true" className="h-px w-6 bg-gold/70" />
-        {numeral(index)} / {STAGE_TOTAL}
+      <p className="index-num flex items-center gap-3" style={soft(0)}>
+        <span aria-hidden="true" className="text-foreground">
+          {numeral(index)}
+        </span>
+        <span aria-hidden="true" className="h-px w-8 bg-border" />
+        <span aria-hidden="true">{STAGE_TOTAL}</span>
+        <span className="sr-only">
+          Stage {index + 1} of {stages.length}
+        </span>
       </p>
-      {/* The padding keeps descenders inside the mask; the margin gives the space back. */}
-      <div className="-mb-[0.16em] mt-3 overflow-hidden pb-[0.16em] md:mt-5">
-        <h3 className={cn(LABEL_TYPE, labelClassName)} style={masked(1)}>
+      {/* The masks carry the display size too, so their em padding is measured in the
+          type's own em and keeps the descenders; the margin gives the space back. */}
+      <div className={cn(labelSize, '-mb-[0.2em] overflow-hidden pb-[0.2em]', compact ? 'mt-3' : 'mt-5 lg:mt-6')}>
+        <h3 className={cn(labelSize, 'text-foreground')} style={masked(1)}>
           {stage.label}
         </h3>
       </div>
-      <div className="mt-3 overflow-hidden pb-[0.12em] md:mt-5">
-        <p className="font-display text-lg leading-snug text-accent md:text-2xl lg:text-[1.75rem]" style={masked(2)}>
+      <div className={cn(titleSize, '-mb-[0.18em] overflow-hidden pb-[0.18em]', compact ? 'mt-2' : 'mt-3 lg:mt-4')}>
+        <p className={cn('font-display tracking-[-0.02em] text-foreground', titleSize)} style={masked(2)}>
           {stage.title}
         </p>
       </div>
       <p
         className={cn(
-          'mt-2 text-sm leading-relaxed text-muted-foreground md:mt-4 md:text-base lg:text-lg',
-          alignEnd && 'ml-auto',
-          compact ? 'line-clamp-3' : 'max-w-md'
+          'leading-relaxed text-muted-foreground',
+          compact ? 'mt-2 line-clamp-3 text-sm' : 'mt-5 max-w-md text-base'
         )}
         style={soft(3)}
       >
         {stage.short}
       </p>
-      <div className="mt-4 md:mt-8" style={soft(4)}>
-        <Link to={`/journey/${stage.slug}`} tabIndex={phase && !shown ? -1 : undefined} className={TEXT_LINK}>
-          Know More
-          <span className="sr-only">: {stage.label}</span>
-          <ArrowRight
+      <div className={cn(compact ? 'mt-4' : 'mt-8 max-w-md lg:mt-10')} style={soft(4)}>
+        <Link
+          to={`/journey/${stage.slug}`}
+          tabIndex={phase && !shown ? -1 : undefined}
+          className={cn(ROW_LINK, compact ? 'min-h-11' : 'min-h-12')}
+        >
+          {/* Drawn over the row's own rule, so the line darkens from the left. */}
+          <span
             aria-hidden="true"
-            className="h-3.5 w-3.5 transition-transform duration-500 ease-expo-out group-hover:translate-x-1"
+            className={cn('absolute inset-x-0 -top-px h-px origin-left scale-x-0 bg-foreground transition-transform', ON_ROW)}
           />
+          <span className="transition-transform motion-safe:group-hover:translate-x-2 motion-safe:group-focus-visible:translate-x-2">
+            Know More
+            <span className="sr-only">: {stage.label}</span>
+          </span>
+          <TravelArrow />
         </Link>
       </div>
     </>
   );
 };
 
-/** Every stage in the flow of the page: photograph and text, alternating sides. */
+/**
+ * Every stage in the flow of the page, as ruled rows: photograph in seven columns, copy
+ * in five, a hairline between them, sides alternating.
+ */
 const StageList = () => (
-  <ol
-    // Preflight removes the markers, and with them the list role in Safari.
-    role="list"
-    className="mx-auto max-w-7xl space-y-20 px-4 pb-24 sm:px-6 md:space-y-32 md:pb-32"
-  >
-    {stages.map(({ stage, cover }, i) => (
-      <li key={stage.slug} className="grid items-center gap-8 md:grid-cols-2 md:gap-16 lg:gap-24">
-        <div
-          className={cn(
-            'relative aspect-[4/3] overflow-hidden rounded-lg bg-secondary',
-            i % 2 === 1 && 'md:order-2'
-          )}
-        >
-          {cover && (
-            <LazyImage
-              image={cover.image}
-              alt={cover.alt}
-              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 608px"
-              className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: cover.position }}
-            />
-          )}
-        </div>
-        <div>
-          <StageCopy stage={stage} index={i} labelClassName="text-5xl md:text-6xl lg:text-7xl" />
-        </div>
-      </li>
-    ))}
-  </ol>
+  <div className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 md:pb-32 lg:pb-36">
+    <ol
+      // Preflight removes the markers, and with them the list role in Safari.
+      role="list"
+      className="hairline-rows"
+    >
+      {stages.map(({ stage, cover }, i) => {
+        const flipped = i % 2 === 1;
+        return (
+          <li key={stage.slug} className="grid gap-y-8 py-10 md:grid-cols-12 md:py-14 lg:py-16">
+            {/* The 4:3 frame is a child of the cell, not the cell: a grid item with an
+                aspect ratio takes its width from a stretched height and leaves its column. */}
+            <div className={cn('md:col-span-7 md:self-center', flipped && 'md:order-2')}>
+              <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
+                {cover && (
+                  <LazyImage
+                    image={cover.image}
+                    alt={cover.alt}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 58vw, 710px"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{ objectPosition: cover.position }}
+                  />
+                )}
+              </div>
+            </div>
+            <div
+              className={cn(
+                'flex flex-col justify-center md:col-span-5',
+                flipped ? 'md:mr-8 md:border-r md:pr-8 lg:mr-12 lg:pr-12' : 'md:ml-8 md:border-l md:pl-8 lg:ml-12 lg:pl-12'
+              )}
+            >
+              <StageCopy stage={stage} index={i} labelSize="display-md" />
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  </div>
 );
 
 /**
  * The sticky scroller: a tall track with a pinned viewport. Each stage is a
- * full-screen layer (photograph and copy, alternating sides); scrolling wipes the
- * next layer up over the last, and a gold rail runs from Seed to Smoke beside it.
+ * full-screen layer (photograph and copy, alternating sides, a hairline between the
+ * halves); scrolling wipes the next layer up over the last, and the Seed → Smoke rail
+ * fills along the hairline that rules it off.
  *
  * Everything that changes per frame — the wipe, the photographs' settle, the drift
  * of the numerals, the rail — is written straight to the DOM from one rAF-throttled
@@ -171,6 +201,7 @@ const StageList = () => (
  */
 const StageScroller = () => {
   const side = useMediaQuery(SIDE_QUERY);
+  const short = useMediaQuery(SHORT_QUERY);
   const trackRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLElement>(null);
   const edgeRef = useRef<HTMLSpanElement>(null);
@@ -254,7 +285,7 @@ const StageScroller = () => {
         put(photo, 'willChange', current || next ? 'transform' : 'auto');
       });
 
-      // The gold hairline that leads the wipe.
+      // The hairline that leads the wipe.
       put(edgeRef.current, 'opacity', incoming > 0 && incoming < 1 ? '1' : '0');
       put(edgeRef.current, 'transform', `translate3d(0, ${((1 - wipe) * 100).toFixed(2)}%, 0)`);
       // Reaches each tick as that stage takes over, and Smoke as the last one does.
@@ -313,7 +344,7 @@ const StageScroller = () => {
     <div
       ref={trackRef}
       data-journey-track=""
-      className="relative"
+      className="relative border-t"
       style={{ height: `${stages.length * VH_PER_STAGE * 100}vh` }}
     >
       <div className="h-screen-safe sticky top-0 w-full overflow-hidden bg-background">
@@ -367,20 +398,13 @@ const StageScroller = () => {
                   <div
                     className={cn(
                       'relative flex items-center overflow-hidden bg-background',
+                      // The hairline between the halves is the copy's, on its photograph side.
                       // pt clears the navbar; on a phone it clears the rail on the seam.
-                      side ? 'h-full w-1/2 pt-16 lg:pt-20' : 'h-[58%] w-full pt-12',
+                      side ? cn('h-full w-1/2 pt-16 lg:pt-20', isEven ? 'border-l' : 'border-r') : 'h-[58%] w-full pt-12',
                       phase !== 'in' && 'pointer-events-none'
                     )}
                   >
-                    {/* Colour on this span, outline on the next: cn() would merge the two away. */}
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'absolute -bottom-[0.1em]',
-                        NUMERAL_TYPE,
-                        !side || isEven ? 'right-[0.06em]' : 'left-[0.06em]'
-                      )}
-                    >
+                    <span aria-hidden="true" className={cn('absolute -bottom-[0.1em] right-[0.06em]', NUMERAL_TYPE)}>
                       <span
                         ref={(el) => {
                           numeralRefs.current[i] = el;
@@ -394,21 +418,15 @@ const StageScroller = () => {
                     <div
                       className={cn(
                         'relative w-full',
-                        side ? 'max-w-2xl px-6 md:px-10 lg:px-16 xl:px-20' : 'px-4 pb-4 sm:px-6',
-                        side && !isEven && 'ml-auto text-right'
+                        side ? 'max-w-2xl px-6 md:px-10 lg:px-14 xl:px-20' : 'px-4 pb-4 sm:px-6'
                       )}
                     >
                       <StageCopy
                         stage={stage}
                         index={i}
-                        alignEnd={side && !isEven}
                         phase={phase}
-                        compact={!side}
-                        labelClassName={
-                          side
-                            ? 'text-[length:clamp(2.25rem,6.4vw,6.5rem)]'
-                            : 'text-[length:clamp(3rem,15vw,4.25rem)]'
-                        }
+                        compact={!side || short}
+                        labelSize="display-lg"
                       />
                     </div>
                   </div>
@@ -420,7 +438,7 @@ const StageScroller = () => {
           <span
             ref={edgeRef}
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-20 border-t border-gold opacity-0"
+            className="pointer-events-none absolute inset-0 z-20 border-t border-foreground/60 opacity-0"
           />
         </div>
 
@@ -430,23 +448,27 @@ const StageScroller = () => {
           ref={railRef}
           aria-label="Journey stages"
           className={cn(
-            'absolute z-30 bg-background transition-opacity duration-700 ease-expo-out',
+            'absolute z-30 bg-background transition-opacity duration-700',
             side
-              ? // pb keeps Smoke clear of the floating enquiry button on a short window.
-                'inset-y-0 right-0 flex w-32 items-center border-l border-border pb-24 pt-16 lg:w-40 lg:pt-20'
-              : 'inset-x-0 top-[42%] h-12 px-4 sm:px-6',
+              ? // pb keeps Smoke clear of the floating enquiry button on a short window;
+                // pr keeps the links' focus ring inside the pinned frame.
+                'inset-y-0 right-0 flex w-32 items-center border-l pb-24 pr-2 pt-16 lg:w-40 lg:pt-20'
+              : 'inset-x-0 top-[42%] h-12 border-y px-4 sm:px-6',
             arrived ? 'opacity-100' : 'opacity-0'
           )}
         >
-          {/* Seven equal cells put a tick at 1/14, 3/14 … 13/14; the line runs first tick to last. */}
-          <div className={cn('relative', side ? 'ml-3 h-full max-h-[30rem] w-full lg:ml-5' : 'h-full w-full')}>
+          {/* Seven equal cells put a tick at 1/14, 3/14 … 13/14; the fill runs first tick to last. */}
+          <div className={cn('relative w-full', side ? 'h-full max-h-[30rem]' : 'h-full')}>
+            {/* No track of its own: the fill is drawn ON the hairline that rules the rail
+                off (its left border, or its top border on a phone). 1px of accent — the
+                one place this section spends it. */}
             <span
               aria-hidden="true"
-              className={cn('absolute bg-border', side ? 'inset-y-[7.143%] left-0 w-px' : 'inset-x-[7.143%] top-4 h-px')}
+              className={cn('absolute', side ? 'inset-y-[7.143%] -left-px w-px' : 'inset-x-[7.143%] -top-px h-px')}
             >
               <span
                 className={cn(
-                  'block h-full w-full bg-gold',
+                  'block h-full w-full bg-accent',
                   side
                     ? 'origin-top [transform:scaleY(var(--journey-progress,0))]'
                     : 'origin-left [transform:scaleX(var(--journey-progress,0))]'
@@ -454,44 +476,44 @@ const StageScroller = () => {
               />
             </span>
             <ol role="list" className={cn('flex h-full w-full', side && 'flex-col')}>
-            {stages.map(({ stage }, i) => {
-              const current = i === activeIndex;
-              return (
-                <li key={stage.slug} className="min-h-0 min-w-0 flex-1">
-                  <Link
-                    to={`/journey/${stage.slug}`}
-                    tabIndex={engaged ? undefined : -1}
-                    aria-current={current ? 'step' : undefined}
-                    className={cn(
-                      'group relative flex h-full w-full font-sans text-[9px] font-medium uppercase tracking-[0.14em] transition-colors duration-500 ease-quart-out hover:text-foreground lg:text-[10px] lg:tracking-[0.2em]',
-                      side ? 'items-center' : 'flex-col items-center',
-                      current ? 'text-foreground' : 'text-muted-foreground'
-                    )}
-                  >
-                    <span
-                      aria-hidden="true"
+              {stages.map(({ stage }, i) => {
+                const current = i === activeIndex;
+                return (
+                  <li key={stage.slug} className="min-h-0 min-w-0 flex-1">
+                    <Link
+                      to={`/journey/${stage.slug}`}
+                      tabIndex={engaged ? undefined : -1}
+                      aria-current={current ? 'step' : undefined}
                       className={cn(
-                        'shrink-0 transition-[transform,background-color] duration-700 ease-expo-out',
-                        side ? 'h-px w-3 origin-left lg:w-4' : 'mt-4 h-2.5 w-px origin-top',
-                        i <= activeIndex ? 'bg-gold' : 'bg-foreground/30',
-                        current ? 'scale-100' : side ? 'scale-x-[0.4]' : 'scale-y-[0.5]'
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        'whitespace-nowrap transition-[opacity,transform] duration-700 ease-expo-out',
-                        side ? 'pl-2 lg:pl-2.5' : 'mt-1.5',
-                        side && (current ? 'translate-x-0' : '-translate-x-1.5'),
-                        // On a phone only the current stage is named: seven labels do not fit a 360px line.
-                        !side && (current ? 'opacity-100' : 'opacity-0')
+                        'group relative flex h-full w-full font-mono text-[11px] font-medium uppercase tracking-[0.14em] transition-colors hover:text-foreground lg:tracking-[0.18em]',
+                        side ? 'items-center' : 'flex-col items-center',
+                        current ? 'text-foreground' : 'text-muted-foreground'
                       )}
                     >
-                      {stage.label}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'shrink-0 transition-[transform,background-color]',
+                          side ? 'h-px w-3 origin-left lg:w-5' : 'h-2.5 w-px origin-top',
+                          i <= activeIndex ? 'bg-accent' : 'bg-foreground/30',
+                          current ? 'scale-100' : side ? 'scale-x-50' : 'scale-y-50'
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          'whitespace-nowrap transition-[opacity,transform]',
+                          side ? 'pl-2 lg:pl-3' : 'mt-2',
+                          side && (current ? 'translate-x-0' : '-translate-x-1.5'),
+                          // On a phone only the current stage is named: seven labels do not fit a 360px line.
+                          !side && (current ? 'opacity-100' : 'opacity-0')
+                        )}
+                      >
+                        {stage.label}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         </nav>
@@ -505,33 +527,26 @@ const ProcessSection = () => {
 
   return (
     <section id="journey" aria-labelledby="journey-heading" className="relative bg-background">
-      <div className="mx-auto grid max-w-7xl gap-x-10 gap-y-10 px-4 pb-14 pt-24 sm:px-6 md:grid-cols-12 md:items-end md:pb-20 md:pt-36">
-        <div className="md:col-span-8">
-          <SplitReveal as="p" text={journeyIntro.eyebrow} className="eyebrow" />
+      <div className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 md:pt-32 lg:pt-36">
+        {/* Opens as every homepage section does: the drawn rule, one mono row, then the
+            headline left over the wide cell with its note and onward row over the narrow one. */}
+        <SectionHead number="04" label={journeyIntro.eyebrow} meta={`${STAGE_TOTAL} Stages`} />
+
+        <div className="mt-12 grid gap-y-10 pb-14 md:mt-16 md:pb-20 lg:mt-20 lg:grid-cols-12 lg:items-end">
           <SplitReveal
             as="h2"
             id="journey-heading"
             text={journeyIntro.heading}
             italicWords={['Journey']}
-            delay={0.1}
-            className="mt-4 text-[length:clamp(3.5rem,11vw,10rem)] font-normal leading-[0.9] tracking-[-0.035em] text-foreground md:mt-6"
+            className="display-lg text-foreground lg:col-span-7 lg:pr-8"
           />
-        </div>
-        <Reveal delay={0.3} className="md:col-span-4 md:pb-4">
-          <div className="rule" aria-hidden="true" />
-          <p className="mt-6 max-w-sm font-display text-xl leading-snug text-foreground/85 md:text-2xl">
-            {hero.subtitle}
-          </p>
-          <div className="mt-6">
-            <Link to="/journey" className={TEXT_LINK}>
+          <Reveal delay={0.15} className="lg:col-span-5 lg:pl-8">
+            <p className="display-xs max-w-[26ch] pb-8 text-foreground">{hero.subtitle}</p>
+            <RowLink to="/journey" meta={`(${STAGE_TOTAL})`} className="border-b">
               All stages
-              <ArrowRight
-                aria-hidden="true"
-                className="h-3.5 w-3.5 transition-transform duration-500 ease-expo-out group-hover:translate-x-1"
-              />
-            </Link>
-          </div>
-        </Reveal>
+            </RowLink>
+          </Reveal>
+        </div>
       </div>
 
       {plain ? <StageList /> : <StageScroller />}

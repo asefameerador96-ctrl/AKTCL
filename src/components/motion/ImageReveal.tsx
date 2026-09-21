@@ -63,6 +63,8 @@ const ImageReveal = ({ children, className, direction = 'up', delay = 0 }: Image
   return (
     <div
       ref={frameRef}
+      // verify-build looks for this mark: a frame captured hidden fails the build.
+      data-image-reveal=""
       className={cn('relative overflow-hidden', className)}
       style={still || shown ? undefined : { visibility: 'hidden' }}
     >

@@ -15,7 +15,7 @@ export interface SplitRevealProps {
   stagger?: number;
   /** 'view': the first time it scrolls into view. 'enter': page-load choreography. */
   trigger?: 'view' | 'enter';
-  /** Words set in Fraunces italic — typographic emphasis only, e.g. ['to']. */
+  /** Words set in the display italic — typographic emphasis only, e.g. ['to']. */
   italicWords?: string[];
   id?: string;
 }

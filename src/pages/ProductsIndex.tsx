@@ -2,42 +2,43 @@ import { Link } from 'react-router-dom';
 import PageLayout from '@/components/PageLayout';
 import PageHeader, {
   ArrowTravel,
-  DISPLAY_H2,
+  BODY,
   DrawnRule,
   GROUP_UNDERLINE,
-  LABEL,
   TEXT_LINK,
+  WRAP,
 } from '@/components/PageHeader';
 import ProductCard from '@/components/ProductCard';
 import FormatCard from '@/components/FormatCard';
 import Reveal from '@/components/Reveal';
-import Parallax from '@/components/motion/Parallax';
+import SectionMarker from '@/components/SectionMarker';
 import SplitReveal from '@/components/motion/SplitReveal';
 import { categories, productsIntro, type ProductCategory } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
-
-// Same gutters as the navbar and footer, so page content lines up with the chrome.
-const WRAP = 'mx-auto max-w-7xl px-4 sm:px-6';
+import { cn } from '@/lib/utils';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
 const enquiryHref = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
 /**
- * Leaf products have photography and their own pages, so they show as image cards.
- * The cigarette formats have one line of copy each and no pages, so they show as
- * format cards whose only onward route is an enquiry.
+ * Leaf products have photography and their own pages, so they are cells of the
+ * shared-border catalogue grid. The cigarette formats have one line of copy each and
+ * no pages, so they are directory rows whose one action is an enquiry.
  */
-const CategoryGrid = ({ category }: { category: ProductCategory }) => {
+const CategoryRange = ({ category }: { category: ProductCategory }) => {
   const base = `/products/${category.slug}`;
 
   if (category.slug === 'finished-cigarettes') {
     return (
-      <ul role="list" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+      // Each row draws its own top hairline; the list closes the last one.
+      <ul role="list" className="border-b border-border">
         {category.products.map((product, i) => (
-          <Reveal as="li" key={product.slug} delay={(i % 3) * 0.08} className="h-full">
+          <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
             <FormatCard
+              layout="row"
+              number={i + 1}
               name={product.name}
               short={product.short}
               rows={product.specs}
@@ -50,19 +51,21 @@ const CategoryGrid = ({ category }: { category: ProductCategory }) => {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
+    <ul role="list" className="hairline-grid grid grid-cols-2 lg:grid-cols-4">
       {category.products.map((product, i) => (
-        <ProductCard
-          key={product.slug}
-          to={product.hasDetailPage ? `${base}/${product.slug}` : undefined}
-          image={productImages[product.slug]?.[0] ?? categoryImages[category.slug]}
-          name={product.name}
-          short={product.short}
-          // The stagger restarts on every desktop row: a row is what comes into view.
-          index={i % 4}
-        />
+        <li key={product.slug} className="min-w-0">
+          <ProductCard
+            to={product.hasDetailPage ? `${base}/${product.slug}` : undefined}
+            image={productImages[product.slug]?.[0] ?? categoryImages[category.slug]}
+            name={product.name}
+            short={product.short}
+            // Only the column matters: the stagger restarts on every row of the grid.
+            index={i}
+            number={i + 1}
+          />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 };
 
@@ -78,54 +81,48 @@ const ProductsIndex = () => (
       lead={productsIntro.short}
     />
 
-    {/* The long introduction, set in two columns like a magazine's opening paragraph.
-        data-enter: it can share the first screen with the masthead (see index.css). */}
-    <div data-enter="" className={`${WRAP} pb-20 md:pb-28`}>
-      <Reveal className="grid gap-x-16 gap-y-6 lg:grid-cols-12">
-        <p className={`${LABEL} lg:col-span-3`}>Overview</p>
-        <p className="text-base/[1.75] text-muted-foreground md:text-[1.0625rem]/[1.75] lg:col-span-9 lg:columns-2 lg:gap-x-16">
-          {productsIntro.long}
-        </p>
+    {/* The long introduction hangs from the masthead's closing rule: a 5/7 split, the
+        label alone in the narrow cell. data-enter: it can share the first screen with
+        the masthead (see index.css). */}
+    <section aria-label="Overview" data-enter="" className={WRAP}>
+      <Reveal className="relative grid lg:grid-cols-12">
+        <span aria-hidden="true" className="absolute inset-y-0 left-[41.666667%] hidden w-px bg-border lg:block" />
+        <p className="eyebrow pt-6 lg:col-span-5 lg:pt-10">Overview</p>
+        <p className={cn(BODY, 'pt-5 lg:col-span-7 lg:pb-24 lg:pl-8 lg:pt-10')}>{productsIntro.long}</p>
       </Reveal>
-    </div>
+    </section>
 
     {categories.map((category, i) => (
       <section
         key={category.slug}
         aria-labelledby={`${category.slug}-heading`}
-        className="overflow-x-clip border-t border-border py-20 md:py-28"
+        className={cn(
+          WRAP,
+          // The first head closes the overview's split on a desktop, so no gap there.
+          i === 0 ? 'pt-20 lg:pt-0' : 'pt-24 md:pt-36',
+          i === categories.length - 1 && 'pb-24 md:pb-36'
+        )}
       >
-        <div className={WRAP}>
-          <div className="relative grid items-end gap-x-16 gap-y-8 lg:grid-cols-12">
-            {/* The category's number, outlined and adrift behind the header: decoration. */}
-            <div aria-hidden="true" className="pointer-events-none absolute -top-6 right-0 hidden md:block lg:-top-10">
-              <Parallax speed={0.06}>
-                <p className="font-display text-[length:clamp(8rem,17vw,15rem)] font-normal leading-[0.8] tracking-[-0.04em] text-outline text-accent opacity-40">
-                  {pad(i + 1)}
-                </p>
-              </Parallax>
-            </div>
+        {/* The category's head: a ruled 7/5 split — name over the wide cell, its line
+            and onward links over the narrow one. The range below closes it. */}
+        <DrawnRule />
+        <div className="relative grid lg:grid-cols-12">
+          <DrawnRule axis="y" delay={0.2} className="absolute inset-y-0 left-[58.333333%] hidden lg:block" />
 
-            <div className="relative lg:col-span-7">
-              <Reveal as="p" from="none" className="eyebrow">
-                {category.eyebrow}
-              </Reveal>
-              <SplitReveal
-                as="h2"
-                id={`${category.slug}-heading`}
-                text={category.title}
-                className={`mt-4 ${DISPLAY_H2}`}
-              />
-            </div>
+          <div className="pb-10 pt-4 md:pt-5 lg:col-span-7 lg:pb-20 lg:pr-8">
+            {/* The workbook's "Category 01", set as the site's section marker. */}
+            <SectionMarker number={pad(i + 1)}>Category</SectionMarker>
+            <SplitReveal
+              as="h2"
+              id={`${category.slug}-heading`}
+              text={category.title}
+              className="display-lg mt-12 max-w-[12ch] text-foreground md:mt-20"
+            />
           </div>
 
-          <DrawnRule className="mt-8 md:mt-12" delay={0.15} />
-
-          <Reveal delay={0.2} className="mt-6 grid gap-x-16 gap-y-4 md:mt-8 lg:grid-cols-12">
-            <p className="max-w-2xl text-base/relaxed text-muted-foreground md:text-lg/relaxed lg:col-span-6 lg:col-start-7">
-              {category.short}
-            </p>
-            <div className="flex flex-wrap gap-x-10 gap-y-1 lg:col-span-6 lg:col-start-7">
+          <Reveal delay={0.15} className="pb-12 lg:col-span-5 lg:self-end lg:pb-20 lg:pl-8">
+            <p className="lead">{category.short}</p>
+            <div className="mt-5 flex flex-wrap gap-x-10 gap-y-1">
               <Link to={`/products/${category.slug}`} data-cursor="open" className={TEXT_LINK}>
                 <span className={GROUP_UNDERLINE}>View {category.label}</span>
                 <ArrowTravel />
@@ -144,11 +141,9 @@ const ProductsIndex = () => (
               </Link>
             </div>
           </Reveal>
-
-          <div className="mt-12 md:mt-16">
-            <CategoryGrid category={category} />
-          </div>
         </div>
+
+        <CategoryRange category={category} />
       </section>
     ))}
   </PageLayout>

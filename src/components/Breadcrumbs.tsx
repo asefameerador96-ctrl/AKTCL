@@ -8,14 +8,16 @@ export interface BreadcrumbsProps {
   className?: string;
 }
 
-// Emphasis comes from opacity and weight, never a second colour, so a page can put
-// the trail on a dark band by passing one text colour in className. min-h keeps each
-// crumb a 44px target; the drawn underline sits on the word inside it, not on the box.
+// The trail is set in the site's mono label (.eyebrow: 11px, uppercase, wide, muted —
+// and the ink palette by itself inside bg-ink / on-ink). Links darken to the text
+// colour; nothing else moves. min-h keeps each crumb a 44px target; the drawn
+// underline sits on the word inside it, not on the box.
 const LINK =
-  'inline-flex min-h-11 items-center rounded-sm opacity-60 transition-opacity duration-300 ease-expo-out hover:opacity-100 focus-visible:opacity-100';
+  'inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-foreground focus-visible:text-foreground [.bg-ink_&]:hover:text-ink-foreground [.on-ink_&]:hover:text-ink-foreground';
+const CURRENT = 'inline-flex min-h-11 items-center text-foreground [.bg-ink_&]:text-ink-foreground [.on-ink_&]:text-ink-foreground';
 
 const Separator = ({ className }: { className?: string }) => (
-  <span aria-hidden="true" className={cn('text-gold', className)}>
+  <span aria-hidden="true" className={cn('opacity-50', className)}>
     /
   </span>
 );
@@ -23,19 +25,16 @@ const Separator = ({ className }: { className?: string }) => (
 /**
  * Visible trail only — the matching BreadcrumbList JSON-LD is emitted by RouteSeo.
  *
- * Deliberately small: it is a footnote to the masthead, not part of it. On a phone a
- * three-deep trail used to wrap onto a second 44px line, so there the current page —
- * which the <h1> directly below states anyway — is left to screen readers and the
- * visible trail ends at its parent.
+ * Deliberately small: it is the running head above the masthead's first rule, not
+ * part of the headline. On a phone a three-deep trail used to wrap onto a second 44px
+ * line, so there the current page — which the <h1> directly below states anyway — is
+ * left to screen readers and the visible trail ends at its parent.
  */
 const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
   const collapses = items.length > 1;
 
   return (
-    <nav
-      aria-label="Breadcrumb"
-      className={cn('font-sans text-[11px] font-medium uppercase tracking-[0.2em] text-foreground', className)}
-    >
+    <nav aria-label="Breadcrumb" className={cn('eyebrow', className)}>
       {/* The separator trails its item, so a wrapped line never opens with a stray "/". */}
       <ol className="flex flex-wrap items-center gap-x-2.5">
         <li className="flex items-center gap-x-2.5">
@@ -49,7 +48,7 @@ const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
           const beforeCurrent = index === items.length - 2;
           return isCurrent ? (
             <li key={item.path} className={cn(collapses && 'max-sm:sr-only')}>
-              <span aria-current="page" className="inline-flex min-h-11 items-center">
+              <span aria-current="page" className={CURRENT}>
                 {item.name}
               </span>
             </li>

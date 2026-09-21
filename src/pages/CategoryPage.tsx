@@ -1,23 +1,18 @@
 import { Fragment } from 'react';
 import { useParams } from 'react-router-dom';
 import PageLayout from '@/components/PageLayout';
-import PageHeader, { DISPLAY_H2, DrawnRule, LABEL } from '@/components/PageHeader';
+import PageHeader, { BODY, SectionHead, WRAP } from '@/components/PageHeader';
 import ProductCard from '@/components/ProductCard';
 import FormatCard from '@/components/FormatCard';
 import LazyImage from '@/components/LazyImage';
 import Reveal from '@/components/Reveal';
-import Parallax from '@/components/motion/Parallax';
-import SplitReveal from '@/components/motion/SplitReveal';
+import SectionMarker from '@/components/SectionMarker';
+import ImageReveal from '@/components/motion/ImageReveal';
 import NotFound from '@/pages/NotFound';
 import { categories, categoryBySlug } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
-
-// Same gutters as the navbar and footer, so page content lines up with the chrome.
-const WRAP = 'mx-auto max-w-7xl px-4 sm:px-6';
-
-const LONG_COPY = 'max-w-[64ch] text-lg/[1.7] md:text-xl/[1.65]';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -32,8 +27,10 @@ const CategoryPage = () => {
   const path = `/products/${category.slug}`;
   const cover = categoryImages[category.slug];
   // The cigarette formats have no pages or photography of their own: one shared pack
-  // shot opens the page and each format card leads straight to an enquiry.
+  // shot sits beside the overview and each format row leads straight to an enquiry.
+  // (The leaf cover is the first cell of the grid below, so it is not shown twice.)
   const isFormats = category.slug === 'finished-cigarettes';
+  const showCover = isFormats && Boolean(cover);
 
   return (
     <PageLayout enquiryProduct={category.label}>
@@ -52,86 +49,91 @@ const CategoryPage = () => {
           lead={category.short}
         />
 
-        {isFormats && cover ? (
-          // Full-bleed light panel: the tile is light in both themes, so its text takes
-          // the tile's own foreground, never the page's (which is ivory in dark mode).
-          <section
-            aria-label="Overview"
-            className="relative isolate overflow-hidden bg-tile text-tile-foreground"
-          >
-            <div className={`${WRAP} grid lg:grid-cols-12`}>
-              <div data-enter="" className="py-16 md:py-24 lg:col-span-5 lg:py-36">
-                <Reveal>
-                  <p className={cn(LABEL, 'text-tile-foreground/70')}>Overview</p>
-                  <p className={`mt-6 ${LONG_COPY} text-tile-foreground/85`}>{category.long}</p>
-                </Reveal>
-              </div>
-            </div>
-            {/* The pack shot: under the copy on a phone, the panel's whole right half
-                from lg. Its studio sweep is a shade off the tile, so the edge that meets
-                the panel is feathered out rather than left as a seam. */}
-            <div className="relative aspect-[4/3] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%)] sm:aspect-[16/9] lg:absolute lg:inset-y-0 lg:right-0 lg:aspect-auto lg:w-[52%] lg:[mask-image:linear-gradient(to_right,transparent,black_22%)]">
-              <Parallax speed={0.07} className="h-full w-full">
+        {/* The overview hangs from the masthead's closing rule: a ruled split with the
+            long copy in the wide cell. With a cover, the pack shot fills the narrow
+            cell flush to the rules, on the tile (light in both themes). */}
+        <section aria-label="Overview" data-enter="" className={WRAP}>
+          <div className="relative grid border-b border-border lg:grid-cols-12">
+            <span
+              aria-hidden="true"
+              className={cn(
+                'absolute inset-y-0 hidden w-px bg-border lg:block',
+                showCover ? 'left-[58.333333%]' : 'left-[41.666667%]'
+              )}
+            />
+
+            <Reveal
+              className={cn(
+                'grid gap-y-5 pb-12 pt-6 lg:pt-10',
+                // Beside the tall pack shot the marker holds the head of the cell and
+                // the copy its foot.
+                showCover ? 'content-between lg:col-span-7 lg:pb-10 lg:pr-8' : 'content-start lg:col-span-12 lg:grid-cols-12 lg:pb-24'
+              )}
+            >
+              <SectionMarker number="01" className={cn(!showCover && 'lg:col-span-5')}>
+                Overview
+              </SectionMarker>
+              <p className={cn(BODY, !showCover && 'lg:col-span-7 lg:pl-8')}>{category.long}</p>
+            </Reveal>
+
+            {showCover && cover && (
+              // The pack shot is a portrait: the frame keeps enough of its height that
+              // neither the open pack nor the packs' feet are cropped.
+              <ImageReveal direction="left" className="aspect-square bg-tile sm:aspect-[4/3] lg:col-span-5 lg:aspect-[4/5]">
                 <LazyImage
                   image={cover.image}
                   alt={cover.alt}
-                  sizes="(min-width: 1024px) 58vw, 110vw"
+                  sizes="(min-width: 1280px) 514px, (min-width: 1024px) 42vw, calc(100vw - 32px)"
                   priority
-                  // scale: the bleed that covers the parallax travel.
-                  className="product-shot h-full w-full scale-110 object-cover object-[50%_82%]"
+                  className="product-shot absolute inset-0 h-full w-full object-cover"
                 />
-              </Parallax>
-            </div>
-          </section>
-        ) : (
-          <div data-enter="" className={`${WRAP} pb-20 md:pb-28`}>
-            <Reveal className="grid gap-x-16 gap-y-6 lg:grid-cols-12">
-              <p className={`${LABEL} lg:col-span-3`}>Overview</p>
-              <p className={`${LONG_COPY} text-foreground/85 lg:col-span-8 lg:col-start-5`}>{category.long}</p>
-            </Reveal>
+              </ImageReveal>
+            )}
           </div>
-        )}
+        </section>
 
-        <section
-          aria-labelledby="range-heading"
-          className={isFormats ? 'py-20 md:py-28' : 'border-t border-border py-20 md:py-28'}
-        >
-          <div className={WRAP}>
-            <Reveal as="p" from="none" className="eyebrow">
-              {category.label}
-            </Reveal>
-            <SplitReveal as="h2" id="range-heading" text="Product Range" className={`mt-4 ${DISPLAY_H2}`} />
-            <DrawnRule className="mt-8 md:mt-12" delay={0.15} />
+        <section aria-labelledby="range-heading" className={cn(WRAP, 'pb-24 pt-24 md:pb-36 md:pt-36')}>
+          <SectionHead
+            number="02"
+            label={category.label}
+            meta={`${pad(category.products.length)} ${isFormats ? 'Formats' : 'Products'}`}
+            title="Product Range"
+            id="range-heading"
+          />
 
-            {isFormats ? (
-              <ul role="list" className="mt-10 grid gap-5 sm:grid-cols-2 md:mt-14 lg:grid-cols-3 lg:gap-6">
-                {category.products.map((product, i) => (
-                  <Reveal as="li" key={product.slug} delay={(i % 3) * 0.08} className="h-full">
-                    <FormatCard
-                      name={product.name}
-                      short={product.short}
-                      rows={product.specs}
-                      to={enquiryHref(product.name)}
-                    />
-                  </Reveal>
-                ))}
-              </ul>
-            ) : (
-              <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:mt-14 lg:grid-cols-4">
-                {category.products.map((product, i) => (
+          {isFormats ? (
+            // Each row draws its own top hairline; the list closes the last one.
+            <ul role="list" className="mt-14 border-b border-border md:mt-20">
+              {category.products.map((product, i) => (
+                <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
+                  <FormatCard
+                    layout="row"
+                    number={i + 1}
+                    name={product.name}
+                    short={product.short}
+                    rows={product.specs}
+                    to={enquiryHref(product.name)}
+                  />
+                </Reveal>
+              ))}
+            </ul>
+          ) : (
+            <ul role="list" className="hairline-grid mt-14 grid grid-cols-2 md:mt-20 lg:grid-cols-4">
+              {category.products.map((product, i) => (
+                <li key={product.slug} className="min-w-0">
                   <ProductCard
-                    key={product.slug}
                     to={product.hasDetailPage ? `${path}/${product.slug}` : undefined}
                     image={productImages[product.slug]?.[0] ?? cover}
                     name={product.name}
                     short={product.short}
-                    // The stagger restarts on every desktop row: a row is what comes into view.
-                    index={i % 4}
+                    // Only the column matters: the stagger restarts on every row of the grid.
+                    index={i}
+                    number={i + 1}
                   />
-                ))}
-              </div>
-            )}
-          </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </Fragment>
     </PageLayout>

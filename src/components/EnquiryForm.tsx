@@ -3,10 +3,10 @@ import type { ComponentProps, ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, ChevronDown } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import Magnetic from '@/components/motion/Magnetic';
 import SplitReveal from '@/components/motion/SplitReveal';
-import { CtaPill } from '@/components/ui/button';
+import { CtaButton } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
@@ -40,12 +40,27 @@ export interface EnquiryFormProps {
   className?: string;
 }
 
-// Label, field, then help and error text; `group` lets the label warm while its field has focus.
-const ITEM = 'group space-y-1.5';
-const HELP = 'pt-1.5 text-[13px] leading-relaxed';
+/*
+ * The form is a ruled sheet, not a stack of boxes. Every field is one CELL of a
+ * two-column grid: a hairline above it, the mono label, the rule to write on
+ * (ui/input), then help and error text. The cells share their lines — the right-hand
+ * column draws the one vertical divider, the grid itself the closing rule — and the
+ * left column keeps the page's own left edge, so labels line up with the headline.
+ * `group` lets the label turn to the accent while its field has focus.
+ */
+const CELL = 'group min-w-0 space-y-2 border-t border-border pb-7 pt-5';
+const CELL_LEFT = `${CELL} sm:pr-8`;
+const CELL_RIGHT = `${CELL} sm:border-l sm:pl-8`;
+const CELL_WIDE = `${CELL} sm:col-span-2`;
+const HELP = 'pt-1';
 // Validation text is mounted only when there is something to say, so it can arrive.
-const MESSAGE = 'pt-1 text-[13px] animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out';
-const TEXT_LINK = 'link-underline inline-block bg-origin-content py-3 text-[13px] font-semibold uppercase tracking-[0.18em]';
+const MESSAGE = 'pt-1 animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out';
+const MONO = 'font-mono text-[12px] font-medium uppercase tracking-[0.18em]';
+// A directory row that is a link: the label shifts 8px and the arrow darkens, nothing more.
+const ROW_LINK = `group/row flex min-h-14 w-full items-center justify-between gap-6 text-left text-foreground ${MONO}`;
+const ROW_LABEL = 'transition-transform group-hover/row:translate-x-2 group-focus-visible/row:translate-x-2';
+const ROW_ARROW =
+  'h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover/row:text-accent group-focus-visible/row:text-accent';
 
 const Required = () => (
   <span aria-hidden="true" className="text-accent">
@@ -58,15 +73,15 @@ const Required = () => (
 const FieldGroup = ({ index, title, children }: { index: string; title: string; children: ReactNode }) => (
   // min-w-0: a fieldset is otherwise as wide as its longest <option>, which overflows a phone.
   <fieldset className="min-w-0">
-    <legend className="w-full border-b border-border pb-4">
-      <span className="flex items-baseline gap-4">
-        <span aria-hidden="true" className="font-display text-base italic text-accent">
+    <legend className="w-full pb-6">
+      <span className="flex items-baseline gap-5">
+        <span aria-hidden="true" className="index-num">
           {index}
         </span>
-        <span className="font-sans text-xs font-semibold uppercase tracking-[0.24em] text-foreground">{title}</span>
+        <span className="display-xs text-foreground">{title}</span>
       </span>
     </legend>
-    <div className="grid gap-x-10 gap-y-9 pt-9 sm:grid-cols-2">{children}</div>
+    <div className="grid border-b border-border sm:grid-cols-2">{children}</div>
   </fieldset>
 );
 
@@ -93,10 +108,11 @@ const NativeSelect = forwardRef<HTMLSelectElement, ComponentProps<'select'>>(
       >
         {children}
       </select>
+      {/* The site's own chevron in place of the platform's: it dips 2px, it does not bounce. */}
       <ChevronDown
         aria-hidden="true"
         strokeWidth={1.5}
-        className="pointer-events-none absolute right-0 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-[transform,color] duration-500 ease-expo-out peer-hover:translate-y-[calc(-50%+3px)] peer-focus-visible:translate-y-[calc(-50%+3px)] peer-focus-visible:text-accent"
+        className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-[transform,color] peer-hover:translate-y-[calc(-50%+2px)] peer-hover:text-foreground peer-focus-visible:translate-y-[calc(-50%+2px)] peer-focus-visible:text-accent"
       />
       <FieldRule />
     </div>
@@ -104,23 +120,26 @@ const NativeSelect = forwardRef<HTMLSelectElement, ComponentProps<'select'>>(
 );
 NativeSelect.displayName = 'NativeSelect';
 
+/** A ruled note, not a tinted box: one destructive rule down its side and a mono label. */
 const FormAlert = ({ children }: { children: ReactNode }) => (
   <div
     role="alert"
-    className="flex items-start gap-4 border-l-2 border-destructive bg-destructive/5 py-4 pl-5 pr-4 text-sm leading-relaxed text-foreground animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out"
+    className="border-l-2 border-destructive py-1 pl-5 animate-in fade-in slide-in-from-top-1 duration-500 ease-expo-out"
   >
-    <AlertCircle aria-hidden="true" strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-    <div>{children}</div>
+    <p className="font-mono text-[11px] font-medium uppercase leading-normal tracking-[0.22em] text-destructive">
+      Not sent
+    </p>
+    <div className="mt-2 max-w-prose text-sm leading-relaxed text-foreground">{children}</div>
   </div>
 );
 
-/** The confirmation mark: the ring settles, then the tick is wiped in the way a pen makes it. */
+/** The confirmation mark: a square hairline frame settles, then the tick is wiped in the way a pen makes it. */
 const DrawnCheck = () => {
   const shown = useReveal(true);
   return (
     <span aria-hidden="true" className="relative flex h-16 w-16 items-center justify-center text-accent">
       <span
-        className="absolute inset-0 rounded-full border border-current"
+        className="absolute inset-0 border border-current"
         style={{
           opacity: shown ? 1 : 0,
           transform: shown ? 'none' : 'scale(0.6)',
@@ -136,7 +155,7 @@ const DrawnCheck = () => {
           transition: `clip-path 0.8s ${EASE.expoOut} 0.3s`,
         }}
       >
-        <path d="M6 16.8l6.6 6.4L26 9.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M6 16.8l6.6 6.4L26 9.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" />
       </svg>
     </span>
   );
@@ -229,35 +248,39 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
         ref={successRef}
         role="status"
         tabIndex={-1}
-        className={cn('scroll-mt-32 border-t border-foreground pt-10 outline-none md:pt-14', className)}
+        className={cn('scroll-mt-32 outline-none', className)}
       >
-        <DrawnCheck />
-        <SplitReveal
-          as="h3"
-          by="line"
-          delay={0.25}
-          text="Thank you. Your enquiry has been sent."
-          className="mt-8 max-w-[14ch] text-4xl font-medium leading-[1.05] tracking-[-0.025em] text-foreground md:text-5xl"
-        />
-        <div className="rule mt-8" aria-hidden="true" />
-        <p className="mt-8 max-w-prose leading-relaxed text-muted-foreground">
-          We have received your details and will reply to the email address you provided.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center gap-x-10 gap-y-1">
-          <Link to="/products" className={cn(TEXT_LINK, 'rounded-sm text-accent')}>
-            View our products
-          </Link>
-          <button
-            type="button"
-            onClick={sendAnother}
-            className={cn(
-              TEXT_LINK,
-              'rounded-sm text-muted-foreground transition-colors duration-300 ease-quart-out hover:text-foreground'
-            )}
-          >
-            Send another enquiry
-          </button>
+        {/* Ruled like the form it replaces: a mono header row, the statement, then row links. */}
+        <p className="eyebrow-signal border-y border-border py-4">Enquiry received</p>
+        <div className="grid gap-x-10 gap-y-8 py-12 sm:grid-cols-[4rem_1fr] md:py-16">
+          <DrawnCheck />
+          <div>
+            <SplitReveal
+              as="h3"
+              by="line"
+              delay={0.25}
+              text="Thank you. Your enquiry has been sent."
+              className="display-md max-w-[14ch] text-foreground"
+            />
+            <p className="mt-8 max-w-[52ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+              We have received your details and will reply to the email address you provided.
+            </p>
+          </div>
         </div>
+        <ul className="hairline-rows">
+          <li>
+            <Link to="/products" className={ROW_LINK}>
+              <span className={ROW_LABEL}>View our products</span>
+              <ArrowRight aria-hidden="true" className={ROW_ARROW} />
+            </Link>
+          </li>
+          <li>
+            <button type="button" onClick={sendAnother} className={ROW_LINK}>
+              <span className={ROW_LABEL}>Send another enquiry</span>
+              <ArrowRight aria-hidden="true" className={ROW_ARROW} />
+            </button>
+          </li>
+        </ul>
       </div>
     );
   }
@@ -276,14 +299,14 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
         name="enquiry-form"
         noValidate
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn('space-y-14', className)}
+        className={cn('space-y-16 md:space-y-20', className)}
       >
         <FieldGroup index="01" title="Your details">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem className={ITEM}>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>
                   Full name
                   <Required />
@@ -300,7 +323,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="company"
             render={({ field }) => (
-              <FormItem className={ITEM}>
+              <FormItem className={CELL_RIGHT}>
                 <FormLabel>
                   Company
                   <Required />
@@ -322,7 +345,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="country"
             render={({ field }) => (
-              <FormItem className={ITEM}>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>
                   Country
                   <Required />
@@ -348,7 +371,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem className={ITEM}>
+              <FormItem className={CELL_RIGHT}>
                 <FormLabel>
                   Business email
                   <Required />
@@ -372,7 +395,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="phone"
             render={({ field }) => (
-              <FormItem className={ITEM}>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>Phone / WhatsApp</FormLabel>
                 <FormControl>
                   <Input
@@ -388,6 +411,14 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
               </FormItem>
             )}
           />
+
+          {/* Five fields leave a sixth cell: it carries the sheet's one footnote, so the
+              divider runs the full height and nothing is left looking unfinished. */}
+          <p className={`${CELL_RIGHT} flex items-end`}>
+            <span className="eyebrow">
+              Fields marked <span className="text-accent">*</span> are required
+            </span>
+          </p>
         </FieldGroup>
 
         <FieldGroup index="02" title="Your requirement">
@@ -395,7 +426,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="product"
             render={({ field }) => (
-              <FormItem className={ITEM}>
+              <FormItem className={CELL_LEFT}>
                 <FormLabel>
                   Product of interest
                   <Required />
@@ -426,7 +457,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="volume"
             render={({ field }) => (
-              <FormItem className={ITEM}>
+              <FormItem className={CELL_RIGHT}>
                 <FormLabel>Estimated volume</FormLabel>
                 <FormControl>
                   <Input {...field} autoComplete="off" maxLength={ENQUIRY_LIMITS.volume} />
@@ -441,7 +472,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             control={form.control}
             name="message"
             render={({ field }) => (
-              <FormItem className={cn(ITEM, 'sm:col-span-2')}>
+              <FormItem className={CELL_WIDE}>
                 <FormLabel>
                   Message
                   <Required />
@@ -470,7 +501,8 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
           <input ref={honeypotRef} id={honeypotId} type="text" name="website" tabIndex={-1} autoComplete="off" />
         </div>
 
-        <div className="space-y-8 border-t border-border pt-9">
+        {/* The sheet above closes with its own rule, so this block needs no line of its own. */}
+        <div className="space-y-8">
           <FormField
             control={form.control}
             name="consent"
@@ -488,21 +520,22 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                     className="relative mt-0.5 before:absolute before:-inset-3 before:content-[''] aria-[invalid=true]:border-destructive"
                   />
                 </FormControl>
-                <div className="space-y-1.5">
-                  {/* A sentence, not a field name: the label's small caps are set aside here. */}
-                  <FormLabel className="cursor-pointer text-sm font-normal normal-case leading-relaxed tracking-normal text-foreground">
+                <div className="max-w-[60ch] space-y-1.5">
+                  {/* A sentence, not a field name: the label's mono caps are set aside here. */}
+                  <FormLabel className="cursor-pointer font-sans text-sm font-normal normal-case leading-relaxed tracking-normal text-foreground">
                     I confirm I am a tobacco trade professional of legal age and I agree to {site.shortName}{' '}
                     contacting me about this enquiry.
                     <Required />
                   </FormLabel>
-                  <FormDescription className="text-[13px] leading-relaxed">
+                  <FormDescription>
                     See the{' '}
                     {/* New tab, so reading the notice does not discard a half-written enquiry. */}
                     <Link
                       to="/privacy"
                       target="_blank"
                       rel="noopener"
-                      className="link-underline rounded-sm font-medium text-accent"
+                      // Underlined at rest: inside a sentence, colour alone must not carry the link.
+                      className="rounded-sm font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent"
                     >
                       Privacy Notice
                       <span className="sr-only"> (opens in a new tab)</span>
@@ -529,7 +562,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
                   <a
                     href={`mailto:${site.contact.email}`}
                     data-lead="enquiry-error-email"
-                    className="font-medium text-accent underline underline-offset-4"
+                    className="rounded-sm font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent"
                   >
                     {site.contact.email}
                   </a>
@@ -539,22 +572,18 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             </FormAlert>
           )}
 
-          <div className="flex flex-col gap-x-8 gap-y-4 sm:flex-row sm:items-center">
-            <Magnetic>
-              {/* min-w: "Send enquiry" and "Sending…" take the same room, so nothing jumps. */}
-              <CtaPill
-                type="submit"
-                busy={isSubmitting}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto sm:min-w-[16rem]"
-              >
-                {isSubmitting ? 'Sending…' : 'Send enquiry'}
-              </CtaPill>
-            </Magnetic>
-            <p className="text-[13px] text-muted-foreground">
-              Fields marked <span className="text-accent">*</span> are required.
-            </p>
-          </div>
+          {/* Solid espresso (chalk in the dark theme), the full width of a phone. */}
+          <Magnetic>
+            {/* min-w: "Send enquiry" and "Sending…" take the same room, so nothing jumps. */}
+            <CtaButton
+              type="submit"
+              busy={isSubmitting}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto sm:min-w-[18rem]"
+            >
+              {isSubmitting ? 'Sending…' : 'Send enquiry'}
+            </CtaButton>
+          </Magnetic>
         </div>
       </form>
     </Form>

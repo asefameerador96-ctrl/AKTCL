@@ -3,14 +3,15 @@ import { Link } from 'react-router-dom';
 import Reveal from '@/components/Reveal';
 import {
   ArrowTravel,
-  DISPLAY_H2,
-  DrawnRule,
   GROUP_UNDERLINE,
-  LABEL,
+  ROW_LINE,
+  ROW_SHIFT,
+  SectionHead,
   TEXT_LINK,
+  WRAP,
 } from '@/components/PageHeader';
-import SplitReveal from '@/components/motion/SplitReveal';
 import {
+  allProducts,
   categories,
   productsIntro,
   type Product,
@@ -20,6 +21,8 @@ import { EASE, isStill, useInView, useReveal } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 interface ExportRangeProps {
+  /** The section's place on the page, as printed in its marker. */
+  number?: string;
   className?: string;
 }
 
@@ -37,31 +40,19 @@ const pad = (n: number) => String(n).padStart(2, '0');
 /** Seconds between one row's hairline starting to draw and the next. */
 const LINE_STAGGER = 0.06;
 
+const ARROW = 'self-center text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent';
+
 /**
- * One category as an oversized ruled list: a number, the product's name in the
- * display serif, an arrow that arrives on hover. The row IS the link and carries
- * .link-underline itself, so on hover or focus its resting hairline is inked over,
- * left to right, in the text colour. Hairlines draw in once, when the list is seen.
+ * One category as a ruled directory: mono index, the product's name in the display
+ * serif, a travelling arrow. The row IS the link; on hover or focus the rule above it
+ * is redrawn in the accent and the name steps 8px along. Each row carries the
+ * hairline under it (the category's own rule is the first row's top), and they draw
+ * in one after another the first time the list is seen.
  */
 const RangeList = ({ category }: { category: ProductCategory }) => {
   const [still] = useState(isStill);
   const listRef = useRef<HTMLUListElement>(null);
   const shown = useReveal(useInView(listRef, { skip: still }));
-
-  const hairline = (i: number, edge: 'top' | 'bottom' = 'top') => (
-    <span
-      aria-hidden="true"
-      className={cn('absolute inset-x-0 h-px origin-left bg-border', edge === 'top' ? 'top-0' : 'bottom-0')}
-      style={
-        still
-          ? undefined
-          : {
-              transform: shown ? 'none' : 'scaleX(0)',
-              transition: `transform 1.1s ${EASE.expoOut} ${(i * LINE_STAGGER).toFixed(2)}s`,
-            }
-      }
-    />
-  );
 
   return (
     <ul
@@ -71,21 +62,30 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
       aria-label={`${category.label} range`}
     >
       {category.products.map((product, i) => (
-        <li key={product.slug} className="relative">
-          {hairline(i)}
-          {i === category.products.length - 1 && hairline(i + 1, 'bottom')}
+        <li key={product.slug}>
           <Link
             to={productHref(category, product)}
             data-cursor="open"
-            className="link-underline group relative flex min-h-11 items-baseline gap-5 py-4 text-foreground transition-colors duration-500 ease-expo-out hover:text-accent focus-visible:text-accent md:gap-8 md:py-5"
+            className="group relative flex min-h-11 items-baseline gap-5 py-5 text-foreground md:gap-8 md:py-6 lg:pl-8"
           >
-            <span aria-hidden="true" className={cn(LABEL, 'w-6 shrink-0 tabular-nums text-inherit opacity-60')}>
+            <span aria-hidden="true" className={ROW_LINE} />
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 bottom-0 h-px origin-left bg-border"
+              style={
+                still
+                  ? undefined
+                  : {
+                      transform: shown ? 'none' : 'scaleX(0)',
+                      transition: `transform 1.1s ${EASE.expoOut} ${(i * LINE_STAGGER).toFixed(2)}s`,
+                    }
+              }
+            />
+            <span aria-hidden="true" className="index-num w-6 shrink-0">
               {pad(i + 1)}
             </span>
-            <span className="min-w-0 flex-1 font-display text-[length:clamp(1.625rem,3.4vw,3rem)] font-normal leading-[1.08] tracking-[-0.025em] transition-transform duration-700 ease-expo-out group-hover:translate-x-2 group-focus-visible:translate-x-2">
-              {product.name}
-            </span>
-            <ArrowTravel className="h-5 w-5 self-center opacity-0 transition-opacity duration-500 ease-expo-out group-hover:opacity-100 group-focus-visible:opacity-100 md:h-6 md:w-6" />
+            <span className={cn('display-sm min-w-0 flex-1', ROW_SHIFT)}>{product.name}</span>
+            <ArrowTravel className={ARROW} />
           </Link>
         </li>
       ))}
@@ -96,50 +96,37 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
 /**
  * "What We Export" — the About copy names the export range in a sentence; this
  * turns the same list into crawlable links, straight from src/content/products.ts.
+ * Each category is a ruled 4/8 split: its name, line and onward links hold in the
+ * narrow cell while the directory scrolls past in the wide one.
  */
-const ExportRange = ({ className }: ExportRangeProps) => (
-  <section
-    aria-labelledby="export-range-heading"
-    className={cn('border-t border-border bg-secondary/40 py-24 md:py-36', className)}
-  >
-    <div className="mx-auto max-w-7xl px-4 sm:px-6">
-      <div className="grid items-end gap-x-16 gap-y-8 lg:grid-cols-12">
-        <div className="lg:col-span-6">
-          <Reveal as="p" from="none" className="eyebrow">
-            {productsIntro.eyebrow}
-          </Reveal>
-          <SplitReveal
-            as="h2"
-            id="export-range-heading"
-            text={productsIntro.heading}
-            italicWords={['Our']}
-            className={cn('mt-4', DISPLAY_H2)}
-          />
-        </div>
-        <Reveal
-          as="p"
-          delay={0.15}
-          className="max-w-2xl text-base/relaxed text-muted-foreground md:text-lg/relaxed lg:col-span-6"
-        >
-          {productsIntro.short}
-        </Reveal>
-      </div>
-      <DrawnRule className="mt-10 md:mt-14" delay={0.15} />
+const ExportRange = ({ number = '01', className }: ExportRangeProps) => (
+  <section aria-labelledby="export-range-heading" className={cn('bg-secondary/40', className)}>
+    <div className={cn(WRAP, 'py-24 md:py-36')}>
+      <SectionHead
+        number={number}
+        label={productsIntro.eyebrow}
+        meta={`${pad(categories.length)} Categories · ${pad(allProducts.length)} Products`}
+        title={productsIntro.heading}
+        italicWords={['Our']}
+        id="export-range-heading"
+      >
+        <p className="lead">{productsIntro.short}</p>
+      </SectionHead>
 
       {categories.map((category) => (
-        <article
-          key={category.slug}
-          className="mt-16 grid gap-x-16 gap-y-10 md:mt-24 lg:grid-cols-12"
-        >
-          {/* Holds beside its list while the rows scroll past. */}
-          <Reveal className="lg:sticky lg:top-28 lg:col-span-4 lg:self-start">
+        <article key={category.slug} className="relative mt-16 grid border-t border-border md:mt-24 lg:grid-cols-12">
+          <span aria-hidden="true" className="absolute inset-y-0 left-[33.333333%] hidden w-px bg-border lg:block" />
+
+          {/* Holds beside its list while the rows scroll past. Below lg its bottom
+              rule is the first row's top. */}
+          <Reveal className="border-b border-border pb-8 pt-6 lg:sticky lg:top-24 lg:col-span-4 lg:self-start lg:border-b-0 lg:pb-12 lg:pr-8 lg:pt-8">
             <p className="eyebrow">{category.eyebrow}</p>
             {/* Not a link: "View …" below goes to the same page with a full-size target. */}
-            <h3 className="mt-3 font-display text-3xl/[1.08] font-normal tracking-[-0.02em] text-foreground md:text-4xl/[1.08]">
-              {category.title}
-            </h3>
-            <p className="mt-4 max-w-[44ch] leading-relaxed text-muted-foreground">{category.short}</p>
-            <div className="mt-5 flex flex-col items-start">
+            <h3 className="display-sm mt-5 text-foreground">{category.title}</h3>
+            <p className="mt-4 max-w-[44ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+              {category.short}
+            </p>
+            <div className="mt-4 flex flex-col items-start">
               <Link to={`/products/${category.slug}`} data-cursor="open" className={TEXT_LINK}>
                 <span className={GROUP_UNDERLINE}>View {category.label}</span>
                 <ArrowTravel />
@@ -162,10 +149,21 @@ const ExportRange = ({ className }: ExportRangeProps) => (
         </article>
       ))}
 
-      <Reveal className="mt-14 md:mt-20">
-        <Link to="/products" data-cursor="open" className={TEXT_LINK}>
-          <span className={GROUP_UNDERLINE}>View the full product line</span>
-          <ArrowTravel />
+      {/* The directory's closing row, not a boxed button. */}
+      <Reveal className="mt-16 md:mt-24">
+        <Link
+          to="/products"
+          data-cursor="open"
+          className="group relative flex min-h-20 items-center justify-between gap-6 border-y border-border py-5 text-foreground md:min-h-24"
+        >
+          <span aria-hidden="true" className={ROW_LINE} />
+          <span className={cn('display-sm', ROW_SHIFT)}>View the full product line</span>
+          <span className="flex shrink-0 items-center gap-5 md:gap-8">
+            <span aria-hidden="true" className="index-num">
+              ({pad(allProducts.length)})
+            </span>
+            <ArrowTravel className={ARROW} />
+          </span>
         </Link>
       </Reveal>
     </div>
