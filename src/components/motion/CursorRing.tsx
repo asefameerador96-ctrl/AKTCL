@@ -23,9 +23,9 @@ const layer = (active: boolean, restScale: number) => ({
  * an accent, not a replacement: the native cursor stays, nothing here takes pointer
  * events, and it is aria-hidden. One pixel of line, no fill, no glow.
  *
- * The ring and the dot are chalk blended with `difference`, so they read espresso on
- * paper, chalk on ink and hold against any photograph without knowing which they are
- * over. The tag carries a word, so it is solid ink with a chalk hairline instead (a
+ * The ring and the dot are white blended with `difference`, so they read black on
+ * paper, white on ink and hold against any photograph without knowing which they are
+ * over. The tag carries a word, so it is solid ink with a white hairline instead (a
  * blended label would lose its contrast over mid-tone photography) — hence two movers:
  * a blend only reaches the page from an element that is not inside another fixed layer.
  * It is a square-cornered caption hung below and to the right of the pointer, like a

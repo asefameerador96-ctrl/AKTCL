@@ -50,7 +50,7 @@ const FloatingEnquire = () => {
   const { whatsapp } = site.contact;
 
   const className = cn(
-    // The solid button (.btn-solid: espresso on paper, chalk in the dark theme, racing
+    // The solid button (.btn-solid: black on paper, white in the dark theme, racing
     // green on hover). It floats over paper, ink and photography alike, so its hairline
     // is a tint of its own label colour — that keeps an edge on the dark bands where a
     // border in the fill colour would vanish. The transition list is restated because

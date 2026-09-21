@@ -25,7 +25,7 @@ const BigBrandFooter = () => {
     <div
       ref={ref}
       aria-hidden="true"
-      // Back on paper after the ink footer, in the espresso of the text (chalk in the
+      // Back on paper after the ink footer, in the black of the text (white in the
       // dark theme) — never the accent. The hairline marks the step where the dark
       // theme's page and the ink band are nearly one tone. Last thing on the page, so
       // it is what has to clear the phone's home indicator. Its padding was halved with

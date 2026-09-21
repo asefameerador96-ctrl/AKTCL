@@ -562,7 +562,7 @@ const EnquiryFormFields = ({ requested, className }: { requested: string; classN
             </FormAlert>
           )}
 
-          {/* Solid espresso (chalk in the dark theme), the full width of a phone. */}
+          {/* Solid black (white in the dark theme), the full width of a phone. */}
           <Magnetic>
             {/* min-w: "Send enquiry" and "Sending…" take the same room, so nothing jumps. */}
             <CtaButton

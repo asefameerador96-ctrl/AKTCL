@@ -17,7 +17,7 @@ interface HeroStatsProps {
 const COLUMN_LEAD_S = 0.15;
 const COLUMN_STAGGER_S = 0.08;
 
-/** Over photography the hairlines are a chalk tint: the ink hairline would vanish into the scrim. */
+/** Over photography the hairlines are a white tint: the ink hairline would vanish into the scrim. */
 const LINE = 'border-ink-foreground/25';
 
 /**

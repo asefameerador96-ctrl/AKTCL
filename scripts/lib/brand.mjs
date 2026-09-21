@@ -25,11 +25,11 @@ export const MARK_PATHS = [
 /** The grey the artwork was supplied in. */
 export const MARK_SUPPLIED_COLOUR = "#727171";
 
-// The always-dark palette of src/index.css: --ink, --ink-foreground (chalk) and --sage,
-// the light tint of the racing-green accent that carries small signals on ink.
-export const INK = "#10100e";
-export const IVORY = "#edece8";
-export const SAGE = "#a8c7b6";
+// The always-dark band of src/index.css (light theme): --ink Slate, --ink-foreground
+// Whitish and --ink-muted Light grey — the owner's neutral palette.
+export const INK = "#262626"; // Slate
+export const IVORY = "#f5f5f5"; // Whitish
+export const SAGE = "#dcdcdc"; // Light grey
 
 /**
  * The mark as an SVG <g>, scaled to `width` and placed with its top-left at (x, y).

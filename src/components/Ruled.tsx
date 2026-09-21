@@ -45,7 +45,7 @@ export const TravelArrow = ({ mode = 'through', className }: TravelArrowProps) =
 
 /**
  * The accent rule a row draws over its own top hairline on hover or focus: 1px of
- * racing green, left to right. The parent is `group relative` with a 1px top border.
+ * black, left to right. The parent is `group relative` with a 1px top border.
  * Paper only — on ink the accent does not read.
  */
 export const AccentRule = () => (

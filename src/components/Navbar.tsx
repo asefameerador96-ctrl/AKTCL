@@ -232,7 +232,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
                           onInk ? 'focus-ink text-ink-foreground' : 'text-foreground',
                           // On paper the links are quiet until asked for, and the page you are
                           // on is already at full strength. Over the photograph they all stay
-                          // full chalk: measured against its brightest sky, a dimmed label
+                          // full white: measured against its brightest sky, a dimmed label
                           // drops under 4.5:1.
                           !current &&
                             !onInk &&
@@ -261,7 +261,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
                 <Link
                   to="/contact"
                   data-lead="nav-enquire"
-                  // The one filled control in the bar: chalk over the photograph, espresso on paper.
+                  // The one filled control in the bar: white over the photograph, black on paper.
                   className={cn('btn hidden lg:inline-flex', onInk ? 'btn-ink focus-ink' : 'btn-solid')}
                 >
                   Enquire

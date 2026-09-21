@@ -5,7 +5,7 @@ import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
 export interface DrawnRuleProps {
   /** Layout of the rule's box: margins, width (or height for axis "y"). */
   className?: string;
-  /** Colour of the line itself. Default: the neutral hairline (ink hairline inside bg-ink). Over photography pass a chalk tint. */
+  /** Colour of the line itself. Default: the neutral hairline (ink hairline inside bg-ink). Over photography pass a white tint. */
   lineClassName?: string;
   /** Seconds. */
   delay?: number;

@@ -46,7 +46,7 @@ const HERO_SIZES = '(max-aspect-ratio: 1/1) 179vh, 100vw';
 const HERO_SIZE = '[--hero-size:clamp(3.5rem,min(20vw,16vh),10rem)]';
 const HEADLINE = 'display-xl max-w-[3.6em] text-[length:var(--hero-size)] text-ink-foreground';
 
-/** Hairlines over photography are a chalk tint: the ink hairline would vanish into the scrim. */
+/** Hairlines over photography are a white tint: the ink hairline would vanish into the scrim. */
 const LINE = 'bg-ink-foreground/25';
 
 /** Seconds into the load choreography: headline, the rule beside it, lead, buttons, figures, controls. */
@@ -252,7 +252,7 @@ const HeroCarousel = () => {
               as="p"
               trigger="enter"
               delay={AT.lead}
-              // The colour is the column's: chalk over the photograph.
+              // The colour is the column's: white over the photograph.
               className="text-lead max-w-[24rem]"
             >
               {hero.subtitle}

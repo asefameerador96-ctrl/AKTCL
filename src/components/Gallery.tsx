@@ -52,7 +52,7 @@ const TILE_FOCUS =
 const ON_TILE = 'group-hover:scale-x-100 group-focus-visible:scale-x-100';
 
 // The viewer's controls are cells of its frame, ruled off like the rest — not floating
-// discs. Chalk fill on hover; the focus ring is inset so the screen edge cannot crop it.
+// discs. White fill on hover; the focus ring is inset so the screen edge cannot crop it.
 const VIEWER_BUTTON =
   'flex h-14 w-14 shrink-0 items-center justify-center border-l text-ink-foreground transition-colors focus-visible:ring-inset focus-visible:ring-offset-0 md:h-16 md:w-16 [@media(hover:hover)]:hover:bg-ink-foreground [@media(hover:hover)]:hover:text-ink';
 

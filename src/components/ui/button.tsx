@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva("btn", {
   variants: {
     variant: {
-      // Paper: solid espresso / ivory (chalk / charcoal in the dark theme).
+      // Paper: solid black / whitish (white / slate in the dark theme).
       default: "btn-solid",
-      // Ink bands and photography: solid chalk / charcoal.
+      // Ink bands and photography: solid white / slate.
       onInk: "btn-ink",
       // A 1px hairline that darkens on hover.
       outline: "btn-outline",
@@ -60,7 +60,7 @@ Button.displayName = "Button";
 export interface CtaButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** Render the child (a <Link>, an <a>) as the button instead of a <button>. */
   asChild?: boolean;
-  /** paper: solid espresso. ink: solid chalk, for ink bands and photography. */
+  /** paper: solid black. ink: solid white, for ink bands and photography. */
   tone?: "paper" | "ink";
   /** Work in progress: a spinner takes the arrow's place and the button stops answering. */
   busy?: boolean;

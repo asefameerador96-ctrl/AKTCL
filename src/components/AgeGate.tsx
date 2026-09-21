@@ -236,7 +236,7 @@ const AgeGate = () => {
 
         <div className="border-t border-ink-border">
           <div className={cn(COLUMN, 'py-5 sm:py-6')}>
-            {/* Boxed and in full chalk: the warning is never the small print. */}
+            {/* Boxed and in full white: the warning is never the small print. */}
             <p className="border border-ink-foreground/30 px-4 py-3.5 font-mono text-[0.8125rem] leading-relaxed text-ink-foreground">
               {site.compliance.healthWarning}
             </p>

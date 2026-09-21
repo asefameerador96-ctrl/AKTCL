@@ -40,7 +40,7 @@ export const GROUP_UNDERLINE =
 /**
  * Text link with a travelling arrow:
  * <Link className={TEXT_LINK}><span className={GROUP_UNDERLINE}>…</span><ArrowTravel /></Link>.
- * Espresso at rest; the accent is spent on the hover only.
+ * Black at rest; the accent is spent on the hover only.
  */
 export const TEXT_LINK =
   'mono-label group inline-flex min-h-11 items-center gap-3 rounded-sm text-foreground transition-colors hover:text-accent focus-visible:text-accent';
