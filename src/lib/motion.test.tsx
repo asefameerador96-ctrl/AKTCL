@@ -341,7 +341,7 @@ describe('scroll reveals play both ways, every time', () => {
     await waitFor(() => expect(words().every((word) => word.style.opacity === '1')).toBe(true));
   });
 
-  it('ImageReveal never hides its picture: no mask, no clip, no opacity — only a settle', async () => {
+  it('ImageReveal wipes its picture in and out, and never hides it by opacity', async () => {
     window.__aktclEntered = true;
     const { container } = render(
       <ImageReveal className="aspect-[4/3] bg-secondary">
@@ -349,26 +349,53 @@ describe('scroll reveals play both ways, every time', () => {
       </ImageReveal>
     );
     const frame = container.querySelector<HTMLElement>('[data-image-reveal]')!;
-    const picture = frame.firstElementChild as HTMLElement;
+    const mask = frame.firstElementChild as HTMLElement;
+    const picture = mask.firstElementChild as HTMLElement;
     // The frame carries the caller's size and surface, and is never styled.
     expect(frame).toHaveClass('aspect-[4/3]', 'bg-secondary');
     expect(frame.getAttribute('style')).toBeNull();
-    expect(container.innerHTML).not.toMatch(/opacity|visibility|clip-path/);
+    // A clip, never opacity or visibility: the picture is in the page the whole time.
+    expect(container.innerHTML).not.toMatch(/opacity|visibility/);
     expect(screen.getByRole('img', { name: 'Leaf in the barn' })).toBeVisible();
 
-    // Waiting: a little enlarged, and in view all the same.
+    // Waiting below the fold: masked at its foot and a little enlarged.
+    expect(mask.style.clipPath).toBe('inset(100% 0 0 0)');
     expect(picture.style.transform).toBe('scale(1.06)');
+
     sight(frame, 1);
-    await waitFor(() => expect(picture.style.transform).toBe('none'));
+    await waitFor(() => expect(mask.style.clipPath).toBe('inset(0 0 0 0)'));
+    expect(picture.style.transform).toBe('none');
     expect(picture.style.transition).toBe(`transform 1.1s ${EASE.expoOut} 0s`);
 
-    // Gone: put back at once, unseen, so the next arrival settles again.
+    // Gone: the mask closes again, so the next arrival plays the wipe afresh.
     sight(frame, 0);
+    expect(mask.style.clipPath).toBe('inset(100% 0 0 0)');
     expect(picture.style.transform).toBe('scale(1.06)');
-    expect(picture.style.transition).toBe('none');
     sight(frame, 1);
-    expect(picture.style.transform).toBe('none');
-    expect(container.innerHTML).not.toMatch(/opacity|visibility|clip-path/);
+    expect(mask.style.clipPath).toBe('inset(0 0 0 0)');
+    expect(container.innerHTML).not.toMatch(/opacity|visibility/);
+  });
+
+  it('ImageReveal leaves a picture that is already on screen alone: no wipe at mount', () => {
+    window.__aktclEntered = true;
+    // jsdom measures everything as a zero box, which counts as off screen. Give this
+    // frame a real one, in view, so the mount test the component makes has something
+    // to read: masking it here would blink away a picture the visitor is looking at.
+    const box = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({ top: 120, bottom: 520, left: 0, right: 900, width: 900, height: 400, x: 0, y: 120, toJSON: () => ({}) } as DOMRect);
+    try {
+      const { container } = render(
+        <ImageReveal className="aspect-[4/3]">
+          <img alt="Already in view" />
+        </ImageReveal>
+      );
+      const mask = container.querySelector<HTMLElement>('[data-image-reveal]')!
+        .firstElementChild as HTMLElement;
+      expect(mask.style.clipPath).toBe('inset(0 0 0 0)');
+    } finally {
+      box.mockRestore();
+    }
   });
 
   it('CountUp starts again from its first figure on every return', async () => {
