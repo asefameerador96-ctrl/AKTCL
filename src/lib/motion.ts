@@ -97,25 +97,27 @@ export function entranceHold(): number {
 //
 // Nothing that carries content may sit hidden ON screen (owner feedback, 2026-09-22:
 // blank frames read as "images not loaded yet"). So a reveal starts the moment ANY
-// part of its element comes within the ACTIVE ZONE — the viewport plus a strip a fifth
-// of a screen deep under its foot, so scrolling down it is already under way as the
-// element arrives — and plays in 0.6 s at most, after a stagger of 0.12 s at most. It
-// is only put back once the element has left that zone altogether: nothing is ever
-// hidden while a pixel of it can still be seen.
+// part of its element comes within the ACTIVE ZONE — the viewport with its lowest
+// eighth cut off, so a reveal begins as the element rises past that line and is watched
+// on its way in — and plays in 0.9 s at most, after a stagger of 0.12 s at most. It is
+// only put back once the element has left that zone altogether, which on the way back
+// up is equally visible: the section plays out as it sinks past the same line.
 //
-// A fifth, not a tenth: measured on the built site at a quick but ordinary wheel pace
-// (700px a flick, a 400ms pause), a block that came to rest at the foot of a desktop
-// screen had had only ~150 ms since crossing a tenth-deep strip, and was still under
-// half opacity when the scrolling stopped. From a fifth it is past three quarters.
+// The zone was briefly the viewport PLUS a fifth of a screen below it, to stop anything
+// reading as "not loaded yet" (owner feedback, 2026-09-22). That started every reveal
+// before its element arrived, so the motion was over by the time it could be seen and
+// the site read as static (owner, 2026-09-23). What actually fixed the loading feel was
+// ImageReveal never hiding a picture and LazyImage's placeholder surface — both kept —
+// so the line can sit inside the viewport again and the motion be seen.
 
-/** The viewport plus a fifth of a screen under it: where a scroll reveal counts as on screen. */
-export const ACTIVE_ZONE = '0px 0px 20% 0px';
+/** The viewport less its lowest eighth: where a scroll reveal counts as on screen. */
+export const ACTIVE_ZONE = '0px 0px -12% 0px';
 
 /** The longest a reveal may take to play in, whatever a caller asks for. */
-export const IN_S = 0.6;
+export const IN_S = 0.9;
 
-/** Seconds a reveal takes to play back out. Unseen (the element is off screen by then), so short. */
-export const OUT_S = 0.3;
+/** Seconds a reveal takes to play back out. Seen on the way up, so not instant. */
+export const OUT_S = 0.45;
 
 /**
  * The longest a scroll reveal may hold before it starts, whatever stagger its caller
