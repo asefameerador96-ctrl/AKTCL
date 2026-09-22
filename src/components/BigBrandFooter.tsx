@@ -19,7 +19,12 @@ import LogoMark from '@/components/LogoMark';
 const BigBrandFooter = () => {
   const [still] = useState(isStill);
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { threshold: 0.35, skip: still });
+  // The last thing on the page, so it is watched on its own terms: any part of it in
+  // the viewport counts, and the zone keeps its full depth. The house zone cuts the
+  // screen's lowest eighth, and at the foot of the page this mark never clears that
+  // line on a phone — it stayed masked and the footer looked logo-less (owner, Android,
+  // 2026-09-23).
+  const inView = useInView(ref, { threshold: 0, rootMargin: '0px', skip: still });
   const shown = useReveal(inView);
 
   return (
