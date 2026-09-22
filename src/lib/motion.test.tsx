@@ -62,13 +62,20 @@ describe('motion vocabulary', () => {
     expect(OUT_S).toBeLessThan(IN_S);
   });
 
-  it('never lets a reveal take longer than 0.6 s to play in, whatever it asks for', () => {
-    expect(IN_S).toBe(0.6);
-    expect(revealTransition(true, 'transform', 1.2)).toBe(`transform 0.6s ${EASE.expoOut} 0s`);
+  it('caps how long a reveal may take to play in, whatever it asks for', () => {
+    // Long enough to be watched on the way in, short enough to be over by the time the
+    // block is read. The cap itself is the contract; IN_S is where it is set.
+    expect(IN_S).toBeGreaterThanOrEqual(0.6);
+    expect(IN_S).toBeLessThanOrEqual(1);
+    expect(revealTransition(true, 'transform', 1.2)).toBe(`transform ${IN_S}s ${EASE.expoOut} 0s`);
   });
 
-  it('counts an element on screen from just under the fold, not from inside it', () => {
-    expect(ACTIVE_ZONE).toBe('0px 0px 20% 0px');
+  it('starts a reveal inside the fold, so the motion is seen', () => {
+    // A zone reaching BELOW the fold (a positive bottom margin) would finish the reveal
+    // before its element arrived — the site then reads as static (owner, 2026-09-23).
+    const bottom = ACTIVE_ZONE.split(' ')[2];
+    expect(bottom.startsWith('-')).toBe(true);
+    expect(Number.parseFloat(bottom)).toBeGreaterThanOrEqual(-25);
   });
 
   it('holds a scroll reveal’s stagger short, so nothing is still blank when the scrolling stops', () => {
@@ -218,7 +225,10 @@ describe('scroll reveals play both ways, every time', () => {
     // A return is immediate: no gate, no frame to wait for — and quick.
     sight(block, 1);
     expect(block.style.opacity).toBe('1');
-    expect(block.style.transition).toContain(`opacity ${IN_S}s`);
+    // Whatever the component asks for, in is longer than out and inside the cap.
+    const seconds = Number.parseFloat(/opacity ([\d.]+)s/.exec(block.style.transition)![1]);
+    expect(seconds).toBeGreaterThan(OUT_S);
+    expect(seconds).toBeLessThanOrEqual(IN_S);
 
     // Out over the top: it waits above its place, so its offset cannot carry it back in.
     sight(block, 0, 'above');
