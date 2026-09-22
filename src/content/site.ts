@@ -9,11 +9,17 @@
  */
 
 export const site = {
-  /** Display name, as written in the About Us copy (C28). */
+  /** Display name, as written in the About Us copy (C27). */
   name: 'Abul Khair Tobacco Co. Ltd.',
   shortName: 'AKTCL',
   legalName: 'Abul Khair Tobacco Company Ltd.',
   parent: 'Abul Khair Group',
+  /**
+   * The group's website (owner, 2026-09-22). Every "Part of Abul Khair Group" style
+   * mention links here: <a href={site.parentUrl} target="_blank" rel="noopener"
+   * data-lead="group-site">, with an sr-only "(opens in a new tab)".
+   */
+  parentUrl: 'https://www.abulkhairgroup.com/',
   country: 'Bangladesh',
   url: 'https://www.aktcl.com',
   /** C2 */

@@ -5,15 +5,19 @@ import Marquee, { MarqueeBand } from '@/components/motion/Marquee';
 import CountUp from '@/components/motion/CountUp';
 import ImageReveal from '@/components/motion/ImageReveal';
 import Reveal from '@/components/Reveal';
+import LazyImage, { AHEAD } from '@/components/LazyImage';
 import {
   ACTIVE_ZONE,
   EASE,
   ENTERED_EVENT,
+  IN_S,
   OUT_S,
   isStill,
   revealTransition,
   useEntered,
   useReveal,
+  VIEW_DELAY_MAX_S,
+  viewDelay,
 } from './motion';
 
 // src/test/setup.ts stubs matchMedia with matches:false, i.e. "motion allowed".
@@ -51,10 +55,27 @@ describe('motion vocabulary', () => {
   });
 
   it('plays a reveal in after its stagger and out at once, quicker', () => {
-    expect(revealTransition(true, ['opacity', 'transform'], 0.9, 0.12)).toBe(
-      `opacity 0.9s ${EASE.expoOut} 0.12s, transform 0.9s ${EASE.expoOut} 0.12s`
+    expect(revealTransition(true, ['opacity', 'transform'], 0.5, 0.12)).toBe(
+      `opacity 0.5s ${EASE.expoOut} 0.12s, transform 0.5s ${EASE.expoOut} 0.12s`
     );
     expect(revealTransition(false, 'transform', 1.2, 0.3)).toBe(`transform ${OUT_S}s ${EASE.expoOut} 0s`);
+    expect(OUT_S).toBeLessThan(IN_S);
+  });
+
+  it('never lets a reveal take longer than 0.6 s to play in, whatever it asks for', () => {
+    expect(IN_S).toBe(0.6);
+    expect(revealTransition(true, 'transform', 1.2)).toBe(`transform 0.6s ${EASE.expoOut} 0s`);
+  });
+
+  it('counts an element on screen from just under the fold, not from inside it', () => {
+    expect(ACTIVE_ZONE).toBe('0px 0px 20% 0px');
+  });
+
+  it('holds a scroll reveal’s stagger short, so nothing is still blank when the scrolling stops', () => {
+    expect(VIEW_DELAY_MAX_S).toBe(0.12);
+    expect(viewDelay(0.06)).toBe(0.06);
+    expect(viewDelay(0.3)).toBe(VIEW_DELAY_MAX_S);
+    expect(viewDelay(-1)).toBe(0);
   });
 });
 
@@ -188,26 +209,43 @@ describe('scroll reveals play both ways, every time', () => {
     await waitFor(() => expect(block.style.opacity).toBe('1'));
     expect(block.style.transform).toBe('none');
 
-    // Out through the foot of the screen: back down, quicker, with no stagger.
+    // Out through the foot of the screen: back down 16px at most, quicker, no stagger.
     sight(block, 0);
     expect(block.style.opacity).toBe('0');
-    expect(block.style.transform).toBe('translateY(28px)');
+    expect(block.style.transform).toBe('translateY(16px)');
     expect(block.style.transition).toContain(`${OUT_S}s`);
 
-    // A return is immediate: no gate, no frame to wait for.
+    // A return is immediate: no gate, no frame to wait for — and quick.
     sight(block, 1);
     expect(block.style.opacity).toBe('1');
+    expect(block.style.transition).toContain(`opacity ${IN_S}s`);
 
     // Out over the top: it waits above its place, so its offset cannot carry it back in.
     sight(block, 0, 'above');
-    expect(block.style.transform).toBe('translateY(-28px)');
+    expect(block.style.transform).toBe('translateY(-16px)');
     sight(block, 1);
     expect(block.style.opacity).toBe('1');
   });
 
-  it('has hysteresis: nothing changes between the threshold and leaving altogether', async () => {
+  it('shows as soon as any part is in the zone, and hides only once all of it has gone', async () => {
     window.__aktclEntered = true;
     const { container } = render(<Reveal>Body copy</Reveal>);
+    const block = container.firstElementChild as HTMLElement;
+
+    // A sliver is enough.
+    sight(block, 0.01);
+    await waitFor(() => expect(block.style.opacity).toBe('1'));
+
+    // Still partly there: it stays.
+    sight(block, 0.01);
+    expect(block.style.opacity).toBe('1');
+    sight(block, 0);
+    expect(block.style.opacity).toBe('0');
+  });
+
+  it('keeps its hysteresis where a threshold is asked for', async () => {
+    window.__aktclEntered = true;
+    const { container } = render(<Reveal threshold={0.3}>Body copy</Reveal>);
     const block = container.firstElementChild as HTMLElement;
 
     sight(block, 0.05);
@@ -232,15 +270,17 @@ describe('scroll reveals play both ways, every time', () => {
         <Reveal>One</Reveal>
         <Reveal>Two</Reveal>
         <SplitReveal as="h2" text="Three" />
+        <ImageReveal>
+          <img alt="Four" />
+        </ImageReveal>
         <CountUp value={12} />
       </>
     );
     const observers = [...MockObserver.all];
     expect(observers).toHaveLength(2);
-    const shared = observers.find((observer) => observer.thresholds.includes(0.15))!;
-    expect(shared.targets.size).toBe(3);
+    const shared = observers.find((observer) => observer.thresholds.length === 1 && observer.thresholds[0] === 0)!;
+    expect(shared.targets.size).toBe(4);
     expect(shared.rootMargin).toBe(ACTIVE_ZONE);
-    expect(shared.thresholds).toEqual([0, 0.15]);
     unmount();
     expect(MockObserver.all.size).toBe(0);
   });
@@ -279,22 +319,46 @@ describe('scroll reveals play both ways, every time', () => {
     expect(screen.getByRole('heading', { name: 'Facts & Figures' })).toBeInTheDocument();
   });
 
-  it('ImageReveal waits transparent, never removed from the accessibility tree', async () => {
+  it('SplitReveal never masks running text: a paragraph fades up 16px at most', async () => {
+    window.__aktclEntered = true;
+    const { container } = render(<SplitReveal as="p" text="Verbatim copy." />);
+    const p = container.querySelector('p')!;
+    const words = () => [...p.querySelectorAll<HTMLElement>('[data-split-word] > span')];
+    expect(p.querySelector('.split-mask')).toBeNull();
+    expect(words().every((word) => word.style.opacity === '0')).toBe(true);
+    expect(words().every((word) => word.style.transform === 'translate3d(0, min(0.3em, 16px), 0)')).toBe(true);
+    sight(p, 1);
+    await waitFor(() => expect(words().every((word) => word.style.opacity === '1')).toBe(true));
+  });
+
+  it('ImageReveal never hides its picture: no mask, no clip, no opacity — only a settle', async () => {
     window.__aktclEntered = true;
     const { container } = render(
-      <ImageReveal>
+      <ImageReveal className="aspect-[4/3] bg-secondary">
         <img alt="Leaf in the barn" />
       </ImageReveal>
     );
     const frame = container.querySelector<HTMLElement>('[data-image-reveal]')!;
-    expect(frame.style.opacity).toBe('0');
-    expect(frame.style.visibility).toBe('');
-    expect(screen.getByRole('img', { name: 'Leaf in the barn' })).toBeInTheDocument();
+    const picture = frame.firstElementChild as HTMLElement;
+    // The frame carries the caller's size and surface, and is never styled.
+    expect(frame).toHaveClass('aspect-[4/3]', 'bg-secondary');
+    expect(frame.getAttribute('style')).toBeNull();
+    expect(container.innerHTML).not.toMatch(/opacity|visibility|clip-path/);
+    expect(screen.getByRole('img', { name: 'Leaf in the barn' })).toBeVisible();
+
+    // Waiting: a little enlarged, and in view all the same.
+    expect(picture.style.transform).toBe('scale(1.06)');
     sight(frame, 1);
-    await waitFor(() => expect(frame.style.opacity).toBe(''));
-    // Once opened it is never made transparent again: the way out is the mask closing.
+    await waitFor(() => expect(picture.style.transform).toBe('none'));
+    expect(picture.style.transition).toBe(`transform 1.1s ${EASE.expoOut} 0s`);
+
+    // Gone: put back at once, unseen, so the next arrival settles again.
     sight(frame, 0);
-    expect(frame.style.opacity).toBe('');
+    expect(picture.style.transform).toBe('scale(1.06)');
+    expect(picture.style.transition).toBe('none');
+    sight(frame, 1);
+    expect(picture.style.transform).toBe('none');
+    expect(container.innerHTML).not.toMatch(/opacity|visibility|clip-path/);
   });
 
   it('CountUp starts again from its first figure on every return', async () => {
@@ -343,6 +407,66 @@ describe('scroll reveals play both ways, every time', () => {
     expect(MockObserver.all.size).toBe(0);
     expect(container.innerHTML).not.toMatch(/opacity|visibility|clip-path|transform/);
     expect(renderHook(() => useReveal(false)).result.current).toBe(true);
+  });
+});
+
+// ---- LazyImage ------------------------------------------------------------------------
+
+const picture = {
+  img: { src: '/leaf.webp', w: 1434, h: 1920 },
+  sources: { avif: '/leaf.avif 480w', webp: '/leaf.webp 480w' },
+};
+
+describe('LazyImage', () => {
+  beforeEach(() => {
+    vi.stubGlobal('IntersectionObserver', MockObserver);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('asks for its file well ahead of the screen, on one shared observer', () => {
+    render(
+      <>
+        <LazyImage image={picture} alt="Leaf one" sizes="320px" />
+        <LazyImage image={picture} alt="Leaf two" sizes="320px" />
+      </>
+    );
+    const observers = [...MockObserver.all];
+    expect(observers).toHaveLength(1);
+    expect(observers[0].rootMargin).toBe(AHEAD);
+    expect(parseInt(AHEAD, 10)).toBeGreaterThanOrEqual(1200);
+    expect(screen.getByRole('img', { name: 'Leaf one' })).not.toHaveAttribute('src');
+  });
+
+  it('waits transparent over its frame until decoded, then fades in over 300 ms', async () => {
+    render(<LazyImage image={picture} alt="Leaf" sizes="320px" />);
+    const img = screen.getByRole('img', { name: 'Leaf' }) as HTMLImageElement;
+    expect(img.style.opacity).toBe('0');
+    // Going transparent is instant: nothing is ever seen fading out.
+    expect(img.style.transition).toBe('none');
+
+    sight(img, 1);
+    expect(img).toHaveAttribute('src', '/leaf.webp');
+    expect(img.style.opacity).toBe('0');
+    fireEvent.load(img);
+    await waitFor(() => expect(img.style.opacity).toBe('1'));
+    expect(img.style.transition).toBe(`opacity 300ms ${EASE.expoOut}`);
+  });
+
+  it('never holds back the priority image', () => {
+    render(<LazyImage image={picture} alt="Hero" sizes="100vw" priority />);
+    const img = screen.getByRole('img', { name: 'Hero' });
+    expect(img).toHaveAttribute('src', '/leaf.webp');
+    expect(img).toHaveAttribute('fetchpriority', 'high');
+    expect(img.getAttribute('style')).toBeNull();
+    expect(MockObserver.all.size).toBe(0);
+  });
+
+  it('under isStill() carries no inline opacity for the snapshot', () => {
+    window.__PRERENDER__ = true;
+    render(<LazyImage image={picture} alt="Leaf" sizes="320px" />);
+    expect(screen.getByRole('img', { name: 'Leaf' }).getAttribute('style')).toBeNull();
   });
 });
 

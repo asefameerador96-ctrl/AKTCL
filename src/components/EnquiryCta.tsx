@@ -60,8 +60,10 @@ const EnquiryCta = ({ product, className }: EnquiryCtaProps) => {
       </div>
 
       <div className="mx-auto grid max-w-7xl px-4 sm:px-6 lg:grid-cols-12">
-        {/* Anchored to the foot of its cell, level with the button: a title block reads from the bottom line up. */}
-        <div className="flex items-end py-20 md:py-28 lg:col-span-8 lg:py-36 lg:pr-12">
+        {/* Anchored to the foot of its cell, level with the button: a title block reads from the bottom line up.
+            112px of ink from lg (it was 144): with the footer's own top padding under it, a
+            deeper band left ~225px of nothing between the headline and the footer's lockup. */}
+        <div className="flex items-end py-20 md:py-24 lg:col-span-8 lg:py-28 lg:pr-12">
           <SplitReveal
             as="h2"
             id={titleId}
@@ -72,7 +74,7 @@ const EnquiryCta = ({ product, className }: EnquiryCtaProps) => {
         </div>
 
         {/* The hairline belongs to the cell, not to the Reveal inside it: a rule must not slide. */}
-        <div className="flex border-t border-ink-border py-12 md:py-16 lg:col-span-4 lg:border-l lg:border-t-0 lg:py-36 lg:pl-12">
+        <div className="flex border-t border-ink-border py-12 md:py-16 lg:col-span-4 lg:border-l lg:border-t-0 lg:py-28 lg:pl-12">
           <Reveal delay={0.15} className="flex w-full flex-col justify-between gap-12">
             <p className="text-body max-w-[30rem] text-ink-muted">
               Importers, distributors and manufacturers are invited to share the product, volume and

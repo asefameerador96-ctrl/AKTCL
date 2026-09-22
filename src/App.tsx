@@ -6,6 +6,7 @@ import AgeGate from '@/components/AgeGate';
 import SmoothScroll from '@/components/motion/SmoothScroll';
 import CursorRing from '@/components/motion/CursorRing';
 import RouteTransition from '@/components/motion/RouteTransition';
+import { FEATURES } from '@/content/features';
 import Index from './pages/Index.tsx';
 
 // Only the homepage is bundled eagerly. Every other route is its own chunk, so a
@@ -15,6 +16,10 @@ import Index from './pages/Index.tsx';
 // Every indexable URL must also exist in src/seo/routeMeta.ts (ROUTES) — that list
 // drives metadata, the sitemap and prerendering. routeMeta.test.ts checks the two
 // stay in step.
+//
+// A parked segment (src/content/features.ts) keeps its pages and lazy imports here but
+// registers no <Route> while its flag is off, so its URLs fall through to NotFound. The
+// chunk is still built; nothing requests it.
 const AboutUs = lazy(() => import('./pages/AboutUs.tsx'));
 const JourneyIndex = lazy(() => import('./pages/JourneyIndex.tsx'));
 const JourneyStage = lazy(() => import('./pages/JourneyStage.tsx'));
@@ -55,8 +60,14 @@ const App = () => (
         <Route path="/products" element={<ProductsIndex />} />
         <Route path="/products/:category" element={<CategoryPage />} />
         <Route path="/products/:category/:slug" element={<ProductPage />} />
-        <Route path="/cigarette-sizes" element={<SizesIndex />} />
-        <Route path="/cigarette-sizes/:slug" element={<SizePage />} />
+        {/* Parked (docs/feature-flags.md): 404 while FEATURES.cigaretteSizes is off.
+            routeMeta.test.ts reads this gate; keep it in this form. */}
+        {FEATURES.cigaretteSizes && (
+          <>
+            <Route path="/cigarette-sizes" element={<SizesIndex />} />
+            <Route path="/cigarette-sizes/:slug" element={<SizePage />} />
+          </>
+        )}
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />

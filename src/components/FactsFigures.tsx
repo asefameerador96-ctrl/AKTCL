@@ -18,7 +18,7 @@ const COLUMNS = facts.length <= 3 ? facts.length : 2;
 const Stat = ({ fact, index }: { fact: Fact; index: number }) => {
   const [still] = useState(isStill);
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { threshold: 0.3, skip: still });
+  const inView = useInView(ref, { skip: still });
   const shown = useReveal(inView);
   const delay = index * STAGGER_S;
   // Where the cell sits from lg up. The list's own border-y rules the outside; a cell
@@ -69,7 +69,7 @@ const Stat = ({ fact, index }: { fact: Fact; index: number }) => {
       <dt
         className="eyebrow max-w-[16rem] leading-relaxed"
         style={
-          still ? undefined : { opacity: shown ? 1 : 0, transition: revealTransition(shown, 'opacity', 0.9, delay + 0.35) }
+          still ? undefined : { opacity: shown ? 1 : 0, transition: revealTransition(shown, 'opacity', 0.6, delay) }
         }
       >
         {fact.label}

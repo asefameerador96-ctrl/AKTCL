@@ -6,6 +6,7 @@ import PageHeader, {
   GROUP_UNDERLINE,
   ROW_LINE,
   ROW_SHIFT,
+  SECTION_B,
   TEXT_LINK,
   WRAP,
 } from '@/components/PageHeader';
@@ -76,7 +77,7 @@ const Ledger = () => {
   }, [still]);
 
   return (
-    <section aria-label={`${journeyIntro.eyebrow}: the stages`} className={cn(WRAP, 'pb-24 md:pb-36')}>
+    <section aria-label={`${journeyIntro.eyebrow}: the stages`} className={cn(WRAP, SECTION_B)}>
       <div ref={threadRef} className="relative">
         {/* The margin line and its fill. The fill only ever scales. */}
         <span aria-hidden="true" className="absolute inset-y-0 left-0 z-10 w-px bg-border">
@@ -112,7 +113,7 @@ const Ledger = () => {
                     the masthead (data-enter, see index.css); the rest play on view. */}
                 <Reveal
                   trigger={i === 0 ? 'enter' : 'view'}
-                  delay={i === 0 ? 0.6 : 0}
+                  delay={i === 0 ? 0.4 : 0}
                   className="grid grid-cols-[minmax(0,1fr)_6.5rem] sm:grid-cols-[minmax(0,1fr)_12rem] lg:grid-cols-12"
                 >
                   <div className="col-start-1 row-start-1 pb-2 pl-5 pr-4 pt-7 sm:pl-8 lg:col-span-5 lg:grid lg:grid-cols-5 lg:pb-10 lg:pr-0 lg:pt-10">
@@ -153,7 +154,6 @@ const Ledger = () => {
 
                   {cover && (
                     <ImageReveal
-                      direction="left"
                       className="col-start-2 row-start-1 aspect-square self-start bg-secondary lg:col-span-3 lg:col-start-10 lg:aspect-auto lg:h-full lg:min-h-[16rem] lg:self-stretch"
                     >
                       <LazyImage

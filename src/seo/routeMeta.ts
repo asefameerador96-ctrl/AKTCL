@@ -1,4 +1,5 @@
 import { site } from '@/content/site';
+import { FEATURES } from '@/content/features';
 import { journey } from '@/content/journey';
 import { categories } from '@/content/products';
 import { cigaretteSizes, type CigaretteSize } from '@/content/sizes';
@@ -11,6 +12,9 @@ import { cigaretteSizes, type CigaretteSize } from '@/content/sizes';
  * sitemap entry and prerendered page. Nothing parses this file as text: scripts/prerender.mjs reads
  * the list from the running app (window.__AKTCL_ROUTES__, set in src/main.tsx) and
  * writes dist/routes.json, sitemap.xml and robots.txt from it.
+ *
+ * A parked segment (src/content/features.ts) keeps its code here but adds no route while
+ * its flag is off, so it is neither prerendered nor in the sitemap.
  *
  * src/seo/routeMeta.test.ts asserts that every entry here is served by App.tsx.
  */
@@ -47,6 +51,8 @@ const PRODUCT_SEO_TITLE: Record<string, string> = {
   stem: 'Tobacco Stem Supplier',
   scrap: 'Tobacco Scrap Exporter',
   recon: 'Reconstituted Tobacco (RE-CON) Sheet Supplier',
+  // D26's own words: no claim beyond the copy.
+  'akt-signature-collection': 'AKT Signature Collection — Flagship Premium Cigarette Portfolio',
 };
 
 const CATEGORY_SEO_TITLE: Record<string, string> = {
@@ -161,28 +167,31 @@ function build(): RouteMeta[] {
   }
 
   // Cigarette sizes: formats, not products — BreadcrumbList only, no Product JSON-LD.
-  routes.push(
-    {
-      path: SIZES_CRUMB.path,
-      title: 'Cigarette Sizes — King Size, 100s, Slim, Super Slim & Nano Formats',
-      description:
-        'Five cigarette formats, each run on dedicated lines to its own specification: King Size, 100s, Slim, Super Slim and Nano, from rod length to container loads.',
-      breadcrumbs: [SIZES_CRUMB],
-      priority: 0.8,
-      changefreq: 'monthly',
-    },
-    ...cigaretteSizes.map<RouteMeta>((size) => {
-      const path = `${SIZES_CRUMB.path}/${size.slug}`;
-      return {
-        path,
-        title: `${size.name} Cigarettes (${size.lengthLabel}) — ${SIZE_SEO_ANGLE[size.slug]}`,
-        description: sizeDescription(size),
-        breadcrumbs: [SIZES_CRUMB, { name: size.name, path }],
-        priority: 0.7,
+  // Parked while FEATURES.cigaretteSizes is off (docs/feature-flags.md).
+  if (FEATURES.cigaretteSizes) {
+    routes.push(
+      {
+        path: SIZES_CRUMB.path,
+        title: 'Cigarette Sizes — King Size, 100s, Slim, Super Slim & Nano Formats',
+        description:
+          'Five cigarette formats, each run on dedicated lines to its own specification: King Size, 100s, Slim, Super Slim and Nano, from rod length to container loads.',
+        breadcrumbs: [SIZES_CRUMB],
+        priority: 0.8,
         changefreq: 'monthly',
-      };
-    })
-  );
+      },
+      ...cigaretteSizes.map<RouteMeta>((size) => {
+        const path = `${SIZES_CRUMB.path}/${size.slug}`;
+        return {
+          path,
+          title: `${size.name} Cigarettes (${size.lengthLabel}) — ${SIZE_SEO_ANGLE[size.slug]}`,
+          description: sizeDescription(size),
+          breadcrumbs: [SIZES_CRUMB, { name: size.name, path }],
+          priority: 0.7,
+          changefreq: 'monthly',
+        };
+      })
+    );
+  }
 
   routes.push(
     {
@@ -251,7 +260,9 @@ export const ORGANIZATION_JSONLD: Record<string, unknown> = {
   },
   image: { '@id': `${SITE}/#logo` },
   foundingDate: '1953',
-  parentOrganization: { '@type': 'Organization', name: site.parent },
+  // The group's own site identifies the parent. Not in sameAs: that lists profiles of
+  // AKTCL itself, and the group is a different organisation.
+  parentOrganization: { '@type': 'Organization', name: site.parent, url: site.parentUrl },
   address: { '@type': 'PostalAddress', addressCountry: 'BD' },
   ...(site.contact.email || site.contact.phone
     ? {

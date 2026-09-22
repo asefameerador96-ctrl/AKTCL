@@ -17,8 +17,8 @@ interface ImageCarouselProps {
    */
   aspect?: string;
   /**
-   * true for the product cut-outs: shown whole on the light tile, never cropped to
-   * the frame the way photography is.
+   * true for the product cut-outs: set on the light tile (the ground they were shot
+   * on), in a frame of the first cut-out's own ratio so each one fills it edge to edge.
    */
   contain?: boolean;
   /** Rendered width of the frame, for the browser's srcset choice. */
@@ -26,9 +26,8 @@ interface ImageCarouselProps {
   /** Accessible name of the carousel region. */
   label?: string;
   /**
-   * Unmasks the frame as it comes into view (ImageReveal). For a carousel in the
-   * first screen: the frame is marked data-enter, so the prerendered photograph is
-   * not painted, dropped and then revealed — it arrives once.
+   * Settles the photograph into its frame as it comes into view (ImageReveal). Never
+   * hides it: the first slide is the page's LCP image and paints at once.
    */
   reveal?: boolean;
 }
@@ -61,39 +60,32 @@ interface FrameProps {
   eager?: boolean;
 }
 
-// Square-cornered on purpose: the frame sits flush against the page's hairlines.
+// Square-cornered on purpose: the frame sits flush against the page's hairlines. Its
+// surface (the tile for cut-outs, the page's surface for photography) is what shows
+// while a slide's file is still on its way — never a strip of a half-drawn picture.
 const Frame = ({ item, aspect, ratio, contain, sizes, priority, eager }: FrameProps) => (
   <div
     className={cn('relative overflow-hidden', aspect, contain ? 'bg-tile' : 'bg-secondary')}
     style={aspect ? undefined : { aspectRatio: ratio }}
   >
-    {/* Absolutely placed so the frame, not the file's own ratio, sets the size. */}
+    {/* Absolutely placed so the frame, not the file's own ratio, sets the size. Always
+        cover, centred: a letterboxed cut-out would show a second tone beside its own
+        ground, and read as a picture that has not finished loading. */}
     <LazyImage
       image={item.image}
       alt={item.alt}
       sizes={sizes}
       priority={priority}
       eager={eager}
-      className={cn(
-        'absolute inset-0 h-full w-full',
-        contain && 'product-shot',
-        // A cut-out in a frame of a different shape is letterboxed, not cropped.
-        contain && aspect ? 'object-contain' : 'object-cover'
-      )}
-      style={contain ? undefined : { objectPosition: item.position }}
+      className={cn('absolute inset-0 h-full w-full object-cover', contain && 'product-shot')}
+      style={{ objectPosition: item.position ?? '50% 50%' }}
     />
   </div>
 );
 
-/** The frame's entrance, when asked for. */
-const Unmask = ({ on, children }: { on: boolean; children: ReactNode }) =>
-  on ? (
-    <div data-enter="">
-      <ImageReveal>{children}</ImageReveal>
-    </div>
-  ) : (
-    <>{children}</>
-  );
+/** The frame's settle, when asked for. */
+const Settle = ({ on, children }: { on: boolean; children: ReactNode }) =>
+  on ? <ImageReveal>{children}</ImageReveal> : <>{children}</>;
 
 /**
  * Photo carousel for the detail pages: Embla with a 5 s autoplay that stops while
@@ -164,9 +156,9 @@ const ImageCarousel = ({
 
   if (images.length === 1) {
     return (
-      <Unmask on={reveal}>
+      <Settle on={reveal}>
         <Frame item={images[0]} {...frame} priority />
-      </Unmask>
+      </Settle>
     );
   }
 
@@ -189,7 +181,7 @@ const ImageCarousel = ({
       onBlurCapture={resumeAfterFocus}
       className="w-full"
     >
-      <Unmask on={reveal}>
+      <Settle on={reveal}>
         <div data-cursor="drag" className="cursor-grab active:cursor-grabbing">
           <CarouselContent>
             {images.map((item, i) => (
@@ -206,7 +198,7 @@ const ImageCarousel = ({
             ))}
           </CarouselContent>
         </div>
-      </Unmask>
+      </Settle>
 
       <div className="relative flex items-stretch border-b border-border">
         {/* Progress through the set, drawn on the strip's top rule. Decorative: the

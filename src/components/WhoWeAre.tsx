@@ -2,27 +2,32 @@ import LazyImage from '@/components/LazyImage';
 import Reveal from '@/components/Reveal';
 import { RowLink, SectionHead } from '@/components/Ruled';
 import ImageReveal from '@/components/motion/ImageReveal';
-import Parallax from '@/components/motion/Parallax';
 import SplitReveal from '@/components/motion/SplitReveal';
 import { about } from '@/content/about';
-import { journeyImages } from '@/content/images';
+import { heroImages } from '@/content/images';
 import { hero, site } from '@/content/site';
 
-// The threshing floor: real plant, real people — the strongest "who we are" frame.
-const photo = journeyImages.process?.[0];
+// H2, the five-panel seed-to-smoke collage (owner, 2026-09-22): it left the hero, which
+// is now a single still photograph, to stand here under the line it illustrates.
+const photo = heroImages[1];
 
 /**
  * "Who We Are" — the short company introduction that follows the hero (Orchid's
- * "manufacturing partner" blurb), set as an editorial 5/7 split. The heading only
- * restates the hero line; the body is the workbook's hero paragraph and the first
- * About paragraph, verbatim.
+ * "manufacturing partner" blurb). The heading only restates the hero line; the body is
+ * the workbook's hero paragraph and the first About paragraph, verbatim.
  *
- * Drawn like a plan: the copy runs down the narrow column under the headline, one
- * vertical hairline parts it from the photograph, which fills its cell to the rules
- * on every side, and the onward link is the copy column's closing row. No frames.
+ * Drawn like a plan, top to bottom inside one ruled block: the collage across the full
+ * measure, then the two paragraphs side by side on one vertical hairline (they are
+ * nearly the same length, so the halves end level and neither leaves a hole), then the
+ * onward link as the block's closing row. No frames.
+ *
+ * The collage is five panels in a row — seed, field, curing barn, cured leaf, packs — so
+ * it is shown whole, at its own aspect ratio: a frame of any other shape would cut into
+ * the first and last panels. For the same reason it has no parallax (that needs a
+ * picture larger than its frame); the reveal's unmasking and settle are its motion.
  */
 const WhoWeAre = () => (
-  <section aria-labelledby="who-we-are-heading" className="py-24 md:py-32 lg:py-36">
+  <section aria-labelledby="who-we-are-heading" className="py-20 md:py-24 lg:py-28">
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <SectionHead label="Who We Are" />
 
@@ -36,44 +41,40 @@ const WhoWeAre = () => (
         className="display-lg mt-12 max-w-[9em] text-foreground md:mt-16 lg:mt-20"
       />
 
-      <div className="mt-14 grid border-y border-border md:mt-20 lg:mt-24 lg:grid-cols-12">
+      <div className="mt-14 border-y border-border md:mt-20 lg:mt-24">
         {photo && (
-          // First in the DOM (photograph, then copy, on phones), second on the desktop
-          // row, where the grid stretches the frame to the height of the copy.
-          <ImageReveal className="bg-secondary lg:col-span-7 lg:col-start-6 lg:row-start-1">
-            {/* The frame's floor: the photograph's own 4:3. */}
-            <div aria-hidden="true" className="aspect-[4/3]" />
-            {/* Taller than its frame by the distance the parallax travels. */}
-            <Parallax speed={0.06} className="absolute inset-x-0 -inset-y-[10%]">
-              <LazyImage
-                image={photo.image}
-                alt={photo.alt}
-                // Cover-cropped into a box a fifth taller than the frame: 7 of 12 columns from lg up.
-                sizes="(min-width: 1280px) 860px, (min-width: 1024px) 70vw, 120vw"
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ objectPosition: photo.position }}
-              />
-            </Parallax>
+          // bg-secondary is the surface the frame shows while the file is on its way.
+          <ImageReveal className="bg-secondary">
+            {/* The frame's height: the collage's own proportions (1920 × 1072), so nothing is cropped. */}
+            <div aria-hidden="true" style={{ aspectRatio: `${photo.image.img.w} / ${photo.image.img.h}` }} />
+            <LazyImage
+              image={photo.image}
+              alt={photo.alt}
+              // The full container: 1232px from xl, the window less its gutters below that.
+              sizes="(min-width: 1280px) 1232px, 100vw"
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: photo.position }}
+            />
           </ImageReveal>
         )}
 
-        <div className="flex flex-col lg:col-span-5 lg:col-start-1 lg:row-start-1 lg:border-r lg:border-border">
-          {/* rem, not ch (see .lead in index.css): some 70 characters a line at 17px. */}
-          <div className="max-w-[38rem] py-10 md:py-12 lg:pr-10">
-            {/* Running copy at the body's own 17px: no size of its own to fall behind. */}
-            <Reveal as="p" className="text-foreground">
+        <div className="grid border-t border-border lg:grid-cols-2">
+          {/* Running copy at the body's own 17px: no size of its own to fall behind. */}
+          <div className="pt-10 md:pt-12 lg:pb-12 lg:pr-10">
+            <Reveal as="p" className="max-w-[38rem] text-foreground">
               {hero.body}
             </Reveal>
-            <Reveal as="p" delay={0.08} className="mt-6 text-muted-foreground">
+          </div>
+          <div className="pb-10 pt-6 md:pb-12 lg:border-l lg:border-border lg:pl-10 lg:pt-12">
+            <Reveal as="p" delay={0.08} className="max-w-[38rem] text-muted-foreground">
               {about.paragraphs[0]}
             </Reveal>
           </div>
-          <Reveal delay={0.16} className="mt-auto">
-            <RowLink to="/about-us" className="lg:pr-10">
-              About {site.shortName}
-            </RowLink>
-          </Reveal>
         </div>
+
+        <Reveal delay={0.16}>
+          <RowLink to="/about-us">About {site.shortName}</RowLink>
+        </Reveal>
       </div>
     </div>
   </section>

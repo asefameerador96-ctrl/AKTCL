@@ -39,7 +39,7 @@ const PrivateLabelBand = () => {
   return (
     <section
       aria-labelledby="private-label-heading"
-      className="border-y border-border bg-card py-24 md:py-32 lg:py-36"
+      className="border-y border-border bg-card py-20 md:py-24 lg:py-28"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead label="Manufacturing Partner" />

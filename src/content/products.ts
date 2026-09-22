@@ -1,11 +1,14 @@
 /**
  * Product line — two categories.
  *
- * SOURCE OF TRUTH: workbook rows 10–27 (PRODUCT). `name` = Catchy Title (col C),
- * `short` = Short Description (col D), `long` = Long Description (col F).
- * Copy is verbatim apart from the two corrections listed in
- * docs/content-inventory.md ("Priduct" → "Product"; "It characterized" →
- * "It is characterized").
+ * SOURCE OF TRUTH: workbook rows 10–26 (PRODUCT), as updated by AKTCL on 2026-09-22
+ * (the "Premium King Size" row was deleted, so Finished Cigarettes is now row 21 with its
+ * products in rows 22–26, and About Us moved up to C27). `name` = Catchy Title (col C),
+ * `short` = Short Description (col D), `long` = Long Description (col F). Copy is
+ * verbatim apart from the two corrections listed in docs/content-inventory.md
+ * ("Priduct" → "Product"; "It characterized" → "It is characterized"). A long description
+ * the workbook splits into paragraphs keeps the blank line between them ("\n\n");
+ * `paragraphs()` below splits it for rendering.
  *
  * The workbook contains NO technical specifications (grades, moisture, nicotine,
  * cut width, packing, MOQ, container loads, cigarette dimensions). `specs` is
@@ -24,7 +27,10 @@ export interface Product {
   slug: string;
   name: string;
   short: string;
-  /** Absent where the workbook has no long description. */
+  /**
+   * Absent where the workbook has no long description. Paragraphs, where the workbook has
+   * more than one, are separated by a blank line: render through `paragraphs(long)`.
+   */
   long?: string;
   /** Rendered as a spec table when non-empty. TODO(Asef): supply real values. */
   specs: ProductSpec[];
@@ -161,17 +167,14 @@ export const categories: ProductCategory[] = [
       'Manufactured with premium tobacco and advanced technology to meet the needs of international brands, distributors, and private label partners.',
     long:
       'Our finished cigarette portfolio combines premium tobacco, precision engineering, and stringent quality assurance systems. We manufacture products across multiple formats and specifications for our own brands, OEM customers, and private label partners, ensuring consistency, compliance, and world-class manufacturing standards.',
-    // One line of copy each and a single shared pack shot in the content folder, so
-    // these are listed on the category page only until AKTCL supplies more.
+    // Rows 22–26, in the workbook's order. Rows 22–25 have one line of copy each and the
+    // content folder one shared pack shot, so they are listed on the category page only
+    // until AKTCL supplies more. Row 26 (AKT Signature Collection) has a long description
+    // and its own page. ("Premium King Size", formerly row 22, was deleted from the
+    // workbook on 2026-09-22.)
     products: [
       {
-        slug: 'premium-king-size',
-        name: 'Premium King Size',
-        short: 'Premium king-size cigarettes crafted for refined quality and consistency.',
-        specs: [],
-        hasDetailPage: false,
-      },
-      {
+        // Row 22.
         slug: 'king-size-filter',
         name: 'King Size Filter',
         short: 'Standard filtered cigarettes for mainstream international markets.',
@@ -179,6 +182,7 @@ export const categories: ProductCategory[] = [
         hasDetailPage: false,
       },
       {
+        // Row 23.
         slug: 'super-slim',
         name: 'Super Slim',
         short: 'Elegant super slim cigarettes with modern styling.',
@@ -186,6 +190,7 @@ export const categories: ProductCategory[] = [
         hasDetailPage: false,
       },
       {
+        // Row 24.
         slug: 'nano',
         name: 'NANO',
         short: 'Compact-size cigarettes designed for convenience and portability.',
@@ -193,6 +198,7 @@ export const categories: ProductCategory[] = [
         hasDetailPage: false,
       },
       {
+        // Row 25.
         slug: 'private-label-manufacturing',
         name: 'Private Label Manufacturing',
         short:
@@ -201,12 +207,20 @@ export const categories: ProductCategory[] = [
         hasDetailPage: false,
       },
       {
+        // Row 26. D26 and F26 verbatim (F26's curly apostrophe and capitals as written;
+        // its two paragraphs joined by the blank line the cell has). E26 names an image,
+        // "AKT BRANDS_SITE.png", that is not in the content folder yet: the page shows
+        // the category's king-size pack shot until it arrives (docs/content-inventory.md).
         slug: 'akt-signature-collection',
         name: 'AKT Signature Collection',
         short:
           "Flagship premium cigarette portfolio representing AKT's highest manufacturing standards.",
+        long:
+          'Our flagship premium cigarette portfolio represents ABUL KHAIR TOBACCO’s highest standards of manufacturing excellence, product quality, and innovation. As the largest local tobacco player in Bangladesh, we have developed a strong portfolio of well-established brands with a significant presence across diverse segments of the domestic market.' +
+          '\n\n' +
+          'These brands are backed by our extensive manufacturing capabilities, stringent quality standards, carefully selected tobacco blends, and deep understanding of local consumer preferences. With strong market recognition and broad market reach, our premium portfolio caters to multiple local markets and consumer segments across Bangladesh, reflecting the strength and scale of ABUL KHAIR TOBACCO as a leading local tobacco manufacturer.',
         specs: [],
-        hasDetailPage: false,
+        hasDetailPage: true,
       },
     ],
   },
@@ -217,6 +231,16 @@ export const categoryBySlug = (slug: string | undefined) =>
 
 export const productBySlug = (categorySlug: string | undefined, slug: string | undefined) =>
   categoryBySlug(categorySlug)?.products.find((p) => p.slug === slug);
+
+/**
+ * A long description as its paragraphs: split on the blank line(s) between them, each
+ * trimmed, empties dropped. Absent text gives []. One-paragraph copy gives [text].
+ */
+export const paragraphs = (text: string | undefined): string[] =>
+  (text ?? '')
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
 /** Flat list for the enquiry form's "product of interest" field. */
 export const allProducts = categories.flatMap((c) =>

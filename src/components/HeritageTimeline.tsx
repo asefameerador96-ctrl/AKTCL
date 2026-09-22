@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import Reveal from '@/components/Reveal';
-import { DrawnRule, SectionHead, WRAP } from '@/components/PageHeader';
+import { DrawnRule, SECTION_Y, SectionHead, WRAP } from '@/components/PageHeader';
 import SplitReveal from '@/components/motion/SplitReveal';
 import { milestones } from '@/content/about';
 import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
@@ -38,25 +38,25 @@ const HeritageTimeline = ({ className }: HeritageTimelineProps) => {
   const shown = useReveal(useInView(trackRef, { skip: still }));
 
   const count = milestones.length;
-  // The nodes follow the rule along: all set within ~0.9 s however many there are.
-  const lag = (i: number) => i * Math.min(0.3, 0.9 / count);
+  // The nodes follow the rule along: all set within ~0.5 s however many there are.
+  const lag = (i: number) => i * Math.min(0.2, 0.5 / count);
   const pop = (i: number) =>
     still
       ? undefined
       : {
           transform: shown ? 'none' : 'scale(0)',
-          transition: revealTransition(shown, 'transform', 0.7, 0.15 + lag(i)),
+          transition: revealTransition(shown, 'transform', 0.6, 0.1 + lag(i)),
         };
 
   return (
-    <section aria-labelledby="heritage-heading" className={cn(WRAP, 'py-24 md:py-36', className)}>
+    <section aria-labelledby="heritage-heading" className={cn(WRAP, SECTION_Y, className)}>
       <SectionHead label="Heritage" title="Our Milestones" id="heritage-heading" />
 
       <div
         ref={trackRef}
         // Focusable only once there is something to scroll to.
         tabIndex={count > FITS ? 0 : undefined}
-        className="mt-14 md:mt-24 md:overflow-x-auto md:pb-6"
+        className="mt-10 md:mt-14 md:overflow-x-auto md:pb-6"
       >
         <div className="relative md:w-max md:min-w-full">
           <DrawnRule className="absolute inset-x-0 top-1 hidden md:block" />
@@ -82,7 +82,7 @@ const HeritageTimeline = ({ className }: HeritageTimelineProps) => {
                     <SplitReveal as="span" text={milestone.year} delay={lag(i)} />
                   </time>
                 </h3>
-                <Reveal as="p" delay={0.2 + lag(i)} className="text-body mt-4 max-w-[34ch] text-muted-foreground md:mt-6">
+                <Reveal as="p" delay={0.1 + lag(i)} className="text-body mt-4 max-w-[34ch] text-muted-foreground md:mt-6">
                   {milestone.text}
                 </Reveal>
               </li>

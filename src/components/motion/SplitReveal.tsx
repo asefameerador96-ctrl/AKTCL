@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { isStill, revealTransition, useInView, useReveal } from '@/lib/motion';
+import { isStill, revealTransition, useInView, useReveal, viewDelay } from '@/lib/motion';
 
 export interface SplitRevealProps {
   /** Verbatim copy from src/content — this component never alters the words. */
@@ -11,7 +11,7 @@ export interface SplitRevealProps {
   className?: string;
   /** Seconds before the first piece moves. */
   delay?: number;
-  /** Seconds between pieces (60–90 ms reads best). Long text is compressed to fit 0.6 s. */
+  /** Seconds between pieces (40–60 ms reads best). Long text is compressed to fit 0.3 s. */
   stagger?: number;
   /** 'view': every time it scrolls on screen, back down as it leaves. 'enter': page-load choreography, once. */
   trigger?: 'view' | 'enter';
@@ -20,19 +20,26 @@ export interface SplitRevealProps {
   id?: string;
 }
 
-const DURATION_S = 1;
+const DURATION_S = 0.6;
 /** However many pieces there are, the last one starts within this many seconds. */
-const MAX_SPREAD_S = 0.6;
+const MAX_SPREAD_S = 0.3;
+
+/** A headline's word waits a full line down, under its mask. */
+const MASKED = 'translate3d(0, calc(100% + 0.3em), 0)';
+/** Running text is never masked: its pieces fade up this far (16px at most). */
+const LIFTED = 'translate3d(0, min(0.3em, 16px), 0)';
 
 const stripPunctuation = (word: string) => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').toLowerCase();
 
 /**
- * Masked slide-up reveal: every word sits in its own clipped inline-block and rises
- * into place with expo-out — each time the line comes on screen, sinking back into
- * its masks (all at once, quicker) as it leaves. Words stay ordinary inline boxes
- * with real spaces between them, so the text wraps, balances and tracks exactly as
- * plain text would — which is also why swapping the prerendered plain heading for
- * this one shifts nothing.
+ * Word-by-word reveal, each time the line comes on screen and back once it has gone
+ * (lib/motion). A headline (h1–h3) is masked: every word sits in its own clipped
+ * inline-block and rises into place with expo-out. Anything else — a pull-quote, a
+ * figure — is never clipped: its words fade up 16px at most, so a paragraph on screen
+ * is never a blank. The whole line has landed within about 0.9 s. Words stay ordinary
+ * inline boxes with real spaces between them, so the text wraps, balances and tracks
+ * exactly as plain text would — which is also why swapping the prerendered plain
+ * heading for this one shifts nothing.
  *
  * Read out once: headings carry the full string as aria-label; a <p>/<span> (where
  * aria-label is not allowed) gets a screen-reader-only copy. The animated pieces are
@@ -44,7 +51,7 @@ const SplitReveal = ({
   by = 'word',
   className,
   delay = 0,
-  stagger = 0.08,
+  stagger = 0.05,
   trigger = 'view',
   italicWords,
   id,
@@ -112,16 +119,25 @@ const SplitReveal = ({
   const steps = Math.max(1, order(words.length - 1));
   const step = Math.min(stagger, MAX_SPREAD_S / steps);
   const isHeading = Tag === 'h1' || Tag === 'h2' || Tag === 'h3';
+  // On scroll the first piece waits no longer than VIEW_DELAY_MAX_S (lib/motion); the
+  // word-to-word stagger after it is untouched.
+  const start = trigger === 'view' ? viewDelay(delay) : delay;
 
   const pieces = words.map((word, i) => (
     <span key={i} aria-hidden={isHeading ? true : undefined}>
       {i > 0 && ' '}
-      <span data-split-word="" className={cn('inline-block', masked && 'split-mask')}>
+      <span data-split-word="" className={cn('inline-block', isHeading && masked && 'split-mask')}>
         <span
           className="inline-block will-change-transform"
           style={{
-            transform: shown ? 'none' : 'translate3d(0, calc(100% + 0.3em), 0)',
-            transition: revealTransition(shown, 'transform', DURATION_S, delay + order(i) * step),
+            transform: shown ? 'none' : isHeading ? MASKED : LIFTED,
+            opacity: isHeading ? undefined : shown ? 1 : 0,
+            transition: revealTransition(
+              shown,
+              isHeading ? 'transform' : ['opacity', 'transform'],
+              DURATION_S,
+              start + order(i) * step
+            ),
             willChange: masked ? undefined : 'auto',
           }}
           // The mask would shave a swash or an italic overhang at rest; once the

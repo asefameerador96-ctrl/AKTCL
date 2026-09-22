@@ -6,6 +6,7 @@ import {
   GROUP_UNDERLINE,
   ROW_LINE,
   ROW_SHIFT,
+  SECTION_Y,
   SectionHead,
   TEXT_LINK,
   WRAP,
@@ -28,7 +29,7 @@ const productHref = (category: ProductCategory, product: Product) =>
     : `/products/${category.slug}`;
 
 /** Seconds between one row's hairline starting to draw and the next. */
-const LINE_STAGGER = 0.06;
+const LINE_STAGGER = 0.04;
 
 const ARROW = 'self-center text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent';
 
@@ -39,6 +40,9 @@ const ARROW = 'self-center text-foreground transition-colors group-hover:text-ac
  * name steps 8px along. Each row carries the hairline under it (the category's own
  * rule is the first row's top), and they draw in one after another each time the
  * list comes on screen, and all back out at once as it leaves.
+ *
+ * Two to a line from md, so the directory is about as tall as the category's head
+ * beside it: a single long column left a tall empty cell under the head.
  */
 const RangeList = ({ category }: { category: ProductCategory }) => {
   const [still] = useState(isStill);
@@ -51,13 +55,20 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
       // Preflight strips the markers, and with them the list role in Safari.
       role="list"
       aria-label={`${category.label} range`}
+      className="md:grid md:grid-cols-2"
     >
       {category.products.map((product, i) => (
-        <li key={product.slug}>
+        // An odd one out at the end takes the whole line: no empty half-row beside it.
+        <li key={product.slug} className="min-w-0 md:[&:last-child:nth-child(odd)]:col-span-2">
           <Link
             to={productHref(category, product)}
             data-cursor="open"
-            className="group relative flex min-h-11 items-baseline gap-6 py-5 text-foreground md:gap-8 md:py-6 lg:pl-8"
+            className={cn(
+              'group relative flex h-full min-h-11 items-baseline gap-6 py-5 text-foreground md:py-6',
+              // The first of each pair keeps clear of the rule beside the head (lg) and
+              // of its neighbour; the second keeps clear of the first.
+              i % 2 === 0 ? 'md:pr-8 lg:pl-8' : 'md:pl-8'
+            )}
           >
             <span aria-hidden="true" className={ROW_LINE} />
             <span
@@ -68,7 +79,7 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
                   ? undefined
                   : {
                       transform: shown ? 'none' : 'scaleX(0)',
-                      transition: revealTransition(shown, 'transform', 1.1, i * LINE_STAGGER),
+                      transition: revealTransition(shown, 'transform', 0.6, i * LINE_STAGGER),
                     }
               }
             />
@@ -84,12 +95,12 @@ const RangeList = ({ category }: { category: ProductCategory }) => {
 /**
  * "What We Export" — the About copy names the export range in a sentence; this
  * turns the same list into crawlable links, straight from src/content/products.ts.
- * Each category is a ruled 4/8 split: its name, line and onward links hold in the
- * narrow cell while the directory scrolls past in the wide one.
+ * Each category is a ruled 4/8 split: its name, line and onward links in the narrow
+ * cell, the directory, two to a line, in the wide one — the two of about one height.
  */
 const ExportRange = ({ className }: ExportRangeProps) => (
   <section aria-labelledby="export-range-heading" className={cn('bg-secondary/40', className)}>
-    <div className={cn(WRAP, 'py-24 md:py-36')}>
+    <div className={cn(WRAP, SECTION_Y)}>
       <SectionHead
         label={productsIntro.eyebrow}
         title={productsIntro.heading}
@@ -100,12 +111,11 @@ const ExportRange = ({ className }: ExportRangeProps) => (
       </SectionHead>
 
       {categories.map((category) => (
-        <article key={category.slug} className="relative mt-16 grid border-t border-border md:mt-24 lg:grid-cols-12">
+        <article key={category.slug} className="relative mt-12 grid border-t border-border md:mt-16 lg:grid-cols-12">
           <span aria-hidden="true" className="absolute inset-y-0 left-[33.333333%] hidden w-px bg-border lg:block" />
 
-          {/* Holds beside its list while the rows scroll past. Below lg its bottom
-              rule is the first row's top. */}
-          <Reveal className="border-b border-border pb-8 pt-6 lg:sticky lg:top-24 lg:col-span-4 lg:self-start lg:border-b-0 lg:pb-12 lg:pr-8 lg:pt-8">
+          {/* Below lg its bottom rule is the first row's top. */}
+          <Reveal className="border-b border-border pb-8 pt-6 lg:col-span-4 lg:border-b-0 lg:pb-10 lg:pr-8 lg:pt-8">
             {/* No "Category 01" eyebrow: the numbering was decoration, and the name says it.
                 Not a link: "View …" below goes to the same page with a full-size target. */}
             <h3 className="display-sm text-foreground">{category.title}</h3>
@@ -134,7 +144,7 @@ const ExportRange = ({ className }: ExportRangeProps) => (
       ))}
 
       {/* The directory's closing row, not a boxed button. */}
-      <Reveal className="mt-16 md:mt-24">
+      <Reveal className="mt-12 md:mt-16">
         <Link
           to="/products"
           data-cursor="open"

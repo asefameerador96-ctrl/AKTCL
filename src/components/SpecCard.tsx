@@ -20,7 +20,7 @@ interface SpecCardProps {
 
 const ON_REQUEST = 'On request';
 /** Seconds between one hairline starting to draw and the next. */
-const LINE_STAGGER = 0.06;
+const LINE_STAGGER = 0.04;
 
 /**
  * The product data sheet — ruled rows, not a card: a rule in the text colour opens it,
@@ -54,7 +54,7 @@ const SpecCard = ({ rows, templateLabels = [], product }: SpecCardProps) => {
           ? undefined
           : {
               transform: shown ? 'none' : 'scaleX(0)',
-              transition: revealTransition(shown, 'transform', 1.1, i * LINE_STAGGER),
+              transition: revealTransition(shown, 'transform', 0.6, i * LINE_STAGGER),
             }
       }
     />

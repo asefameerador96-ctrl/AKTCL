@@ -447,7 +447,7 @@ const Gallery = () => {
           </div>
         </section>
       ) : (
-        <section aria-labelledby="gallery-heading" className="bg-background py-24 md:py-32">
+        <section aria-labelledby="gallery-heading" className="bg-background py-20 md:py-24 lg:py-28">
           {heading}
           <div className="mt-10 md:mx-auto md:mt-14 md:max-w-7xl md:px-6">
             <ul className="flex snap-x snap-mandatory scroll-px-4 overflow-x-auto border-y px-4 sm:scroll-px-6 sm:px-6 md:grid md:grid-cols-3 md:overflow-visible md:border-r md:border-t-0 md:p-0 lg:grid-cols-4">

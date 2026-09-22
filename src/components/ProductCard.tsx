@@ -38,7 +38,7 @@ const FRAME = {
 
 /** The widest grid these cells sit in; the stagger restarts on every row of it. */
 const COLUMNS = 4;
-const STAGGER_S = 0.07;
+const STAGGER_S = 0.04;
 
 /**
  * Catalogue CELL. It draws no border, radius or shadow of its own: it is made to sit
@@ -67,26 +67,20 @@ const ProductCard = ({
   const frame = FRAME[aspect];
   const delay = (index % COLUMNS) * STAGGER_S;
 
-  // The cut-outs are shot 3:4 on an off-white sweep, so any letterboxing shows a
-  // seam against the tile. A photo whose orientation matches the frame fills it
-  // (nothing meaningful is cropped); a mismatched one is shown whole, inset.
-  const { w, h } = image.image.img;
-  const fillsFrame = (h >= w) === (aspect === 'portrait');
-
   const body = (
     <div className="flex h-full flex-col">
-      <ImageReveal delay={delay} className={frame.ratio}>
-        {/* The tile rides inside the reveal, so the cut-out keeps multiplying into it while the frame opens. */}
+      {/* The frame is the tile — the cut-outs' own ground — and the photograph fills it
+          edge to edge (cover, centred, no inset): no second tone ever shows beside it,
+          so nothing reads as a picture still loading. The cut-outs are shot 3:4, the
+          portrait frame's own ratio, so nothing meaningful is cropped. */}
+      <ImageReveal delay={delay} className={cn(frame.ratio, 'bg-tile')}>
         <div className="absolute inset-0 bg-tile">
           <LazyImage
             image={image.image}
             alt={image.alt}
             sizes={frame.sizes}
-            className={cn(
-              'product-shot absolute inset-0 h-full w-full',
-              fillsFrame ? 'object-cover' : 'object-contain p-4 md:p-6'
-            )}
-            style={{ objectPosition: image.position }}
+            className="product-shot absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: image.position ?? '50% 50%' }}
           />
           {to && (
             // The hover: the tile's own ink at 4%, over the cut-out. Opacity only.
@@ -99,7 +93,7 @@ const ProductCard = ({
       </ImageReveal>
 
       <Reveal
-        delay={delay + 0.12}
+        delay={delay + 0.04}
         className="relative flex flex-1 flex-col border-t border-border px-3.5 pb-6 pt-4 sm:px-5 sm:pb-7 sm:pt-5"
       >
         {to && <TravelArrow mode="in" className="absolute right-3.5 top-4 text-foreground sm:right-5 sm:top-5" />}

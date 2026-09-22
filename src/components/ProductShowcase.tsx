@@ -8,27 +8,23 @@ import { RowLink, SectionHead, TravelArrow } from '@/components/Ruled';
 import ImageReveal from '@/components/motion/ImageReveal';
 import SplitReveal from '@/components/motion/SplitReveal';
 import { cn } from '@/lib/utils';
-import { categories, productsIntro, type ProductCategory } from '@/content/products';
+import { categories, productsIntro, type Product, type ProductCategory } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 
 /** Same URL shape as <EnquiryCta product>, so the enquiry form opens pre-filled. */
 const enquiryPath = (product: string) => `/contact?product=${encodeURIComponent(product)}`;
 
-// The pair is a 7/5 split sharing one vertical hairline. Both tiles are six twelfths
-// tall (7:6 beside 5:6), so the rule under them runs straight across the two cells.
-// Stacked, they are no wider than 6:5: the portrait cut-outs lose their tips beyond that.
-const CELL_SHAPES = [
-  {
-    cell: 'md:col-span-7',
-    ratio: 'aspect-square sm:aspect-[6/5] md:aspect-[7/6]',
-    sizes: '(min-width: 1280px) 720px, (min-width: 768px) 58vw, 100vw',
-  },
-  {
-    cell: 'md:col-span-5',
-    ratio: 'aspect-square sm:aspect-[6/5] md:aspect-[5/6]',
-    sizes: '(min-width: 1280px) 515px, (min-width: 768px) 42vw, 100vw',
-  },
-] as const;
+// The pair is an even split, 50/50 on one vertical hairline (owner, 2026-09-22: two
+// pictures side by side always share the width equally). The two tiles are one shape,
+// square beside square, so they stand level and the rule under them runs straight
+// across both cells. The cut-outs are shot 3:4 with the subject in the middle half, so a
+// square cover-crop only trims empty sweep. Stacked on a phone, the tile is no wider
+// than 6:5: the portrait cut-outs lose their tips beyond that.
+const CELL = {
+  ratio: 'aspect-square sm:aspect-[6/5] md:aspect-square',
+  // Half the 1232px container from xl, half the window from md, the window below.
+  sizes: '(min-width: 1280px) 616px, (min-width: 768px) 50vw, 100vw',
+} as const;
 
 /**
  * One category as a CELL of the ruled split: tile flush to the rules, title, one line,
@@ -39,11 +35,10 @@ const CELL_SHAPES = [
 const CategoryCell = ({ category, index }: { category: ProductCategory; index: number }) => {
   const id = useId();
   const cover = categoryImages[category.slug];
-  const shape = CELL_SHAPES[index % CELL_SHAPES.length];
   const delay = index * 0.12;
 
   return (
-    <article className={shape.cell}>
+    <article>
       <Link
         to={`/products/${category.slug}`}
         aria-labelledby={`${id}-title ${id}-cta`}
@@ -53,13 +48,13 @@ const CategoryCell = ({ category, index }: { category: ProductCategory; index: n
         className="group relative flex h-full flex-col focus-visible:z-10"
       >
         {cover && (
-          <ImageReveal delay={delay} className={shape.ratio}>
+          <ImageReveal delay={delay} className={CELL.ratio}>
             {/* The tile rides inside the reveal, so the cut-out keeps multiplying into it while the frame opens. */}
             <div className="absolute inset-0 bg-tile">
               <LazyImage
                 image={cover.image}
                 alt={cover.alt}
-                sizes={shape.sizes}
+                sizes={CELL.sizes}
                 className="product-shot absolute inset-0 h-full w-full object-cover"
                 style={{ objectPosition: cover.position }}
               />
@@ -102,37 +97,44 @@ const GroupLabel = ({ children }: { children: string }) => (
   </Reveal>
 );
 
+/** A cigarette line's own page where it has one, otherwise a pre-filled enquiry. */
+const cigaretteLink = (category: ProductCategory, product: Product) =>
+  product.hasDetailPage ? `/products/${category.slug}/${product.slug}` : enquiryPath(product.name);
+
 /**
- * "What We Export" — the catalogue, drawn rather than boxed: a ruled 7/5 split for the
+ * "What We Export" — the catalogue, drawn rather than boxed: an even ruled split for the
  * two categories, a hairline grid of leaf cells (their borders shared), and the
  * cigarette formats as directory rows. Everything is one step from a product page or
  * a pre-filled enquiry.
+ *
+ * No top padding: it follows "Who We Are" on the same paper, whose own bottom padding
+ * makes the gap (two paddings stacked would leave a band of nothing between them).
  */
 const ProductShowcase = () => {
   const leaf = categories.find((c) => c.slug === 'leaf-tobacco');
   const cigarettes = categories.find((c) => c.slug === 'finished-cigarettes');
 
   return (
-    <section id="products" aria-labelledby="products-heading" className="bg-background py-24 md:py-32 lg:py-36">
+    <section id="products" aria-labelledby="products-heading" className="bg-background pb-20 md:pb-24 lg:pb-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead label={productsIntro.eyebrow} />
 
-        {/* Headline over the wide cell, lead over the narrow one: the split below starts here. */}
-        <div className="mt-12 grid gap-y-8 md:mt-16 lg:mt-20 lg:grid-cols-12 lg:items-end">
+        {/* Headline over the one cell, lead over the other: the split below starts here. */}
+        <div className="mt-12 grid gap-y-8 md:mt-16 lg:mt-20 lg:grid-cols-2 lg:items-end">
           <SplitReveal
             as="h2"
             id="products-heading"
             text={productsIntro.heading}
             italicWords={['Our']}
-            className="display-lg text-foreground lg:col-span-7 lg:pr-8"
+            className="display-lg text-foreground lg:pr-8"
           />
-          <Reveal as="p" delay={0.15} className="lead lg:col-span-5 lg:pb-2 lg:pl-8">
+          <Reveal as="p" delay={0.15} className="lead lg:pb-2 lg:pl-8">
             {productsIntro.short}
           </Reveal>
         </div>
 
-        {/* The two categories */}
-        <div className="hairline-grid mt-14 grid md:mt-20 md:grid-cols-12">
+        {/* The two categories, half and half */}
+        <div className="hairline-grid mt-14 grid md:mt-20 md:grid-cols-2">
           {categories.map((category, i) => (
             <CategoryCell key={category.slug} category={category} index={i} />
           ))}
@@ -158,7 +160,8 @@ const ProductShowcase = () => {
           </div>
         )}
 
-        {/* Cigarette formats: no detail pages yet, so each row opens a pre-filled enquiry */}
+        {/* Cigarette lines: a row with a page of its own (AKT Signature Collection) opens
+            it; the rest, which have none yet, open a pre-filled enquiry. */}
         {cigarettes && (
           <div className="mt-24 md:mt-32">
             <GroupLabel>{cigarettes.label}</GroupLabel>
@@ -170,7 +173,7 @@ const ProductShowcase = () => {
                     name={product.name}
                     short={product.short}
                     rows={product.specs}
-                    to={enquiryPath(product.name)}
+                    to={cigaretteLink(cigarettes, product)}
                   />
                 </Reveal>
               ))}

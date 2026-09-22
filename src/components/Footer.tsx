@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FEATURES } from '@/content/features';
 import { site } from '@/content/site';
 import { journey, journeyIntro } from '@/content/journey';
 import { categories } from '@/content/products';
@@ -39,6 +40,7 @@ const MONO_LINK = 'font-mono text-[0.8125rem] font-medium uppercase tracking-[0.
 const ColumnTitle = ({ children }: { children: ReactNode }) => <h3 className="eyebrow mb-4 lg:mb-6">{children}</h3>;
 // A column heading that is itself a link: the label's own muted colour at rest, the same
 // drawn underline, and a 44px target that the negative margin keeps out of the layout.
+// The lockup's "Part of Abul Khair Group" line, a link to the group's site, is drawn the same way.
 const TITLE_LINK =
   'link-underline -my-3 inline-block bg-origin-content py-3 transition-[background-size,color] hover:text-ink-foreground focus-visible:text-ink-foreground';
 
@@ -77,6 +79,10 @@ const Footer = () => {
        * phone's two columns as well as on the desktop. That column runs a narrower right
        * padding, so "Cigarette Sizes" sets on one line.
        *
+       * The sizes list is parked behind FEATURES.cigaretteSizes (src/content/features.ts):
+       * while the flag is off it is not rendered, and the journey list has the column to
+       * itself, closing on the full bottom padding the other columns have.
+       *
        * lg only (1024–1279px): two twelfths are too narrow for that title, and the
        * lockup (a fixed 230px) has nothing to spare, so the lockup takes its own row as
        * it does on a tablet, and the three columns share the row beneath it in thirds —
@@ -93,11 +99,22 @@ const Footer = () => {
             <Logo variant="onDark" size="md" />
           </Link>
           <p className="display-sm mt-10 text-ink-foreground">{site.tagline}</p>
-          <p className="eyebrow mt-4">Part of {site.parent}</p>
+          <p className="eyebrow mt-4">
+            <a href={site.parentUrl} target="_blank" rel="noopener" data-lead="group-site" className={TITLE_LINK}>
+              Part of {site.parent}
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </p>
         </div>
 
         <div className="border-t xl:border-l xl:border-t-0">
-          <nav aria-label={journeyIntro.heading} className="py-10 pr-4 lg:pr-8 xl:pb-10 xl:pl-8 xl:pr-4 xl:pt-20">
+          <nav
+            aria-label={journeyIntro.heading}
+            className={cn(
+              'py-10 pr-4 lg:pr-8 xl:pl-8 xl:pr-4 xl:pt-20',
+              FEATURES.cigaretteSizes ? 'xl:pb-10' : 'xl:pb-20'
+            )}
+          >
             <ColumnTitle>
               <Link to="/journey" className={TITLE_LINK}>
                 {journeyIntro.heading}
@@ -114,22 +131,24 @@ const Footer = () => {
             </ul>
           </nav>
 
-          <nav aria-label="Cigarette Sizes" className="border-t py-10 pr-4 lg:pr-8 xl:pb-20 xl:pl-8 xl:pr-4 xl:pt-10">
-            <ColumnTitle>
-              <Link to="/cigarette-sizes" className={TITLE_LINK}>
-                Cigarette Sizes
-              </Link>
-            </ColumnTitle>
-            <ul>
-              {cigaretteSizes.map((size) => (
-                <li key={size.slug}>
-                  <Link to={`/cigarette-sizes/${size.slug}`} className={LINK}>
-                    {size.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {FEATURES.cigaretteSizes && (
+            <nav aria-label="Cigarette Sizes" className="border-t py-10 pr-4 lg:pr-8 xl:pb-20 xl:pl-8 xl:pr-4 xl:pt-10">
+              <ColumnTitle>
+                <Link to="/cigarette-sizes" className={TITLE_LINK}>
+                  Cigarette Sizes
+                </Link>
+              </ColumnTitle>
+              <ul>
+                {cigaretteSizes.map((size) => (
+                  <li key={size.slug}>
+                    <Link to={`/cigarette-sizes/${size.slug}`} className={LINK}>
+                      {size.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
         </div>
 
         <nav aria-label="Products" className="border-l border-t py-10 pl-4 lg:px-8 xl:border-t-0 xl:py-20">
