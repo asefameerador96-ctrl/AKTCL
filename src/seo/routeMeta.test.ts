@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { FEATURES } from '@/content/features';
 import { journey } from '@/content/journey';
-import { categories } from '@/content/products';
+import { categories, paragraphs } from '@/content/products';
 import { SPEC_GROUPS, SPEC_LABELS, cigaretteSizes, sizeBySlug } from '@/content/sizes';
 import { ROUTES, ROUTE_BY_PATH, SITE, normalisePath } from './routeMeta';
 
@@ -12,10 +13,24 @@ const read = (file: string) => readFileSync(resolve(process.cwd(), file), 'utf8'
 
 const paths = ROUTES.map((r) => r.path);
 
-/** <Route path="..."> patterns declared in App.tsx, minus the catch-all. */
-const appPatterns = [...read('src/App.tsx').matchAll(/<Route\s+path="([^"]+)"/g)]
-  .map((m) => m[1])
-  .filter((pattern) => pattern !== '*');
+/** The parked Cigarette Sizes segment: the index and everything under it. */
+const SIZES_PATH = '/cigarette-sizes';
+const isSizesPath = (path: string) => path === SIZES_PATH || path.startsWith(`${SIZES_PATH}/`);
+
+/** <Route path="..."> patterns in a piece of JSX source, minus the catch-all. */
+const routePatterns = (source: string) =>
+  [...source.matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1]).filter((pattern) => pattern !== '*');
+
+const appSource = read('src/App.tsx');
+
+/** App.tsx's `{FEATURES.cigaretteSizes && ( … )}` block: routes registered only while the flag is on. */
+const sizesGate = appSource.match(/\{FEATURES\.cigaretteSizes && \(([\s\S]*?)\)\}/);
+const gatedPatterns = routePatterns(sizesGate?.[1] ?? '');
+
+/** The patterns App.tsx registers with the flags as they are now. */
+const appPatterns = routePatterns(appSource).filter(
+  (pattern) => FEATURES.cigaretteSizes || !gatedPatterns.includes(pattern)
+);
 
 /** "/journey/:slug" matches "/journey/seed": same depth, ":param" matches any one segment. */
 const matches = (pattern: string, path: string) => {
@@ -100,18 +115,81 @@ describe('content coverage', () => {
     }
   });
 
-  it('has the sizes index and a route for every cigarette size, titled within 70 characters', () => {
-    expect(ROUTE_BY_PATH['/cigarette-sizes']).toBeDefined();
-    expect(new Set(cigaretteSizes.map((s) => s.slug)).size).toBe(cigaretteSizes.length);
-    for (const size of cigaretteSizes) {
-      const route = ROUTE_BY_PATH[`/cigarette-sizes/${size.slug}`];
-      expect(route, size.slug).toBeDefined();
-      expect(route.title.length, `title of /cigarette-sizes/${size.slug}: "${route.title}"`).toBeLessThanOrEqual(70);
-      expect(route.breadcrumbs[0]?.path).toBe('/cigarette-sizes');
-      // Formats, not products: no Product JSON-LD.
-      expect(route.product, size.slug).toBeUndefined();
-      expect(sizeBySlug(size.slug)).toBe(size);
+  it('keeps every long description free of stray whitespace, paragraph by paragraph', () => {
+    for (const product of categories.flatMap((c) => c.products)) {
+      if (product.long === undefined) continue;
+      const parts = paragraphs(product.long);
+      expect(parts.length, product.slug).toBeGreaterThan(0);
+      // Paragraphs are joined by exactly one blank line and nothing else.
+      expect(parts.join('\n\n'), product.slug).toBe(product.long);
     }
+  });
+
+  it('splits long descriptions on blank lines only', () => {
+    expect(paragraphs(undefined)).toEqual([]);
+    expect(paragraphs('One paragraph.')).toEqual(['One paragraph.']);
+    expect(paragraphs('First.\n\nSecond.')).toEqual(['First.', 'Second.']);
+    expect(paragraphs('First.\n \n\nSecond.\n')).toEqual(['First.', 'Second.']);
+  });
+
+  it('gives the AKT Signature Collection its page and the workbook’s two F26 paragraphs', () => {
+    const finished = categories.find((c) => c.slug === 'finished-cigarettes');
+    const signature = finished?.products.find((p) => p.slug === 'akt-signature-collection');
+    expect(signature?.hasDetailPage).toBe(true);
+    expect(paragraphs(signature?.long)).toHaveLength(2);
+    expect(ROUTE_BY_PATH['/products/finished-cigarettes/akt-signature-collection']).toBeDefined();
+    // Row 22 was deleted from the workbook on 2026-09-22; the Excel's order is kept.
+    expect(finished?.products.map((p) => p.slug)).toEqual([
+      'king-size-filter',
+      'super-slim',
+      'nano',
+      'private-label-manufacturing',
+      'akt-signature-collection',
+    ]);
+  });
+});
+
+/*
+ * The Cigarette Sizes segment is parked behind FEATURES.cigaretteSizes
+ * (src/content/features.ts, docs/feature-flags.md). The route tests run only while it is
+ * live; the data tests on sizes.ts always run, so the parked content stays ready to go
+ * back on.
+ */
+describe('cigarette sizes (parked segment)', () => {
+  it('lists /cigarette-sizes routes only while FEATURES.cigaretteSizes is on', () => {
+    const sizePaths = paths.filter(isSizesPath);
+    if (FEATURES.cigaretteSizes) expect(sizePaths).toHaveLength(cigaretteSizes.length + 1);
+    // Flag off: nothing under /cigarette-sizes is prerendered, in the sitemap or linked.
+    else expect(sizePaths).toEqual([]);
+  });
+
+  it('registers the size routes in App.tsx behind the flag, and only there', () => {
+    expect(sizesGate, 'App.tsx has a {FEATURES.cigaretteSizes && ( … )} block').not.toBeNull();
+    expect(gatedPatterns).toEqual([SIZES_PATH, `${SIZES_PATH}/:slug`]);
+    const ungated = routePatterns(appSource.replace(sizesGate?.[0] ?? '', ''));
+    expect(ungated.filter(isSizesPath), 'size routes outside the gate').toEqual([]);
+  });
+
+  it.runIf(FEATURES.cigaretteSizes)(
+    'has the sizes index and a route for every cigarette size, titled within 70 characters',
+    () => {
+      expect(ROUTE_BY_PATH[SIZES_PATH]).toBeDefined();
+      for (const size of cigaretteSizes) {
+        const route = ROUTE_BY_PATH[`${SIZES_PATH}/${size.slug}`];
+        expect(route, size.slug).toBeDefined();
+        expect(route.title.length, `title of ${SIZES_PATH}/${size.slug}: "${route.title}"`).toBeLessThanOrEqual(70);
+        expect(route.breadcrumbs[0]?.path).toBe(SIZES_PATH);
+        // Formats, not products: no Product JSON-LD.
+        expect(route.product, size.slug).toBeUndefined();
+        // The description leads with the tagline.
+        expect(route.description.startsWith(size.tagline), size.slug).toBe(true);
+      }
+    }
+  );
+
+  it('has unique size slugs that sizeBySlug finds', () => {
+    expect(new Set(cigaretteSizes.map((s) => s.slug)).size).toBe(cigaretteSizes.length);
+    for (const size of cigaretteSizes) expect(sizeBySlug(size.slug)).toBe(size);
   });
 
   it('lists every size spec field exactly once, with a label', () => {
@@ -134,8 +212,8 @@ describe('content coverage', () => {
         expect(text.trim(), `${size.slug}: "${text}"`).toBe(text);
         expect(text.length, `${size.slug}: empty copy`).toBeGreaterThan(0);
       }
-      // The description leads with the tagline.
-      expect(ROUTE_BY_PATH[`/cigarette-sizes/${size.slug}`].description.startsWith(size.tagline)).toBe(true);
+      // (That each page's description leads with the tagline is checked with the routes,
+      // above, while the segment is live.)
     }
   });
 

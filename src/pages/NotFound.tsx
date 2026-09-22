@@ -18,12 +18,14 @@ const DESTINATIONS: { to: string; label: string; lead?: string }[] = [
  *
  * The numerals are the display moment — outlined, monumental, decorative (the mono
  * line and the <h1> say the same to a screen reader). Beside them, ruled off by the
- * page's one vertical hairline: the statement and three directory rows.
+ * page's one vertical hairline: the statement and three directory rows. Both cells
+ * are as tall as what they hold and centred on each other: no stretch of empty page
+ * between a label and the thing it labels.
  */
 const NotFound = () => (
   <PageLayout showEnquiryCta={false}>
-    <section className="mx-auto grid max-w-7xl px-4 sm:px-6 lg:min-h-[78vh] lg:grid-cols-12">
-      <div className="flex flex-col justify-between gap-10 py-14 md:py-20 lg:col-span-7 lg:py-28 lg:pr-12">
+    <section className="mx-auto grid max-w-7xl px-4 sm:px-6 lg:grid-cols-12">
+      <div className="flex flex-col gap-8 py-12 md:py-16 lg:col-span-7 lg:justify-center lg:py-24 lg:pr-12">
         <Reveal as="p" trigger="enter" from="none" className="eyebrow">
           Error 404
         </Reveal>
@@ -40,7 +42,7 @@ const NotFound = () => (
         </Reveal>
       </div>
 
-      <div className="flex flex-col justify-end border-t border-border py-14 md:py-20 lg:col-span-5 lg:border-l lg:border-t-0 lg:py-28 lg:pl-12">
+      <div className="flex flex-col justify-center border-t border-border py-12 md:py-16 lg:col-span-5 lg:border-l lg:border-t-0 lg:py-24 lg:pl-12">
         <SplitReveal as="h1" trigger="enter" delay={0.2} text="Page not found" className="display-md text-foreground" />
         <Reveal as="p" trigger="enter" delay={0.4} className="lead mt-6 max-w-[44ch]">
           The page you are looking for may have moved, or the address may be mistyped. These will get you back on

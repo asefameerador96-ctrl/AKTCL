@@ -1,21 +1,38 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import DetailPage from '@/components/DetailPage';
-import { ArrowTravel, SectionHead } from '@/components/PageHeader';
+import { SectionHead } from '@/components/PageHeader';
 import ProductCard from '@/components/ProductCard';
 import SpecCard from '@/components/SpecCard';
+import { RowLink } from '@/components/Ruled';
 import NotFound from '@/pages/NotFound';
-import { categoryBySlug, productBySlug } from '@/content/products';
+import { categoryBySlug, paragraphs, productBySlug } from '@/content/products';
 import { categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
+import { cn } from '@/lib/utils';
 
 /*
- * Row labels for the data sheet while the workbook holds no technical values: every
- * one renders as "On request" (see SpecCard). Whole leaf is traded on grade and
- * chemistry, processed tobacco on its physical properties — hence two sets.
+ * Row labels for the leaf data sheet while the workbook holds no technical values:
+ * every one renders as "On request" (see SpecCard). Whole leaf is traded on grade and
+ * chemistry, processed tobacco on its physical properties — hence two sets. Finished
+ * cigarettes have no template: a product page there (AKT Signature Collection) shows
+ * a data sheet only once AKTCL supplies real rows, and its "Enquire Now" is the route
+ * to a specification meanwhile.
  */
 const LEAF_LABELS = ['Type', 'Grades', 'Packing', 'Nicotine', 'Sugar', 'Crop Year', 'Minimum Order'];
 const PROCESSED_LABELS = ['Form', 'Cut Width', 'Moisture', 'Filling Value', 'Packing', 'Minimum Order'];
 const LEAF_SLUGS = new Set(['virginia-flue-cured', 'burley', 'scrap']);
+const LEAF_CATEGORY = 'leaf-tobacco';
+
+/** "More …" is one full row: never a short row, never an empty ruled cell. */
+const RELATED_MAX = 4;
+// Static class names, so Tailwind sees them. Every cell the same width — a quarter of
+// the sheet from lg, as in the catalogue — and the grid only as wide as its cells.
+const RELATED_COLUMNS: Record<number, string> = {
+  1: 'grid-cols-1 max-w-[20rem]',
+  2: 'grid-cols-2 lg:max-w-[50%]',
+  3: 'grid-cols-1 sm:grid-cols-3 lg:max-w-[75%]',
+  4: 'grid-cols-2 lg:grid-cols-4',
+};
 
 /** /products/:category/:slug — only for products flagged hasDetailPage. */
 const ProductPage = () => {
@@ -32,7 +49,12 @@ const ProductPage = () => {
   const index = siblings.findIndex((p) => p.slug === product.slug);
   const before = siblings[index - 1];
   const after = siblings[index + 1];
-  const others = siblings.filter((p) => p.slug !== product.slug);
+  // The ones that follow this product in the range, wrapping round, one row's worth.
+  const others = [...siblings.slice(index + 1), ...siblings.slice(0, index)].slice(0, RELATED_MAX);
+
+  const templateLabels =
+    category.slug === LEAF_CATEGORY ? (LEAF_SLUGS.has(product.slug) ? LEAF_LABELS : PROCESSED_LABELS) : [];
+  const hasSheet = product.specs.length > 0 || templateLabels.length > 0;
 
   return (
     <DetailPage
@@ -47,22 +69,25 @@ const ProductPage = () => {
       eyebrow={category.label}
       title={product.name}
       lead={product.short}
-      body={product.long ? [product.long] : []}
+      // The workbook splits some long descriptions into paragraphs (AKT Signature
+      // Collection has two); each is set as its own paragraph.
+      body={paragraphs(product.long)}
+      // A product without photography of its own (AKT Signature Collection: its image
+      // is still to be supplied) shows its category's cover.
       images={productImages[product.slug] ?? [categoryImages[category.slug]]}
       containImages
       enquiryProduct={product.name}
       specs={
-        <SpecCard
-          rows={product.specs}
-          templateLabels={LEAF_SLUGS.has(product.slug) ? LEAF_LABELS : PROCESSED_LABELS}
-          product={product.name}
-        />
+        hasSheet ? <SpecCard rows={product.specs} templateLabels={templateLabels} product={product.name} /> : undefined
       }
       related={
         others.length > 0 && (
           <section aria-labelledby="more-products-heading">
             <SectionHead label="Product Range" title={`More ${category.label}`} id="more-products-heading" />
-            <ul role="list" className="hairline-grid mt-14 grid grid-cols-2 md:mt-20 lg:grid-cols-4">
+            <ul
+              role="list"
+              className={cn('hairline-grid mt-10 grid md:mt-12', RELATED_COLUMNS[others.length] ?? RELATED_COLUMNS[4])}
+            >
               {others.map((other, i) => (
                 <li key={other.slug} className="min-w-0">
                   <ProductCard
@@ -75,21 +100,11 @@ const ProductPage = () => {
                   />
                 </li>
               ))}
-              {/* The grid's closing cell: back to the whole category. It also squares
-                  off a row the products alone would leave short. */}
-              <li className="min-w-0">
-                <Link
-                  to={categoryPath}
-                  data-cursor="open"
-                  className="group relative flex h-full min-h-40 flex-col justify-end px-3.5 pb-6 pt-4 text-foreground transition-colors hover:text-accent focus-visible:z-10 focus-visible:text-accent sm:px-5 sm:pb-7 sm:pt-5"
-                >
-                  <span className="flex items-end justify-between gap-4">
-                    <span className="display-xs">All {category.label}</span>
-                    <ArrowTravel className="mb-1.5" />
-                  </span>
-                </Link>
-              </li>
             </ul>
+            {/* The directory's closing row: back to the whole category. */}
+            <RowLink to={categoryPath} display className="border-t-0 border-b">
+              All {category.label}
+            </RowLink>
           </section>
         )
       }

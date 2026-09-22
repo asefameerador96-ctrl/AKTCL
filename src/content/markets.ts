@@ -10,6 +10,7 @@
  * Bangladesh and India, and the section says exactly that in its note line
  * (`reachIntro.note`, the owner-approved wording). Nothing on the page may claim AKTCL
  * exports to these countries, and the tooltip names a region only, never a product.
+ * China is left out of the list at the owner's request (Asef, 2026-09-22): 20 markets.
  *
  * TODO(Asef): replace `markets` with AKTCL's confirmed export markets. Then the note can
  * become "Where we export" (and the heading can stay).
@@ -66,7 +67,6 @@ export const markets: Market[] = [
   { name: 'Vietnam', label: 'Vietnam', region: 'Asia', onMap: true },
   { name: 'Nepal', label: 'Nepal', region: 'Asia', onMap: true },
   { name: 'Sri Lanka', label: 'Sri Lanka', region: 'Asia', onMap: true },
-  { name: 'China', label: 'China', region: 'Asia', onMap: true },
   { name: 'Japan', label: 'Japan', region: 'Asia', onMap: true },
   { name: 'United States of America', label: 'United States', region: 'Americas', onMap: true },
 ];

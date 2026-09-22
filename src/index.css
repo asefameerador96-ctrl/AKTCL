@@ -318,6 +318,12 @@
   html.js:not(.app-live) [data-hero-settle] {
     transform: scale(1.06);
   }
+  /* The same hold for every ImageReveal picture (components/motion): the app starts it
+     at 1.06 and settles it as it comes on screen, so the prerendered paint waits at
+     1.06 too. A transform only: the photograph itself is never hidden. */
+  html.js:not(.app-live) [data-image-reveal] > * {
+    transform: scale(1.06);
+  }
 }
 @keyframes enter-failsafe {
   to {

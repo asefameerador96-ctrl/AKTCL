@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import PageLayout from '@/components/PageLayout';
-import PageHeader, { WRAP } from '@/components/PageHeader';
-import Reveal from '@/components/Reveal';
+import PageHeader, { SECTION_B, SECTION_GAP, WRAP } from '@/components/PageHeader';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +29,7 @@ const PROSE = [
   'text-base leading-[1.65] text-muted-foreground marker:text-accent md:text-[17px]',
   // On the children, not the box: the box carries the cell's padding.
   '[&>*:first-child]:mt-0 [&>*]:max-w-[38rem]',
-  '[&_h2]:mb-5 [&_h2]:mt-14 [&_h2]:border-t [&_h2]:border-border [&_h2]:pt-8 [&_h2]:text-[length:clamp(1.9rem,3vw,2.75rem)] [&_h2]:leading-[1.08] [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground md:[&_h2]:mt-20 md:[&_h2]:pt-10',
+  '[&_h2]:mb-5 [&_h2]:mt-10 [&_h2]:border-t [&_h2]:border-border [&_h2]:pt-6 [&_h2]:text-[length:clamp(1.9rem,3vw,2.75rem)] [&_h2]:leading-[1.08] [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground md:[&_h2]:mt-14 md:[&_h2]:pt-8',
   '[&_p]:mt-4',
   '[&_ul]:mt-4 [&_ul]:list-[square] [&_ul]:space-y-2 [&_ul]:pl-5 [&_li]:pl-2',
   // Links are told apart by their underline, not by colour alone.
@@ -40,38 +39,25 @@ const PROSE = [
 
 /**
  * Shared shell for the Privacy Notice and Terms of Use: the inner pages' masthead
- * (compact), then a ruled 4/8 split — the mono "last updated" note holds in the
- * narrow cell while the text runs down the wide one.
+ * (compact), its mono row carrying the "last updated" date opposite the eyebrow, then
+ * the text in one reading column that hangs from the masthead's closing rule and is
+ * closed by a rule of its own. No side column: a lone date in a tall cell beside the
+ * text was an empty column by another name.
  */
 const LegalPage = ({ path, title, lastUpdated, children }: LegalPageProps) => (
   <PageLayout>
-    <article className="pb-24 md:pb-36">
+    <article className={SECTION_B}>
       <PageHeader
         breadcrumbs={ROUTE_BY_PATH[path]?.breadcrumbs ?? [{ name: title, path }]}
         eyebrow="Legal"
+        meta={`Last updated ${lastUpdated}`}
         title={title}
         size="compact"
       />
 
       <div className={WRAP}>
-        {/* The grid is its own box inside the gutters, so the rule's percentage is the grid's. */}
-        <div className="relative grid border-b border-border lg:grid-cols-12">
-          <span aria-hidden="true" className="absolute inset-y-0 left-[33.333333%] hidden w-px bg-border lg:block" />
-
-          <Reveal
-            trigger="enter"
-            from="none"
-            delay={0.6}
-            className="border-b border-border py-6 lg:sticky lg:top-24 lg:col-span-4 lg:self-start lg:border-b-0 lg:py-10"
-          >
-            <p className="eyebrow">Last updated</p>
-            <p className="mono-label mt-3 text-foreground">{lastUpdated}</p>
-          </Reveal>
-
-          {/* No <Reveal> here: a block this tall may never cross the reveal threshold on
-              a short viewport, and legal text must not depend on an animation to show. */}
-          <div className={cn(PROSE, 'pb-16 pt-10 md:pb-24 lg:col-span-8 lg:pl-8')}>{children}</div>
-        </div>
+        {/* No <Reveal> here: legal text must not depend on an animation to show. */}
+        <div className={cn(PROSE, 'border-b border-border pb-16 md:pb-20', SECTION_GAP)}>{children}</div>
       </div>
     </article>
   </PageLayout>

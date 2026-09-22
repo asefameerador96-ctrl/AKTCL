@@ -20,6 +20,17 @@ import type { Crumb } from '@/seo/routeMeta';
 
 /** Same gutters as the navbar and footer, so page content lines up with the chrome. */
 export const WRAP = 'mx-auto max-w-7xl px-4 sm:px-6';
+/*
+ * The inner pages' vertical rhythm, one step for every section (owner feedback,
+ * 2026-09-22: the gaps between sections read as content still to arrive). Generous,
+ * never cavernous: 64 / 80 / 96px. SECTION_T / SECTION_B where only one side is set
+ * — a section that hangs from the masthead's closing rule takes SECTION_GAP (40–64px)
+ * above it instead.
+ */
+export const SECTION_Y = 'py-16 md:py-20 lg:py-24';
+export const SECTION_T = 'pt-16 md:pt-20 lg:pt-24';
+export const SECTION_B = 'pb-16 md:pb-20 lg:pb-24';
+export const SECTION_GAP = 'pt-10 md:pt-14 lg:pt-16';
 /** Masthead <h1>: monumental, tight, regular weight — the serif does the work. */
 export const DISPLAY_H1 = 'display-xl text-foreground';
 /** Masthead <h1> of the long-form pages (detail, legal), where titles run to a sentence. */
@@ -112,7 +123,7 @@ interface SectionHeadProps {
   italicWords?: string[];
   /** 'lg' where the section is the page's main act. */
   size?: 'md' | 'lg';
-  /** Set over the narrow right-hand cell, foot-aligned with the headline: a lead, a link. */
+  /** Set straight under the headline, in the same column: a lead, a link. */
   children?: ReactNode;
   className?: string;
 }
@@ -121,27 +132,26 @@ interface SectionHeadProps {
  * How a section of an inner page opens — the same way the homepage's do, and with the
  * same piece (Ruled's SectionHead): a hairline drawn across the full measure and the
  * mono label under it. No section number and no count beside it: they were decoration
- * the visitor had to read past. Then the fluid display <h2> over the wide seven columns
- * with whatever goes with it over the narrow five. Left-aligned; never centred.
+ * the visitor had to read past. Then the fluid display <h2>, and whatever goes with it
+ * directly beneath, in one reading column: nothing is parked across the page from its
+ * headline with an empty cell between them. Left-aligned; never centred.
  */
 export const SectionHead = ({ label, title, id, italicWords, size = 'md', children, className }: SectionHeadProps) => (
   <div className={className}>
     {/* The rule and the mono row are the homepage's own (components/Ruled): one drawing. */}
     <RuledHead label={label} />
-    <div className="mt-12 grid gap-y-8 md:mt-16 lg:mt-20 lg:grid-cols-12 lg:items-end">
-      <SplitReveal
-        as="h2"
-        id={id}
-        text={title}
-        italicWords={italicWords}
-        className={cn('text-foreground lg:col-span-7 lg:pr-8', size === 'lg' ? 'display-lg' : 'display-md')}
-      />
-      {children && (
-        <Reveal delay={0.15} className="lg:col-span-5 lg:pb-2 lg:pl-8">
-          {children}
-        </Reveal>
-      )}
-    </div>
+    <SplitReveal
+      as="h2"
+      id={id}
+      text={title}
+      italicWords={italicWords}
+      className={cn('mt-6 max-w-[20ch] text-foreground md:mt-8', size === 'lg' ? 'display-lg' : 'display-md')}
+    />
+    {children && (
+      <Reveal delay={0.1} className="mt-5 md:mt-6">
+        {children}
+      </Reveal>
+    )}
   </div>
 );
 
@@ -153,11 +163,12 @@ interface PageHeaderProps {
   title: string;
   /** Words of the title set in the display italic — typographic emphasis only. */
   italicWords?: string[];
-  /** Offset into the right-hand columns on desktop. */
+  /** Set directly under the <h1>, in the same reading column. */
   lead?: string;
   /**
-   * Mono note opposite the eyebrow: a stage's place in a sequence whose order means
-   * something ("03 / 07" on the journey). Never a decorative index or a count.
+   * Mono note opposite the eyebrow, on the same row: a stage's place in a sequence
+   * whose order means something ("03 / 07" on the journey), a legal page's "Last
+   * updated" date. Never a decorative index or a count.
    */
   meta?: string;
   /** 'compact' for titles that run long (detail and legal pages). */
@@ -168,10 +179,12 @@ interface PageHeaderProps {
 /**
  * Editorial masthead shared by every inner page, set like the head of a printed
  * sheet: the breadcrumb trail as a running head, a hairline drawn across the measure,
- * a mono label row (eyebrow left, a journey stage's position right), then a monumental fluid <h1> that
- * rises word by word, the lead set off in the right-hand columns, and a second
- * hairline that closes the region — so whatever follows hangs from it and draws no
- * top rule of its own. Left-aligned throughout.
+ * a mono label row (eyebrow left, a journey stage's position right), then a
+ * monumental fluid <h1> that rises word by word, the lead straight under it in the
+ * same reading column, and a second hairline that closes the region — so whatever
+ * follows hangs from it and draws no top rule of its own. Left-aligned throughout, and
+ * compact: the lead is never parked across the page from the headline with an empty
+ * block under the <h1> (owner feedback, 2026-09-22: it read as a picture still to load).
  *
  * Everything here is first-screen, so it all plays as page-load choreography
  * (trigger "enter"): trail, rule, labels, headline, lead, rule — in that order.
@@ -216,26 +229,24 @@ const PageHeader = ({
       </div>
     )}
 
-    <SplitReveal
-      as="h1"
-      trigger="enter"
-      delay={0.2}
-      text={title}
-      italicWords={italicWords}
-      className={cn('mt-14 max-w-[18ch] md:mt-24', size === 'display' ? DISPLAY_H1 : DISPLAY_H1_COMPACT)}
-    />
-
-    {lead ? (
-      <div className="grid pb-14 pt-10 md:pb-20 md:pt-14 lg:grid-cols-12">
-        <Reveal as="p" trigger="enter" delay={0.5} className="lead max-w-[52ch] lg:col-span-5 lg:col-start-8 lg:pl-8">
+    <div className="pb-10 md:pb-14">
+      <SplitReveal
+        as="h1"
+        trigger="enter"
+        delay={0.15}
+        text={title}
+        italicWords={italicWords}
+        className={cn('mt-8 max-w-[18ch] md:mt-12', size === 'display' ? DISPLAY_H1 : DISPLAY_H1_COMPACT)}
+      />
+      {/* .lead: about 60 characters a line, in the headline's own column. */}
+      {lead && (
+        <Reveal as="p" trigger="enter" delay={0.3} className="lead mt-6 md:mt-8">
           {lead}
         </Reveal>
-      </div>
-    ) : (
-      <div aria-hidden="true" className="pb-12 md:pb-20" />
-    )}
+      )}
+    </div>
 
-    <DrawnRule trigger="enter" delay={0.55} />
+    <DrawnRule trigger="enter" delay={0.35} />
   </header>
 );
 

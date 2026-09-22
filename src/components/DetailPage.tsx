@@ -3,7 +3,16 @@ import { Link } from 'react-router-dom';
 import PageLayout from '@/components/PageLayout';
 import ImageCarousel from '@/components/ImageCarousel';
 import Reveal from '@/components/Reveal';
-import PageHeader, { ArrowTravel, BODY, DrawnRule, ROW_LINE, ROW_SHIFT, WRAP } from '@/components/PageHeader';
+import PageHeader, {
+  ArrowTravel,
+  BODY,
+  DrawnRule,
+  ROW_LINE,
+  ROW_SHIFT,
+  SECTION_B,
+  SECTION_T,
+  WRAP,
+} from '@/components/PageHeader';
 import Magnetic from '@/components/motion/Magnetic';
 import type { SiteImage } from '@/content/images';
 import type { Crumb } from '@/seo/routeMeta';
@@ -82,7 +91,7 @@ const PagerRow = ({ direction, label, to }: PagerRowProps) => (
       to={to}
       aria-label={`${direction}: ${label}`}
       data-cursor="open"
-      className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-3 border-t border-border py-9 md:py-12 lg:grid-cols-12 lg:gap-x-0"
+      className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-3 border-t border-border py-7 md:py-9 lg:grid-cols-12 lg:gap-x-0"
     >
       <span aria-hidden="true" className={ROW_LINE} />
       <span className="eyebrow col-span-2 lg:col-span-3">{direction}</span>
@@ -126,7 +135,7 @@ const DetailPage = ({
 
   return (
     <PageLayout enquiryProduct={enquiryProduct}>
-      <article key={pageKey} className="pb-24 md:pb-32">
+      <article key={pageKey} className={SECTION_B}>
         {/* Its closing hairline is the top rule of the split below. */}
         <PageHeader breadcrumbs={breadcrumbs} eyebrow={eyebrow} meta={counter} title={title} size="compact" />
 
@@ -149,7 +158,7 @@ const DetailPage = ({
               />
             </div>
 
-            <div className={cn('min-w-0 py-12 md:py-16', split.sticky, split.copy)}>
+            <div className={cn('min-w-0 py-10 md:py-12 lg:py-14', split.sticky, split.copy)}>
               {/* First screen on a desktop: data-enter keeps the prerendered copy
                   unpainted until the app can bring it in once (see index.css). */}
               <div data-enter="">
@@ -177,15 +186,15 @@ const DetailPage = ({
                 </Reveal>
               </div>
 
-              {specs && <div className="mt-16 md:mt-24">{specs}</div>}
+              {specs && <div className="mt-12 md:mt-16">{specs}</div>}
             </div>
           </div>
         </div>
 
-        {related && <div className={cn(WRAP, 'pt-24 md:pt-32')}>{related}</div>}
+        {related && <div className={cn(WRAP, SECTION_T)}>{related}</div>}
 
         {(prev || next) && (
-          <nav aria-label="Previous and next" className={cn(WRAP, 'pt-24 md:pt-32')}>
+          <nav aria-label="Previous and next" className={cn(WRAP, SECTION_T)}>
             {/* role: Preflight strips the markers, and with them the list role in Safari. */}
             <ul role="list" className="border-b border-border">
               {prev && <PagerRow direction="Previous" {...prev} />}

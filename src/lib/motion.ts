@@ -91,22 +91,51 @@ export function entranceHold(): number {
 }
 
 // ---- scroll reveals, both ways -----------------------------------------------------
-// A reveal plays every time its element comes on screen and plays back out as it
-// leaves, in whichever direction the visitor scrolls (owner feedback, 2026-09: "why
-// not every time?"). "On screen" means inside the ACTIVE ZONE, the viewport less its
-// bottom 8%: scrolling back up, whatever leaves through the foot is seen to go in that
-// last strip, and whatever comes back in over the top plays again.
+// A reveal plays every time its element comes on screen and plays back out once it
+// has gone, in whichever direction the visitor scrolls (owner feedback, 2026-09: "why
+// not every time?").
+//
+// Nothing that carries content may sit hidden ON screen (owner feedback, 2026-09-22:
+// blank frames read as "images not loaded yet"). So a reveal starts the moment ANY
+// part of its element comes within the ACTIVE ZONE — the viewport plus a strip a fifth
+// of a screen deep under its foot, so scrolling down it is already under way as the
+// element arrives — and plays in 0.6 s at most, after a stagger of 0.12 s at most. It
+// is only put back once the element has left that zone altogether: nothing is ever
+// hidden while a pixel of it can still be seen.
+//
+// A fifth, not a tenth: measured on the built site at a quick but ordinary wheel pace
+// (700px a flick, a 400ms pause), a block that came to rest at the foot of a desktop
+// screen had had only ~150 ms since crossing a tenth-deep strip, and was still under
+// half opacity when the scrolling stopped. From a fifth it is past three quarters.
 
-/** The viewport less its bottom 8%: where a scroll reveal counts as on screen. */
-export const ACTIVE_ZONE = '0px 0px -8% 0px';
+/** The viewport plus a fifth of a screen under it: where a scroll reveal counts as on screen. */
+export const ACTIVE_ZONE = '0px 0px 20% 0px';
 
-/** Seconds a reveal takes to play back out: quicker than it came, so scrolling back feels light. */
-export const OUT_S = 0.6;
+/** The longest a reveal may take to play in, whatever a caller asks for. */
+export const IN_S = 0.6;
+
+/** Seconds a reveal takes to play back out. Unseen (the element is off screen by then), so short. */
+export const OUT_S = 0.3;
 
 /**
- * The CSS transition for a two-way reveal: in over `seconds` after the element's own
- * stagger, out over OUT_S at once (a stagger on the way out only reads as lag). The
- * transition that runs is the one on the new style, so the two never mix.
+ * The longest a scroll reveal may hold before it starts, whatever stagger its caller
+ * asks for. A block that arrives at the foot of the screen at the end of a quick scroll
+ * has only a few hundred milliseconds before it is read, and a stagger that runs past
+ * this (0.18 s, 0.3 s — they add up down a list) left copy still blank on screen when
+ * the scrolling stopped. Siblings keep their order: 0, 0.06, 0.12, 0.12 … Page-load
+ * choreography (trigger "enter") is not a scroll reveal and keeps its own timing; a
+ * SplitReveal's word-to-word stagger is its own and is not capped here either.
+ */
+export const VIEW_DELAY_MAX_S = 0.12;
+
+/** A scroll reveal's own delay, held to VIEW_DELAY_MAX_S. */
+export const viewDelay = (delay: number) => Math.min(Math.max(0, delay), VIEW_DELAY_MAX_S);
+
+/**
+ * The CSS transition for a two-way reveal: in over `seconds` (capped at IN_S) after
+ * the element's own stagger, out over OUT_S at once (a stagger on the way out only
+ * reads as lag). The transition that runs is the one on the new style, so the two
+ * never mix.
  */
 export function revealTransition(
   shown: boolean,
@@ -114,7 +143,7 @@ export function revealTransition(
   seconds: number,
   delay = 0
 ): string {
-  const length = shown ? seconds : Math.min(seconds, OUT_S);
+  const length = shown ? Math.min(seconds, IN_S) : Math.min(seconds, OUT_S);
   const wait = shown ? +delay.toFixed(3) : 0;
   return (typeof properties === 'string' ? [properties] : properties)
     .map((property) => `${property} ${length}s ${EASE.expoOut} ${wait}s`)
@@ -199,7 +228,10 @@ export function observeIntersection(
 export type ViewPlace = 'in' | 'above' | 'below';
 
 export interface InViewOptions {
-  /** Share of the element inside the zone that counts as on screen. */
+  /**
+   * Share of the element inside the zone that counts as on screen. Default 0: any
+   * part of it. Only for effects that need the element well in view (a count-up).
+   */
   threshold?: number;
   /** The zone. Default ACTIVE_ZONE. */
   rootMargin?: string;
@@ -219,7 +251,7 @@ export interface InViewOptions {
  */
 export function useViewPlace<T extends Element>(
   ref: RefObject<T>,
-  { threshold = 0.15, rootMargin = ACTIVE_ZONE, skip = false, once = false }: InViewOptions = {}
+  { threshold = 0, rootMargin = ACTIVE_ZONE, skip = false, once = false }: InViewOptions = {}
 ): ViewPlace {
   const [place, setPlace] = useState<ViewPlace>('below');
 
@@ -231,12 +263,13 @@ export function useViewPlace<T extends Element>(
       return;
     }
     const oneShot = once || el.parentElement?.closest('[data-enter]:not([data-enter="view"])') != null;
-    // A block taller than the screen can never show 15% of itself on a phone; a third
-    // of a screen of it is on screen enough. Rounded down to a 0.05 step, so tall
-    // blocks still share a handful of observers rather than one each.
+    // With a threshold: a block taller than the screen can never show half of itself
+    // on a phone; a third of a screen of it is on screen enough. Rounded down to a 0.05
+    // step, so tall blocks still share a handful of observers rather than one each.
     const height = el.getBoundingClientRect().height;
     const reachable = height > 0 ? (window.innerHeight * 0.35) / height : threshold;
-    const level = reachable < threshold ? Math.max(0.01, Math.floor(reachable * 20) / 20) : threshold;
+    const level =
+      threshold > 0 && reachable < threshold ? Math.max(0.01, Math.floor(reachable * 20) / 20) : threshold;
 
     const stop = observeIntersection(el, { threshold: level, rootMargin }, (inZone, entry) => {
       if (inZone) {

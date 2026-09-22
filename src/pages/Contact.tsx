@@ -48,65 +48,62 @@ const Contact = () => {
     // The page is the enquiry form, so the closing "request a quote" band is dropped.
     <PageLayout showEnquiryCta={false}>
       {/*
-        Drawn like a plan: one vertical hairline at the eighth column runs from the
-        masthead to the foot of the page, and one horizontal rule crosses it edge to
-        edge. Headline and form take the wide side (8), the lead and the guidance the
-        narrow one (4). On a phone the same source order reads masthead, form, fine print.
+        Drawn like a plan: the masthead — headline, and the lead straight under it — then
+        one horizontal rule edge to edge, and under it one vertical hairline at the
+        eighth column running to the foot of the page. The form takes the wide side (8),
+        the guidance the narrow one (4). On a phone the same source order reads
+        masthead, form, fine print.
       */}
-      <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 md:pt-12">
+      <div className="mx-auto max-w-7xl px-4 pt-3 sm:px-6 md:pt-5">
         <Reveal trigger="enter" from="none">
           <Breadcrumbs items={route.breadcrumbs} />
         </Reveal>
 
-        <header className="mt-10 grid md:mt-16 lg:grid-cols-12">
-          <div className="lg:col-span-8 lg:pb-20 lg:pr-12">
-            <Reveal as="p" trigger="enter" from="none" delay={0.05} className="eyebrow">
-              Contact
-            </Reveal>
-            <SplitReveal
-              as="h1"
-              trigger="enter"
-              delay={0.12}
-              text="Trade Enquiries"
-              italicWords={['enquiries']}
-              className="display-xl mt-5 text-foreground md:mt-6"
-            />
-          </div>
-          <div className="flex items-end pb-12 pt-8 lg:col-span-4 lg:border-l lg:border-border lg:pb-20 lg:pl-12 lg:pt-0">
-            <Reveal as="p" trigger="enter" delay={0.4} className="lead">
-              For importers, distributors and manufacturers. Tell us the product, volume and destination you have in
-              mind and {site.shortName} will respond to your enquiry.
-            </Reveal>
-          </div>
+        <header className="mt-8 pb-10 md:mt-12 md:pb-14">
+          <Reveal as="p" trigger="enter" from="none" delay={0.05} className="eyebrow">
+            Contact
+          </Reveal>
+          <SplitReveal
+            as="h1"
+            trigger="enter"
+            delay={0.12}
+            text="Trade Enquiries"
+            italicWords={['enquiries']}
+            className="display-xl mt-5 text-foreground md:mt-6"
+          />
+          <Reveal as="p" trigger="enter" delay={0.3} className="lead mt-6 md:mt-8">
+            For importers, distributors and manufacturers. Tell us the product, volume and destination you have in
+            mind and {site.shortName} will respond to your enquiry.
+          </Reveal>
         </header>
       </div>
 
       {/* Outside the container: the rule runs the full width of the window. */}
-      <DrawnRule trigger="enter" delay={0.45} />
+      <DrawnRule trigger="enter" delay={0.35} />
 
       <div className="mx-auto grid max-w-7xl px-4 sm:px-6 lg:grid-cols-12">
-        <section aria-labelledby={formTitleId} className="py-16 md:py-24 lg:col-span-8 lg:pb-36 lg:pr-12">
-          <Reveal trigger="enter" delay={0.5}>
+        <section aria-labelledby={formTitleId} className="py-12 md:py-16 lg:col-span-8 lg:pb-24 lg:pr-12">
+          <Reveal trigger="enter" delay={0.4}>
             <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-3">
               <h2 id={formTitleId} className="display-md text-foreground">
                 Send an enquiry
               </h2>
               <p className="eyebrow md:pb-2">Business enquiries only</p>
             </div>
-            <EnquiryForm className="mt-12 md:mt-16" />
+            <EnquiryForm className="mt-10 md:mt-12" />
           </Reveal>
         </section>
 
         <aside
           aria-label="Enquiry guidance"
-          className="border-t border-border py-16 md:py-24 lg:col-span-4 lg:border-l lg:border-t-0 lg:pb-36 lg:pl-12"
+          className="border-t border-border py-12 md:py-16 lg:col-span-4 lg:border-l lg:border-t-0 lg:pb-24 lg:pl-12"
         >
           {/* The guidance stays beside the form while it is being filled in — only on a
               screen tall enough to hold all of it; top-28 clears the navbar. */}
           <Reveal
             trigger="enter"
-            delay={0.6}
-            className="space-y-14 lg:top-28 lg:[@media(min-height:880px)]:sticky"
+            delay={0.45}
+            className="space-y-12 lg:top-28 lg:[@media(min-height:880px)]:sticky"
           >
             <PanelSection title="What to include">
               {/* Term over its detail, no index: the four are a checklist, not a sequence. */}

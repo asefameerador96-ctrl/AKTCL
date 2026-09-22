@@ -5,6 +5,9 @@ import PageHeader, {
   BODY,
   DrawnRule,
   GROUP_UNDERLINE,
+  SECTION_B,
+  SECTION_GAP,
+  SECTION_T,
   TEXT_LINK,
   WRAP,
 } from '@/components/PageHeader';
@@ -22,8 +25,9 @@ const enquiryHref = (product: string) => `/contact?product=${encodeURIComponent(
 
 /**
  * Leaf products have photography and their own pages, so they are cells of the
- * shared-border catalogue grid. The cigarette formats have one line of copy each and
- * no pages, so they are directory rows whose one action is an enquiry.
+ * shared-border catalogue grid — every cell the same width, every frame the same 3:4.
+ * The cigarette formats have one line of copy each and (bar one) no pages, so they are
+ * directory rows whose one action is an enquiry or, where a page exists, the page.
  */
 const CategoryRange = ({ category }: { category: ProductCategory }) => {
   const base = `/products/${category.slug}`;
@@ -33,7 +37,7 @@ const CategoryRange = ({ category }: { category: ProductCategory }) => {
       // Each row draws its own top hairline; the list closes the last one.
       <ul role="list" className="border-b border-border">
         {category.products.map((product, i) => (
-          <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.07}>
+          <Reveal as="li" key={product.slug} delay={Math.min(i, 3) * 0.05}>
             <FormatCard
               layout="row"
               name={product.name}
@@ -73,52 +77,52 @@ const ProductsIndex = () => (
       eyebrow={productsIntro.eyebrow}
       title={productsIntro.heading}
       italicWords={['Our']}
-      lead={productsIntro.short}
     />
 
-    {/* The long introduction hangs from the masthead's closing rule: a 5/7 split, the
-        label alone in the narrow cell. data-enter: it can share the first screen with
-        the masthead (see index.css). */}
-    <section aria-label="Overview" data-enter="" className={WRAP}>
-      <Reveal className="relative grid lg:grid-cols-12">
-        <span aria-hidden="true" className="absolute inset-y-0 left-[41.666667%] hidden w-px bg-border lg:block" />
-        <p className="eyebrow pt-6 lg:col-span-5 lg:pt-10">Overview</p>
-        <p className={`${BODY} pt-5 lg:col-span-7 lg:pb-24 lg:pl-8 lg:pt-10`}>{productsIntro.long}</p>
-      </Reveal>
+    {/* The introduction hangs from the masthead's closing rule: the short line as a
+        display standfirst over the narrow cell, the long one beside it with its label
+        set over it — both cells carry copy, top-aligned, so neither is an empty column.
+        data-enter="view": it shares the first screen with the masthead, so the
+        prerendered copy waits unpainted for the app (see index.css). */}
+    <section aria-label="Overview" className={WRAP}>
+      <div className={cn('grid gap-y-10 lg:grid-cols-12 lg:gap-x-8', SECTION_GAP)}>
+        <div data-enter="view" className="lg:col-span-5">
+          <Reveal as="p" className="display-xs max-w-[30ch] leading-[1.18] text-foreground">
+            {productsIntro.short}
+          </Reveal>
+        </div>
+        <div data-enter="view" className="lg:col-span-7">
+          <Reveal delay={0.08}>
+            <SectionMarker>Overview</SectionMarker>
+            <p className={`${BODY} mt-5`}>{productsIntro.long}</p>
+          </Reveal>
+        </div>
+      </div>
     </section>
 
     {categories.map((category, i) => (
       <section
         key={category.slug}
         aria-labelledby={`${category.slug}-heading`}
-        className={cn(
-          WRAP,
-          // The first head closes the overview's split on a desktop, so no gap there.
-          i === 0 ? 'pt-20 lg:pt-0' : 'pt-24 md:pt-36',
-          i === categories.length - 1 && 'pb-24 md:pb-36'
-        )}
+        className={cn(WRAP, SECTION_T, i === categories.length - 1 && SECTION_B)}
       >
-        {/* The category's head: a ruled 7/5 split — name over the wide cell, its line
-            and onward links over the narrow one. The range below closes it. */}
+        {/* The category's head, in one column: its rule and marker, the name, its line
+            and onward links straight under the name — headline and copy together, no
+            cell left empty beside them. The range below closes it. */}
         <DrawnRule />
-        <div className="relative grid lg:grid-cols-12">
-          <DrawnRule axis="y" delay={0.2} className="absolute inset-y-0 left-[58.333333%] hidden lg:block" />
-
-          <div className="pb-10 pt-4 md:pt-5 lg:col-span-7 lg:pb-20 lg:pr-8">
-            {/* The workbook's "Category 01" without its number: the order of the two
-                categories is not information. */}
-            <SectionMarker>Category</SectionMarker>
-            <SplitReveal
-              as="h2"
-              id={`${category.slug}-heading`}
-              text={category.title}
-              className="display-lg mt-12 max-w-[12ch] text-foreground md:mt-20"
-            />
-          </div>
-
-          <Reveal delay={0.15} className="pb-12 lg:col-span-5 lg:self-end lg:pb-20 lg:pl-8">
+        <div className="pb-10 pt-4 md:pb-12 md:pt-5">
+          {/* The workbook's "Category 01" without its number: the order of the two
+              categories is not information. */}
+          <SectionMarker>Category</SectionMarker>
+          <SplitReveal
+            as="h2"
+            id={`${category.slug}-heading`}
+            text={category.title}
+            className="display-lg mt-6 max-w-[16ch] text-foreground md:mt-8"
+          />
+          <Reveal delay={0.1} className="mt-5 md:mt-6">
             <p className="lead">{category.short}</p>
-            <div className="mt-5 flex flex-wrap gap-x-10 gap-y-1">
+            <div className="mt-4 flex flex-wrap gap-x-10 gap-y-1">
               <Link to={`/products/${category.slug}`} data-cursor="open" className={TEXT_LINK}>
                 <span className={GROUP_UNDERLINE}>View {category.label}</span>
                 <ArrowTravel />

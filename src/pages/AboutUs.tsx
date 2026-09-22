@@ -6,6 +6,8 @@ import PageHeader, {
   BODY,
   DrawnRule,
   GROUP_UNDERLINE,
+  SECTION_B,
+  SECTION_Y,
   SectionHead,
   TEXT_LINK,
   WRAP,
@@ -53,20 +55,11 @@ const DRIFTING_PHOTO = 'absolute inset-0 h-full w-full scale-110 object-cover';
 const PHOTO_HOVER =
   'pointer-events-none absolute inset-0 bg-ink opacity-0 transition-opacity group-hover:opacity-10 group-focus-visible:opacity-10';
 
-// The pair is a 7/5 split sharing one vertical hairline. Both photographs are 5.25
-// twelfths tall (4:3 beside 20:21), so the rule under them runs straight across.
-const PAIR_SHAPES = [
-  {
-    cell: 'lg:col-span-7',
-    ratio: 'aspect-[4/3]',
-    sizes: '(min-width: 1280px) 720px, (min-width: 1024px) 58vw, calc(100vw - 32px)',
-  },
-  {
-    cell: 'lg:col-span-5',
-    ratio: 'aspect-[4/3] lg:aspect-[20/21]',
-    sizes: '(min-width: 1280px) 514px, (min-width: 1024px) 42vw, calc(100vw - 32px)',
-  },
-] as const;
+// The pair is an even split, exactly half and half, sharing one vertical hairline: two
+// photographs side by side are always the same width and the same 4:3 frame, with no
+// offset (owner feedback, 2026-09-22), so the rule under them runs straight across.
+const PAIR_RATIO = 'aspect-[4/3]';
+const PAIR_SIZES = '(min-width: 1280px) 616px, (min-width: 1024px) 50vw, calc(100vw - 32px)';
 
 /*
  * TODO(Asef): sections deliberately NOT built because AKTCL has not supplied the
@@ -89,22 +82,23 @@ const AboutUs = () => {
 
       {/* The About copy, verbatim. Its first paragraph hangs from the masthead's
           closing rule as a display pull-quote that rises line by line; the rest reads
-          in the wide cell of a ruled 5/7 split, foot-aligned with the photograph. */}
-      <section aria-label={about.heading} className={cn(WRAP, 'pb-24 md:pb-36')}>
+          in the wide cell of a ruled 5/7 split beside a photograph of about its own
+          height, so neither cell stands half empty. */}
+      <section aria-label={about.heading} className={cn(WRAP, SECTION_B)}>
         {/* data-enter="view": on a desktop the quote shares the first screen with the
             masthead, so the prerendered copy waits unpainted for the app (index.css);
             unlike the masthead it plays on view, both ways, every time. */}
-        <div data-enter="view" className="pb-16 pt-5 md:pb-28">
+        <div data-enter="view" className="pb-12 pt-5 md:pb-16">
           <SectionMarker>Profile</SectionMarker>
           <SplitReveal
             as="p"
             by="line"
             text={lead}
-            delay={0.35}
+            delay={0.2}
             // A paragraph, not a headline: display-md at the top of its range, but one
             // clamp that starts lower (28px) so a phone is not handed a screenful of it,
             // and a little more air between the lines.
-            className="display-md mt-12 text-[length:clamp(1.75rem,4.5vw,4rem)] leading-[1.08] text-foreground md:mt-20 lg:max-w-[94%]"
+            className="display-md mt-6 text-[length:clamp(1.75rem,4.5vw,4rem)] leading-[1.08] text-foreground md:mt-10 lg:max-w-[94%]"
           />
         </div>
 
@@ -113,8 +107,9 @@ const AboutUs = () => {
 
           {story && (
             <figure className="lg:col-span-5">
-              {/* Flush: no gutter between the photograph and the rules around it. */}
-              <ImageReveal className="aspect-[4/3] bg-secondary lg:aspect-[4/5]">
+              {/* Flush: no gutter between the photograph and the rules around it. Square
+                  from lg: about the height of the two paragraphs beside it. */}
+              <ImageReveal className="aspect-[4/3] bg-secondary lg:aspect-square">
                 <Parallax speed={0.08} className="h-full w-full">
                   <LazyImage
                     image={story.cover.image}
@@ -135,9 +130,11 @@ const AboutUs = () => {
             </figure>
           )}
 
+          {/* Two columns on a tablet, where the copy runs the full width under the
+              photograph; one reading column beside it from lg, centred on its height. */}
           <div
             className={cn(
-              'grid content-end gap-x-8 gap-y-6 border-t border-border py-12 md:grid-cols-2 lg:border-t-0 lg:py-16 lg:pl-8',
+              'grid content-start gap-x-8 gap-y-6 border-t border-border py-10 md:grid-cols-2 md:py-12 lg:grid-cols-1 lg:content-center lg:border-t-0 lg:py-12 lg:pl-8',
               story ? 'lg:col-span-7' : 'lg:col-span-7 lg:col-start-6'
             )}
           >
@@ -159,7 +156,7 @@ const AboutUs = () => {
         className="relative isolate overflow-hidden border-y border-ink-border bg-ink text-ink-foreground"
       >
         <Grain className="-z-10" />
-        <div className={cn(WRAP, 'py-24 md:py-32')}>
+        <div className={cn(WRAP, SECTION_Y)}>
           <h2 id="about-facts-heading" className="sr-only">
             {site.shortName} in figures
           </h2>
@@ -169,7 +166,7 @@ const AboutUs = () => {
           </div>
 
           <dl
-            className="mt-14 grid border-y border-border md:mt-20 lg:[grid-template-columns:var(--fact-columns)]"
+            className="mt-10 grid border-y border-border md:mt-12 lg:[grid-template-columns:var(--fact-columns)]"
             style={{ '--fact-columns': FACT_COLUMNS } as CSSProperties}
           >
             {facts.map((fact, i) => (
@@ -200,10 +197,10 @@ const AboutUs = () => {
 
       <HeritageTimeline />
 
-      {/* The pair: a ruled 7/5 split, both photographs flush to the rules and of
-          one height. Captions are the journey stages' own titles. */}
+      {/* The pair: a ruled even split, both photographs flush to the rules, of one
+          width and one height. Captions are the journey stages' own titles. */}
       {pair.length > 0 && (
-        <section aria-labelledby="about-pair-heading" className={cn(WRAP, 'pb-24 md:pb-36')}>
+        <section aria-labelledby="about-pair-heading" className={cn(WRAP, SECTION_B)}>
           <SectionHead label={journeyIntro.eyebrow} title="Processing and Manufacturing" id="about-pair-heading">
             <Link to="/journey" data-cursor="open" className={TEXT_LINK}>
               <span className={GROUP_UNDERLINE}>{journeyIntro.heading}</span>
@@ -211,57 +208,51 @@ const AboutUs = () => {
             </Link>
           </SectionHead>
 
-          <div className="relative mt-14 grid border-y border-border md:mt-20 lg:grid-cols-12">
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-[58.333333%] z-10 hidden w-px bg-border lg:block"
-            />
-            {pair.map(({ stage, cover }, i) => {
-              const shape = PAIR_SHAPES[i % PAIR_SHAPES.length];
-              return (
-                <Link
-                  key={stage.slug}
-                  to={`/journey/${stage.slug}`}
-                  data-cursor="view"
+          <div className="relative mt-10 grid border-y border-border md:mt-12 lg:grid-cols-2">
+            <span aria-hidden="true" className="absolute inset-y-0 left-1/2 z-10 hidden w-px bg-border lg:block" />
+            {pair.map(({ stage, cover }, i) => (
+              <Link
+                key={stage.slug}
+                to={`/journey/${stage.slug}`}
+                data-cursor="view"
+                className={cn(
+                  'group relative flex min-w-0 flex-col focus-visible:z-20',
+                  i > 0 && 'border-t border-border lg:border-t-0'
+                )}
+              >
+                {/* One drift for both, so neither photograph sits offset from the other. */}
+                <ImageReveal delay={i * 0.08} className={cn('bg-secondary', PAIR_RATIO)}>
+                  <Parallax speed={0.06} className="h-full w-full">
+                    <LazyImage
+                      image={cover.image}
+                      alt={cover.alt}
+                      sizes={PAIR_SIZES}
+                      className={DRIFTING_PHOTO}
+                      style={{ objectPosition: cover.position }}
+                    />
+                  </Parallax>
+                  <span aria-hidden="true" className={PHOTO_HOVER} />
+                </ImageReveal>
+                <Reveal
+                  delay={0.08 + i * 0.08}
                   className={cn(
-                    'group relative flex flex-col focus-visible:z-20',
-                    shape.cell,
-                    i > 0 && 'border-t border-border lg:border-t-0'
+                    'flex flex-1 items-end justify-between gap-6 border-t border-border pb-8 pt-6 md:pb-10',
+                    i % 2 === 0 ? 'lg:pr-8' : 'lg:pl-8'
                   )}
                 >
-                  <ImageReveal direction={i % 2 === 0 ? 'right' : 'up'} delay={i * 0.12} className={cn('bg-secondary', shape.ratio)}>
-                    <Parallax speed={i % 2 === 0 ? 0.06 : 0.1} className="h-full w-full">
-                      <LazyImage
-                        image={cover.image}
-                        alt={cover.alt}
-                        sizes={shape.sizes}
-                        className={DRIFTING_PHOTO}
-                        style={{ objectPosition: cover.position }}
-                      />
-                    </Parallax>
-                    <span aria-hidden="true" className={PHOTO_HOVER} />
-                  </ImageReveal>
-                  <Reveal
-                    delay={0.1 + i * 0.12}
-                    className={cn(
-                      'flex flex-1 items-end justify-between gap-6 border-t border-border pb-8 pt-6 md:pb-10',
-                      i % 2 === 0 ? 'lg:pr-8' : 'lg:pl-8'
-                    )}
-                  >
-                    <div>
-                      <p className="eyebrow">{stage.label}</p>
-                      <h3 className="display-sm mt-4 text-foreground">
-                        <span className={GROUP_UNDERLINE}>{stage.title}</span>
-                      </h3>
-                    </div>
-                    <ArrowTravel
-                      direction="up-right"
-                      className="mb-2 h-5 w-5 text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent"
-                    />
-                  </Reveal>
-                </Link>
-              );
-            })}
+                  <div>
+                    <p className="eyebrow">{stage.label}</p>
+                    <h3 className="display-sm mt-4 text-foreground">
+                      <span className={GROUP_UNDERLINE}>{stage.title}</span>
+                    </h3>
+                  </div>
+                  <ArrowTravel
+                    direction="up-right"
+                    className="mb-2 h-5 w-5 text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent"
+                  />
+                </Reveal>
+              </Link>
+            ))}
           </div>
         </section>
       )}

@@ -14,6 +14,10 @@ import { sizesIntro } from '@/content/sizes';
  * In the eager homepage bundle, so nothing heavy: the line-up is inline SVG and the
  * rest is the homepage's own ruled kit. No top padding: it follows ProductShowcase on
  * the same paper, whose own bottom padding makes the gap.
+ *
+ * Parked (owner, 2026-09-22): the homepage renders it only while
+ * FEATURES.cigaretteSizes is on (src/content/features.ts). Kept as it was, ready to go
+ * live again with the flag.
  */
 const SizesBand = () => (
   <section id="cigarette-sizes" aria-labelledby="sizes-heading" className="bg-background pb-24 md:pb-32 lg:pb-36">

@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isStill } from '@/lib/motion';
 import { useTheme } from '@/hooks/useTheme';
+import { FEATURES } from '@/content/features';
 import { site } from '@/content/site';
 import { normalisePath } from '@/seo/routeMeta';
 import Grain from '@/components/motion/Grain';
@@ -21,23 +22,49 @@ export interface NavbarProps {
   overHero?: boolean;
 }
 
-const LINKS = [
+interface NavLink {
+  to: string;
+  label: string;
+}
+
+// "Cigarette Sizes" is parked behind FEATURES.cigaretteSizes (src/content/features.ts):
+// while the flag is off its link is left out of the bar and the menu alike.
+const LINKS: readonly NavLink[] = [
   { to: '/journey', label: 'Our Journey' },
   { to: '/products', label: 'Products' },
-  { to: '/cigarette-sizes', label: 'Cigarette Sizes' },
+  ...(FEATURES.cigaretteSizes ? [{ to: '/cigarette-sizes', label: 'Cigarette Sizes' }] : []),
   { to: '/about-us', label: 'About Us' },
   { to: '/contact', label: 'Contact' },
-] as const;
+];
 
 // The full-screen menu has room for the way back as well.
-const MENU_LINKS = [{ to: '/', label: 'Home' }, ...LINKS] as const;
+const MENU_LINKS: readonly NavLink[] = [{ to: '/', label: 'Home' }, ...LINKS];
 
-// Matches the `xl:` breakpoint the desktop links appear at. The mono label runs ~9.75px
-// a character (0.6em advance + 0.15em tracking at 13px), so the five links come to
-// ~520px, ~630px with their gaps; with the toggle, Enquire and the ~205px lockup that is
-// ~1060px — more than the ~960px a 1024px window leaves inside the gutters, and well
-// inside the ~1215px at 1280px. Below xl the menu sheet carries them.
-const DESKTOP_QUERY = '(min-width: 1280px)';
+/*
+ * Where the desktop links take over from the menu sheet, which follows the number of
+ * links. The mono label runs ~9.75px a character (0.6em advance + 0.15em tracking at
+ * 13px). Four links come to ~330px, ~440px with their gaps; with the toggle, Enquire and
+ * the ~205px lockup that is ~870px, inside the ~960px a 1024px window leaves within the
+ * gutters (measured: ~100px to spare at 1024) — so `lg`. With "Cigarette Sizes" as a
+ * fifth the row is ~1060px, too wide for
+ * 1024 and well inside the ~1215px at 1280px — so `xl`. Written out in full so Tailwind
+ * finds every class; `query` is the same breakpoint for the script.
+ */
+const DESKTOP = FEATURES.cigaretteSizes
+  ? {
+      query: '(min-width: 1280px)',
+      links: 'xl:flex',
+      toggle: 'xl:ml-5 xl:inline-flex',
+      enquire: 'xl:inline-flex',
+      mobileOnly: 'xl:hidden',
+    }
+  : {
+      query: '(min-width: 1024px)',
+      links: 'lg:flex',
+      toggle: 'lg:ml-5 lg:inline-flex',
+      enquire: 'lg:inline-flex',
+      mobileOnly: 'lg:hidden',
+    };
 
 /** The bar only steps aside once the page is properly under way. */
 const HIDE_AFTER_PX = 320;
@@ -157,7 +184,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
         (e.shiftKey ? last : first).focus();
       }
     };
-    const desktop = window.matchMedia(DESKTOP_QUERY);
+    const desktop = window.matchMedia(DESKTOP.query);
     const onBreakpoint = () => {
       if (desktop.matches) setMenu('closed');
     };
@@ -223,7 +250,7 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
             </Link>
 
             <div className="flex items-center gap-3">
-              <ul className="hidden items-center gap-9 xl:flex">
+              <ul className={cn('hidden items-center gap-9', DESKTOP.links)}>
                 {LINKS.map(({ to, label }) => {
                   const current = currentFor(to);
                   return (
@@ -258,15 +285,15 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
                 })}
               </ul>
 
-              {/* Below xl the toggle lives at the foot of the menu sheet instead. */}
-              <ThemeToggle isDark={isDark} onToggle={toggle} onInk={onInk} className="hidden xl:ml-5 xl:inline-flex" />
+              {/* Below the desktop breakpoint the toggle lives at the foot of the menu sheet instead. */}
+              <ThemeToggle isDark={isDark} onToggle={toggle} onInk={onInk} className={cn('hidden', DESKTOP.toggle)} />
 
               <Magnetic>
                 <Link
                   to="/contact"
                   data-lead="nav-enquire"
                   // The one filled control in the bar: white over the photograph, black on paper.
-                  className={cn('btn hidden xl:inline-flex', onInk ? 'btn-ink focus-ink' : 'btn-solid')}
+                  className={cn('btn hidden', DESKTOP.enquire, onInk ? 'btn-ink focus-ink' : 'btn-solid')}
                 >
                   Enquire
                 </Link>
@@ -280,7 +307,8 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
                 aria-controls="mobile-menu"
                 onClick={() => (menuOpen ? closeMenu() : setMenu('open'))}
                 className={cn(
-                  'btn btn-icon flex-col gap-[7px] xl:hidden',
+                  'btn btn-icon flex-col gap-[7px]',
+                  DESKTOP.mobileOnly,
                   onInk ? 'btn-outline-ink focus-ink' : 'btn-outline'
                 )}
               >
@@ -319,7 +347,8 @@ const Navbar = ({ overHero = false }: NavbarProps) => {
           // Lifting away: still painted, no longer there to be tabbed into or tapped.
           {...(menu === 'closing' ? { inert: '' } : {})}
           className={cn(
-            'fixed inset-0 z-[45] overflow-y-auto overscroll-contain bg-ink text-ink-foreground xl:hidden',
+            'fixed inset-0 z-[45] overflow-y-auto overscroll-contain bg-ink text-ink-foreground',
+            DESKTOP.mobileOnly,
             !still &&
               (menu === 'closing'
                 ? 'duration-500 ease-expo-in-out animate-out fill-mode-forwards slide-out-to-top-full'

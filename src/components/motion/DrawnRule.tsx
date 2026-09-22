@@ -16,9 +16,9 @@ export interface DrawnRuleProps {
 }
 
 /**
- * A hairline that is drawn, not shown: scales out from its origin with expo-out, and
- * back into it as it leaves the screen. The outer box keeps its full size for the
- * observer; only the inner line scales.
+ * A hairline that is drawn, not shown: scales out from its origin with expo-out in
+ * 0.6 s as it comes on screen, and back into it once it has gone. The outer box keeps
+ * its full size for the observer; only the inner line scales.
  *
  * Its own module (re-exported by PageHeader, where the inner pages pick it up) so the
  * homepage hero can draw one without pulling the masthead into the eager bundle.
@@ -49,7 +49,7 @@ const DrawnRule = ({
             ? undefined
             : {
                 transform: shown ? 'none' : axis === 'x' ? 'scaleX(0)' : 'scaleY(0)',
-                transition: revealTransition(shown, 'transform', 1.2, delay),
+                transition: revealTransition(shown, 'transform', 0.6, delay),
               }
         }
       />

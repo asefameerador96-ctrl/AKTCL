@@ -18,8 +18,13 @@
  * 3. `name`, `lengthLabel` and `rod` are each format's nominal rod length (they agree with
  *    the supplied rod lengths) and drive the drawn rod diagram only.
  *
- * 4. `aktclLines` takes the product names from ./products.ts (workbook rows 21–27) by slug
+ * 4. `aktclLines` takes the product names from ./products.ts (workbook rows 22–26) by slug
  *    rather than retyping them. `sizesIntro` is UI microcopy; its lead is the owner's line.
+ *    ("Premium King Size" left the workbook on 2026-09-22, so King Size lists King Size
+ *    Filter only.)
+ *
+ * PARKED: the segment is off the live site while FEATURES.cigaretteSizes is false
+ * (./features.ts, docs/feature-flags.md). This file is kept, and tested, as it is.
  *
  * Super Slim and Nano: the master carton size, outer carton size and pallet configuration
  * are published as supplied, at the owner's instruction, although they do not add up
@@ -175,7 +180,7 @@ export const cigaretteSizes: CigaretteSize[] = [
       'A dependable base for retail and private label lines',
     ],
     bestFor: ['National retail brands', 'Contract and volume programmes', 'First private label launches'],
-    aktclLines: [lineName('premium-king-size'), lineName('king-size-filter')],
+    aktclLines: [lineName('king-size-filter')],
     specs: specs({
       ...COMMON,
       rodLength: { value: '84 mm' },
