@@ -56,7 +56,7 @@ ordinary mailbox, and ACS wins if both are configured.
 | `ENQUIRY_STORAGE_CONNECTION_STRING` | for the table sink | Any storage account; the `enquiries` table is created on first use. The account used by `site-analytics` can be reused |
 | `ACS_CONNECTION_STRING` | for the ACS route | `az communication list-key -n aktcl-comm -g rg-aktcl --query primaryConnectionString -o tsv`. An account key — treat as a secret |
 | `ENQUIRY_FROM` | for the ACS route | `enquiries@mail.aktcl.com`. Must be a sender username that exists on the verified domain. On the SMTP route it is optional and defaults to `SMTP_USER` |
-| `ENQUIRY_TO` | for either route | Recipient(s), comma-separated. Currently `minhaz.chowdhury@abulkhairgroup.com` (owner, 2026-09-23) |
+| `ENQUIRY_TO` | for either route | Recipient(s), comma-separated. Currently `minhaz.alam.chow@gmail.com` (owner, 2026-09-23) |
 | `SMTP_HOST` | for the SMTP route | Provider's SMTP submission host |
 | `SMTP_PORT` | for the SMTP route | `587` (STARTTLS, enforced) or `465` (implicit TLS). Azure blocks outbound port 25 |
 | `SMTP_USER` | for the SMTP route | Authenticating mailbox / SMTP user |
@@ -195,7 +195,7 @@ Before testing production, point the recipient somewhere harmless and put it bac
 az staticwebapp appsettings set -n aktcl-web -g rg-aktcl --setting-names ENQUIRY_TO=<a mailbox you own>
 # 2. submit the test, check the row: emailStatus should be "sent"
 # 3. put it back
-az staticwebapp appsettings set -n aktcl-web -g rg-aktcl --setting-names ENQUIRY_TO=minhaz.chowdhury@abulkhairgroup.com
+az staticwebapp appsettings set -n aktcl-web -g rg-aktcl --setting-names ENQUIRY_TO=minhaz.alam.chow@gmail.com
 ```
 
 `az staticwebapp appsettings set` keeps the settings it is not given, but read them back with
@@ -219,7 +219,9 @@ deliverability — and then send it to a mailbox you own and read the received h
 
 ## Still needed from AKTCL
 
-1. ~~**Recipient mailbox**~~ — supplied 2026-09-23: `minhaz.chowdhury@abulkhairgroup.com`.
+1. ~~**Recipient mailbox**~~ — supplied 2026-09-23: `minhaz.alam.chow@gmail.com`. It is a
+   personal address, chosen by the owner; a mailbox on a company domain would be the
+   natural home for trade enquiries once AKTCL has one.
 2. ~~**Sending credentials**~~ — done 2026-09-23 with Azure Communication Services on
    `mail.aktcl.com` (see "The sending domain" above). Two things for AKTCL IT all the same:
    ask them to **safe-list `enquiries@mail.aktcl.com`** at `abulkhairgroup.com` before the

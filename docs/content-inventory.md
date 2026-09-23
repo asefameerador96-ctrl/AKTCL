@@ -133,11 +133,11 @@ hidden or shows an honest "on request" state.
    address. Footer, contact page, floating button and JSON-LD are wired to
    `src/content/site.ts → contact` and stay hidden while it is `null`.
 2. ~~**Enquiry delivery**~~ — **done 2026-09-23.** Enquiries now go to
-   `minhaz.chowdhury@abulkhairgroup.com` (owner) as well as to Azure Table Storage,
-   sent from `enquiries@mail.aktcl.com` through Azure Communication Services on a
-   verified sending domain. **Ask AKTCL IT to safe-list that sender** before the first
-   real enquiry, and note that `aktcl.com` still has no MX records, so the sending
-   address cannot receive anything. See `docs/enquiry-api.md`.
+   `minhaz.alam.chow@gmail.com` (owner) as well as to Azure Table Storage, sent from
+   `enquiries@mail.aktcl.com` through Azure Communication Services on a verified
+   sending domain. Note that `aktcl.com` still has no MX records, so the sending
+   address cannot receive anything. A company address would be the natural home for
+   this once AKTCL has mail on its own domain. See `docs/enquiry-api.md`.
 3. ~~**Logo**~~ — **supplied 2026-09-21** ("AKT_LOGO ONLY.psd"). The vector was taken from
    the Illustrator smart object inside the PSD and is used in the header, footer, age gate,
    page sign-off, favicon/app icons, share image and Google structured data

@@ -12,7 +12,7 @@ Same pattern as shahagro.com. Everything below was created on 2026-09-21 in
 | GitHub repo | `asefameerador96-ctrl/AKTCL`, branch `main` |
 | Repo secret | `AZURE_STATIC_WEB_APPS_API_TOKEN` (the SWA deployment token) |
 | Enquiry storage | storage account `staktcl76353` → table `enquiries` (app setting `ENQUIRY_STORAGE_CONNECTION_STRING`) |
-| Enquiry email | ACS `aktcl-comm` + Email Service `aktcl-email`, sending as `enquiries@mail.aktcl.com` to `minhaz.chowdhury@abulkhairgroup.com` (2026-09-23). Details: `docs/enquiry-api.md` |
+| Enquiry email | ACS `aktcl-comm` + Email Service `aktcl-email`, sending as `enquiries@mail.aktcl.com` to `minhaz.alam.chow@gmail.com` (2026-09-23). Details: `docs/enquiry-api.md` |
 
 **Status (2026-09-21): live.** Nameservers were switched at GoDaddy, `www.aktcl.com` and
 `aktcl.com` are bound with Azure-managed certificates, and `www` is the default domain — the
