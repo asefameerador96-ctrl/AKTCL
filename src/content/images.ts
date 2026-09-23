@@ -101,13 +101,15 @@ export interface HeroSlide {
    */
   headline: boolean;
   /**
-   * 'cover' fills the screen (photography, which may be cropped). 'contain' fits the
-   * whole picture on the ink (designed artwork, which may not).
+   * 'cover' is photography, which may be cropped anywhere. 'contain' is designed
+   * artwork: it may lose its empty margins to a crop, but never its ink — the hero
+   * fits the whole frame on the ink wherever covering would reach the artwork itself
+   * (see HeroCarousel).
    */
   fit: 'cover' | 'contain';
   /**
    * true where the picture is dark enough to carry the hero's white controls. The two
-   * banners are drawn on near-white (measured: 0.85 luminance), so their controls are
+   * banners are drawn on near-white (measured: 0.87 luminance), so their controls are
    * set in black instead.
    */
   dark: boolean;
@@ -121,6 +123,10 @@ export interface HeroSlide {
  *
  * TODO(Asef): the banners are dated — WT Asia 22–23 October 2026, WT Middle East
  * 10–11 November 2026. Take them out of this list once the events have passed.
+ *
+ * Artwork replaced 2026-09-23 (second version, wider margins): the ink now sits in the
+ * middle 39% of the frame on the WT Middle East banner and 29% on WT Asia, which is what
+ * lets the hero crop them to fill the screen. Re-measure both if they are replaced again.
  */
 export const heroSlides: HeroSlide[] = [
   { image: img(heroField, 'Two farmers tending rows of tobacco plants in a wide field at sunrise', '35% 60%'), headline: true, fit: 'cover', dark: true, label: 'From Seed to Smoke' },
