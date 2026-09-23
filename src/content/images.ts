@@ -13,6 +13,8 @@ import type { ResponsiveImage } from '@/components/LazyImage';
 
 import heroField from '@/assets/hero/hero-field.webp?w=768;1280;1920&format=avif;webp&quality=72&as=picture';
 import heroSeedToSmoke from '@/assets/hero/hero-seed-to-smoke.webp?w=768;1280;1920&format=avif;webp&quality=72&as=picture';
+import wtMiddleEast from '@/assets/hero/wt-middle-east.webp?w=768;1280;1920&format=avif;webp&quality=82&as=picture';
+import wtAsia from '@/assets/hero/wt-asia.webp?w=768;1280;1920&format=avif;webp&quality=82&as=picture';
 
 import seed1 from '@/assets/journey/seed-1.webp?w=640;1024;1600&format=avif;webp&quality=72&as=picture';
 import seed2 from '@/assets/journey/seed-2.webp?w=640;1024;1600&format=avif;webp&quality=72&as=picture';
@@ -89,6 +91,53 @@ export const heroImages: SiteImage[] = [
     'Five panels side by side: seeded soil, young tobacco plants, leaves hanging to cure, cured leaf and cut tobacco, and plain cigarette packs',
     '50% 50%'
   ),
+];
+
+export interface HeroSlide {
+  image: SiteImage;
+  /**
+   * false on a slide that carries its own words: the headline is kept in the page for
+   * its heading and its accessible name, but taken off the screen.
+   */
+  headline: boolean;
+  /**
+   * 'cover' fills the screen (photography, which may be cropped). 'contain' fits the
+   * whole picture on the ink (designed artwork, which may not).
+   */
+  fit: 'cover' | 'contain';
+  /**
+   * true where the picture is dark enough to carry the hero's white controls. The two
+   * banners are drawn on near-white (measured: 0.85 luminance), so their controls are
+   * set in black instead.
+   */
+  dark: boolean;
+  /** For the carousel's slide labels. */
+  label: string;
+}
+
+/**
+ * The hero rotation. The photograph carries the headline; the two event banners are
+ * artwork with their own words, so the headline steps aside while they are up.
+ *
+ * TODO(Asef): the banners are dated — WT Asia 22–23 October 2026, WT Middle East
+ * 10–11 November 2026. Take them out of this list once the events have passed.
+ */
+export const heroSlides: HeroSlide[] = [
+  { image: img(heroField, 'Two farmers tending rows of tobacco plants in a wide field at sunrise', '35% 60%'), headline: true, fit: 'cover', dark: true, label: 'From Seed to Smoke' },
+  {
+    image: img(wtMiddleEast, 'Join us at WT Middle East, 10–11 November 2026, Dubai, UAE — stall 7165'),
+    headline: false,
+    fit: 'contain',
+    dark: false,
+    label: 'WT Middle East 2026',
+  },
+  {
+    image: img(wtAsia, 'Join us at WT Asia, 22–23 October 2026, Surabaya, Indonesia — stall A05'),
+    headline: false,
+    fit: 'contain',
+    dark: false,
+    label: 'WT Asia 2026',
+  },
 ];
 
 /** Keyed by journey stage slug. The first image is the stage's cover. */
