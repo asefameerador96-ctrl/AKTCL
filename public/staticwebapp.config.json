@@ -69,6 +69,10 @@
     {
       "route": "/llms.txt",
       "headers": { "Cache-Control": "public, max-age=3600" }
+    },
+    {
+      "route": "/downloads/*",
+      "headers": { "Cache-Control": "public, max-age=86400" }
     }
   ],
   "responseOverrides": {
@@ -87,6 +91,7 @@
   },
   "mimeTypes": {
     ".avif": "image/avif",
+    ".pdf": "application/pdf",
     ".webp": "image/webp",
     ".webmanifest": "application/manifest+json"
   }

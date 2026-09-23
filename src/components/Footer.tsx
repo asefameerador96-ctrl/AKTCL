@@ -8,6 +8,7 @@ import { journey, journeyIntro } from '@/content/journey';
 import { categories } from '@/content/products';
 import { cigaretteSizes } from '@/content/sizes';
 import Logo from './Logo';
+import DownloadResources from './DownloadResources';
 import Grain from './motion/Grain';
 
 const COMPANY_LINKS = [
@@ -105,6 +106,8 @@ const Footer = () => {
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </p>
+          {/* The company literature, a clear step below the lockup it follows. */}
+          <DownloadResources className="mt-10" />
         </div>
 
         <div className="border-t xl:border-l xl:border-t-0">
