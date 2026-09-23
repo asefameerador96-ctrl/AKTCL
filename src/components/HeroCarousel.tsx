@@ -32,7 +32,12 @@ const RESTING = 'scale(1.04)';
  * 1920×1072), not 100vw. Saying so stops phones from picking a file that looks soft.
  * A contained banner is never wider than the screen.
  */
-const SIZES = { cover: '(max-aspect-ratio: 1/1) 179vh, 100vw', contain: '100vw' } as const;
+const SIZES = {
+  cover: '(max-aspect-ratio: 1/1) 179vh, 100vw',
+  // A banner is covered like the photograph, except on a portrait phone, where it is
+  // fitted whole and drawn at twice the width of the window (see the class below).
+  contain: '(max-aspect-ratio: 9/10) 200vw, (max-aspect-ratio: 1/1) 179vh, 100vw',
+} as const;
 
 /**
  * The headline is the hero's only text, so it is set large: .display-xl with a fluid
@@ -228,14 +233,21 @@ const HeroCarousel = () => {
               priority={i === 0}
               className={cn(
                 'absolute inset-0 h-full w-full',
-                // A 16:9 banner fitted to a phone held upright is a thin strip in a
-                // tall screen, and its dates become unreadable. On any portrait screen
-                // it is therefore drawn half as large again, which crops only the
-                // patterned margins: the ink of both banners sits inside the middle
-                // 57% of the artwork (measured), and 1.5 keeps the middle 67%.
+                // The banners (2026-09-23 artwork) carry their ink in the middle 39% of
+                // the frame — measured on the wider of the two; the other is 29% — with
+                // nothing but ground and pattern outside it. So they fill the screen
+                // like the photograph does, and the crop takes only that empty margin:
+                // covering a 1/1 window still shows the middle 56% of the artwork, and
+                // anything wider shows more.
+                //
+                // Under about 9/10 that stops being true, so a phone held upright gets
+                // the whole frame instead, drawn twice the size — which shows the middle
+                // half, still a comfortable margin around the ink, and makes the dates
+                // and stall numbers readable. Fitted without it, the banner would be a
+                // 219px strip in an 844px screen.
                 slide.fit === 'cover'
                   ? 'object-cover'
-                  : 'object-contain [@media(max-aspect-ratio:1/1)]:scale-150'
+                  : 'object-cover [@media(max-aspect-ratio:9/10)]:scale-[2] [@media(max-aspect-ratio:9/10)]:object-contain'
               )}
               style={{ objectPosition: slide.fit === 'cover' ? slide.image.position : undefined }}
             />
