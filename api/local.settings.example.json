@@ -4,6 +4,7 @@
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AzureWebJobsStorage": "",
     "ENQUIRY_STORAGE_CONNECTION_STRING": "UseDevelopmentStorage=true",
+    "ACS_CONNECTION_STRING": "",
     "SMTP_HOST": "",
     "SMTP_PORT": "587",
     "SMTP_USER": "",

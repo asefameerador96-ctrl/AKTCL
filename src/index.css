@@ -708,11 +708,30 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
   .marquee[data-offscreen] .marquee-track {
     animation-play-state: paused;
   }
+
+  /* The hero's dwell meter (HeroCarousel): the rule under the slide that is up fills
+     across that slide's six seconds, and stops where it stands when the rotation is
+     held. A meter has to run at the rate it reports, so `linear` is right here — the
+     second and last exception beside the marquee. The component sets the duration and
+     the play state, and does not render this at all under isStill(). */
+  .hero-dwell {
+    transform-origin: left center;
+    animation: hero-dwell var(--hero-dwell, 6s) linear forwards;
+  }
 }
 
 @keyframes marquee {
   to {
     transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes hero-dwell {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }
 

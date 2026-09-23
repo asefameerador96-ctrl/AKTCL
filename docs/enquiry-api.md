@@ -15,7 +15,7 @@ api/src/functions/enquiry.js
    4. per-IP rate limit (5 / 10 min)  → 429 {error:"rate_limited"}
    5. deliver to every configured sink, in parallel
         ├─ Azure Table Storage, table "enquiries"   (the durable record)
-        └─ SMTP email to ENQUIRY_TO, Reply-To = enquirer   (the notification)
+        └─ email to ENQUIRY_TO, Reply-To = enquirer    (the notification)
    ▼
 200 {ok:true}               at least one sink succeeded
 503 {error:"not_configured"} no sink is configured
@@ -45,23 +45,52 @@ Application settings on the Static Web App (Portal → `aktcl-web` → Environme
 or the CLI below). They are never committed; `.env.example` lists them with comments.
 
 ```bash
-az staticwebapp appsettings set -n aktcl-web -g rg-aktcl --setting-names SMTP_HOST=... SMTP_PORT=587
+az staticwebapp appsettings set -n aktcl-web -g rg-aktcl --setting-names ENQUIRY_TO=...
 ```
+
+There are two email routes. **ACS is the live one**; SMTP is kept as the fallback for any
+ordinary mailbox, and ACS wins if both are configured.
 
 | Setting | Required | Notes |
 | --- | --- | --- |
 | `ENQUIRY_STORAGE_CONNECTION_STRING` | for the table sink | Any storage account; the `enquiries` table is created on first use. The account used by `site-analytics` can be reused |
-| `SMTP_HOST` | for the email sink | Provider's SMTP submission host |
-| `SMTP_PORT` | for the email sink | `587` (STARTTLS, enforced) or `465` (implicit TLS). Azure blocks outbound port 25 |
-| `SMTP_USER` | for the email sink | Authenticating mailbox / SMTP user |
-| `SMTP_PASS` | for the email sink | Password or app password |
-| `ENQUIRY_TO` | for the email sink | Recipient(s), comma-separated |
-| `ENQUIRY_FROM` | optional | Bare sender address; defaults to `SMTP_USER` |
+| `ACS_CONNECTION_STRING` | for the ACS route | `az communication list-key -n aktcl-comm -g rg-aktcl --query primaryConnectionString -o tsv`. An account key — treat as a secret |
+| `ENQUIRY_FROM` | for the ACS route | `enquiries@mail.aktcl.com`. Must be a sender username that exists on the verified domain. On the SMTP route it is optional and defaults to `SMTP_USER` |
+| `ENQUIRY_TO` | for either route | Recipient(s), comma-separated. Currently `minhaz.chowdhury@abulkhairgroup.com` (owner, 2026-09-23) |
+| `SMTP_HOST` | for the SMTP route | Provider's SMTP submission host |
+| `SMTP_PORT` | for the SMTP route | `587` (STARTTLS, enforced) or `465` (implicit TLS). Azure blocks outbound port 25 |
+| `SMTP_USER` | for the SMTP route | Authenticating mailbox / SMTP user |
+| `SMTP_PASS` | for the SMTP route | Password or app password |
 
-Email counts as configured only when all five required mail settings are present; if some
-are missing the function logs which **names** are empty (never values). Configure both
-sinks: the table is the record that survives a mail outage, the email is what gets an
-enquiry answered quickly.
+Email counts as configured only when every setting of one route is present; if some are
+missing the function logs which **names** are empty (never values). Configure both sinks:
+the table is the record that survives a mail outage, the email is what gets an enquiry
+answered quickly.
+
+### The sending domain (ACS)
+
+`rg-aktcl` holds the whole chain, created 2026-09-23:
+
+| Resource | What it is |
+| --- | --- |
+| `aktcl-email` (`Microsoft.Communication/emailServices`) | Email Communication Service, data location Asia Pacific |
+| `aktcl-email/domains/mail.aktcl.com` | Customer-managed sending domain. Domain, SPF, DKIM and DKIM2 all **Verified** |
+| `aktcl-comm` (`Microsoft.Communication/communicationServices`) | The ACS resource the SDK connects to; `mail.aktcl.com` is linked to it |
+| sender `enquiries` | Makes `enquiries@mail.aktcl.com`, display name "AKTCL Website" |
+
+The DNS records live in the `aktcl.com` zone in the same resource group: `TXT mail` (the
+`ms-domain-verification=` token **and** the SPF `v=spf1 include:spf.protection.outlook.com
+-all`), `CNAME selector1-azurecomm-prod-net._domainkey.mail` and `...selector2...`, plus
+`TXT _dmarc.mail` = `v=DMARC1; p=none;`. DMARC is published but not enforced: tighten it to
+`quarantine` once the sender has a delivery history, and only then.
+
+**`aktcl.com` has no MX records**, so nothing can receive mail at `enquiries@mail.aktcl.com`.
+Bounce notifications and any reply sent to the From address instead of Reply-To are lost.
+That is acceptable because Reply-To is the enquirer and Table Storage is the durable record,
+but it is a real limitation — it goes away when AKTCL puts real mailboxes on the domain.
+
+Cost: ACS Email is about USD 0.00025 per message plus ~USD 0.00012/MB. At this volume that
+is a few cents a year.
 
 Subject line: `[aktcl.com] Enquiry — <product> — <company>, <country>`. Pressing Reply in
 the mail client answers the enquirer directly.
@@ -165,12 +194,14 @@ Expected: `503 not_configured` with empty settings, `200 {"ok":true}` once a sin
 
 ## Still needed from AKTCL
 
-1. **Recipient mailbox** for enquiries (`ENQUIRY_TO`), e.g. the export desk's shared inbox.
-2. **SMTP credentials** for a mailbox allowed to send to it (`SMTP_HOST`, `SMTP_PORT`,
-   `SMTP_USER`, `SMTP_PASS`, optionally `ENQUIRY_FROM`). On Microsoft 365 the mailbox needs
-   "Authenticated SMTP" enabled; with Google Workspace use an app password. `aktcl.com` had no
-   MX records when the DNS zone was created, so the mailbox will be on another domain until
-   email is set up for `aktcl.com`.
+1. ~~**Recipient mailbox**~~ — supplied 2026-09-23: `minhaz.chowdhury@abulkhairgroup.com`.
+2. ~~**Sending credentials**~~ — done 2026-09-23 with Azure Communication Services on
+   `mail.aktcl.com` (see "The sending domain" above). Two things for AKTCL IT all the same:
+   ask them to **safe-list `enquiries@mail.aktcl.com`** at `abulkhairgroup.com` before the
+   first real enquiry, and know that a brand-new sending domain is scored cautiously for its
+   first few messages. If AKTCL would rather the mail left from their own tenant, the SMTP
+   route is still wired: a service mailbox with Authenticated SMTP enabled and its app
+   password in `SMTP_*` takes over the moment `ACS_CONNECTION_STRING` is cleared.
 3. **Storage account** connection string (`ENQUIRY_STORAGE_CONNECTION_STRING`) — a new account
    in `rg-aktcl` or the existing analytics one.
 4. A **retention period** for stored enquiries, and legal sign-off on the consent wording in
