@@ -17,7 +17,7 @@
  * differ. Components take these classes rather than restating a size, and nothing on
  * the site is set under 12px — 12px only for legal small print, and 13px is preferred.
  *
- *   .display-xl … -xs   headlines, Instrument Serif, fluid        60–144px … 26–32px
+ *   .display-xl … -xs   headlines, Instrument Serif, fluid        42–101px … 26–32px
  *   .lead               lead / intro paragraph, muted, measured   18 → 21px, leading 1.55
  *   .text-lead          the lead's size alone                     clamp(1.125rem, 1rem + 0.4vw, 1.3125rem)
  *   body, .text-body    running copy                              17px (16px under md), leading 1.65
@@ -370,14 +370,21 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
    * Every headline on the site takes one of these five — never a stepped text-4xl /
    * md:text-6xl ladder. Instrument Serif, 400, tight. Component layer, so a utility
    * beside it (leading-none, tracking-…, italic, a colour) still wins.
-   *   display-xl   hero / page mastheads          60 → 144px
-   *   display-lg   section headlines              50 → 96px
-   *   display-md   sub-section headlines          40 → 64px
-   *   display-sm   row titles, column heads       30 → 44px
-   *   display-xs   names inside a narrow cell     26 → 32px
+   *   display-xl   hero / page mastheads          42 → 101px
+   *   display-lg   section headlines, page titles 35 → 67px
+   *   display-md   sub-section headlines          30 → 51px
+   *   display-sm   row titles, column heads       27 → 38px
+   *   display-xs   names inside a narrow cell     23 → 30px
    * The phone floors were raised a step in feedback round 1, for more contrast against
    * the larger body text; each was checked at 360px against the longest word it sets
    * ("Manufacturing", "Specifications", the product names in a two-up cell).
+   *
+   * The mastheads then came down 30% (owner, 2026-09-23: the page titles read too
+   * large) — both -xl and -lg, since a product page's title is set in -lg. The steps
+   * under them followed only as far as order requires, the body copy around them
+   * having been deliberately enlarged in feedback round 1: -md and -sm by about a
+   * fifth, -xs by a tenth. Checked from 320 to 2560px; every step is clear of the one
+   * below at every width.
    */
   .display-xl,
   .display-lg,
@@ -389,24 +396,24 @@ html.lenis-stopped:not(:has(> body[style*='overflow'])) {
     letter-spacing: -0.03em;
   }
   .display-xl {
-    font-size: clamp(3.75rem, 9.5vw, 9rem);
+    font-size: clamp(2.625rem, 6.65vw, 6.3rem);
     line-height: 0.95;
   }
   .display-lg {
-    font-size: clamp(3.1rem, 6.5vw, 6rem);
+    font-size: clamp(2.17rem, 4.55vw, 4.2rem);
     line-height: 0.98;
   }
   .display-md {
-    font-size: clamp(2.5rem, 4.5vw, 4rem);
+    font-size: clamp(1.85rem, 3.6vw, 3.2rem);
     line-height: 1.02;
   }
   .display-sm {
-    font-size: clamp(1.9rem, 3vw, 2.75rem);
+    font-size: clamp(1.7rem, 2.7vw, 2.4rem);
     line-height: 1.08;
     letter-spacing: -0.02em;
   }
   .display-xs {
-    font-size: clamp(1.6rem, 1.15rem + 0.9vw, 2rem);
+    font-size: clamp(1.45rem, 1.05rem + 0.8vw, 1.85rem);
     line-height: 1.1;
     letter-spacing: -0.02em;
   }

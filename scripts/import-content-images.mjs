@@ -32,6 +32,11 @@ const MAP = [
   ["1. HERO/H1.jpeg", "hero/hero-field.webp"],
   ["1. HERO/H2.jpeg", "hero/hero-seed-to-smoke.webp"],
 
+  // Event banners shown in the hero rotation (supplied 2026-09-23). Designed artwork,
+  // 16:9: they carry their own text, so nothing may be cropped off them.
+  ["11. HERO BANNERS/WT-MIDDLE-EAST.webp", "hero/wt-middle-east.webp"],
+  ["11. HERO BANNERS/WT-ASIA.webp", "hero/wt-asia.webp"],
+
   ["2. SEED/S1.jpeg", "journey/seed-1.webp"],
   ["2. SEED/S2.jpeg", "journey/seed-2.webp"],
   ["2. SEED/S3.jpeg", "journey/seed-3.webp"],

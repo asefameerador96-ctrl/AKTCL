@@ -92,6 +92,7 @@ generated at build time. Originals are not committed.
 | 9. PRODUCT/9.3 CUTRAG … 9.8 CRES | `products/cutrag, diet, stem, scrap, recon, cres` | Matching product pages |
 | 9. PRODUCT/10.1 KS | `products/king-size` | Finished Cigarettes category cover, home private-label band; stand-in on the AKT Signature Collection page until "AKT BRANDS_SITE.png" arrives (gap 6a) |
 | 10. AKT Signature Collection/ARIS, AVON, BD, MARISE, MAXIM, SUPREME | `brands/aris, avon, black-diamond, marise, maxim, supreme` | The brand grid on `/products/finished-cigarettes/akt-signature-collection` (supplied 2026-09-23). Logos, not photographs: transparent artwork in its own colours, shown on a light tile in both themes. BD.png is the Black Diamond mark |
+| 11. HERO BANNERS/WT-MIDDLE-EAST, WT-ASIA | `hero/wt-middle-east, wt-asia` | The two trade-fair slides of the home hero (supplied 2026-09-23). Finished artwork carrying its own words, so it is never cropped and the hero headline steps aside while one is up. **Dated:** WT Asia 22–23 October 2026, WT Middle East 10–11 November 2026 — take both out of `heroSlides` once the events have passed |
 
 Assumption to confirm: files "9.1" are Virginia Flue-Cured (golden leaf) and "9.2.x" are
 Burley (light-brown leaf). This matches the colours the workbook describes, but the file
