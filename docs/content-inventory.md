@@ -36,6 +36,7 @@ the 2026-09-21 copy, three changes and nothing else:
    **Legal to review** — see the compliance note under the gap list.
 3. **E26 names an image, "AKT BRANDS_SITE.png"**, the first entry in column E. The file
    is not in the content folder (gap 6a).
+   **Partly supplied 2026-09-23:** six brand marks (ARIS, AVON, Black Diamond, MARISE, MAXIM, SUPREME) arrived in `VISUAL Content/10. AKT Signature Collection` and are now the page's brand grid. "AKT BRANDS_SITE.png" itself is still missing, so the page's own picture is still the plain king-size pack shot.
 
 The workbook is the source of truth for wording. Its copy lives verbatim in
 `src/content/*.ts`; each string there notes the cell it came from.
@@ -90,6 +91,7 @@ generated at build time. Originals are not committed.
 | 9. PRODUCT/9.2.1 P3, 9.2.3 P4 | `products/burley-1, -2` | Burley page |
 | 9. PRODUCT/9.3 CUTRAG … 9.8 CRES | `products/cutrag, diet, stem, scrap, recon, cres` | Matching product pages |
 | 9. PRODUCT/10.1 KS | `products/king-size` | Finished Cigarettes category cover, home private-label band; stand-in on the AKT Signature Collection page until "AKT BRANDS_SITE.png" arrives (gap 6a) |
+| 10. AKT Signature Collection/ARIS, AVON, BD, MARISE, MAXIM, SUPREME | `brands/aris, avon, black-diamond, marise, maxim, supreme` | The brand grid on `/products/finished-cigarettes/akt-signature-collection` (supplied 2026-09-23). Logos, not photographs: transparent artwork in its own colours, shown on a light tile in both themes. BD.png is the Black Diamond mark |
 
 Assumption to confirm: files "9.1" are Virginia Flue-Cured (golden leaf) and "9.2.x" are
 Burley (light-brown leaf). This matches the colours the workbook describes, but the file

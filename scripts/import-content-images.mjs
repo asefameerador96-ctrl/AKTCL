@@ -74,6 +74,15 @@ const MAP = [
   ["9. PRODUCT/9.7 - RECON.jpeg", "products/recon.webp"],
   ["9. PRODUCT/9.8 - CRES.jpeg", "products/cres.webp"],
   ["9. PRODUCT/10.1 - KS.jpeg", "products/king-size.webp"],
+
+  // Brand marks for the AKT Signature Collection page (supplied 2026-09-23). Logos, not
+  // photographs: transparent PNGs that must keep their alpha and their own colours.
+  ["10. AKT Signature Collection/ARIS.png", "brands/aris.webp"],
+  ["10. AKT Signature Collection/AVON.png", "brands/avon.webp"],
+  ["10. AKT Signature Collection/BD.png", "brands/black-diamond.webp"],
+  ["10. AKT Signature Collection/MARISE.png", "brands/marise.webp"],
+  ["10. AKT Signature Collection/MAXIM.png", "brands/maxim.webp"],
+  ["10. AKT Signature Collection/SUPREME.png", "brands/supreme.webp"],
 ];
 
 if (!sourceDir || !existsSync(sourceDir)) {

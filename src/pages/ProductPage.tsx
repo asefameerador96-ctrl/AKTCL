@@ -1,12 +1,14 @@
 import { useParams } from 'react-router-dom';
 import DetailPage from '@/components/DetailPage';
 import { SectionHead } from '@/components/PageHeader';
+import LazyImage from '@/components/LazyImage';
 import ProductCard from '@/components/ProductCard';
 import SpecCard from '@/components/SpecCard';
+import Reveal from '@/components/Reveal';
 import { RowLink } from '@/components/Ruled';
 import NotFound from '@/pages/NotFound';
 import { categoryBySlug, paragraphs, productBySlug } from '@/content/products';
-import { categoryImages, productImages } from '@/content/images';
+import { brandImages, categoryImages, productImages } from '@/content/images';
 import { ROUTE_BY_PATH } from '@/seo/routeMeta';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +35,48 @@ const RELATED_COLUMNS: Record<number, string> = {
   3: 'grid-cols-1 sm:grid-cols-3 lg:max-w-[75%]',
   4: 'grid-cols-2 lg:grid-cols-4',
 };
+
+/** Widths the brand grid is drawn at, so a mark is never fetched larger than its cell. */
+const BRAND_SIZES = '(min-width: 1024px) 18rem, (min-width: 640px) 33vw, 50vw';
+
+/**
+ * The marks of the brands a product covers, as a ruled grid: two to a row on a phone,
+ * three from sm. Each cell is a light tile — the artwork is drawn for print, in its own
+ * colours, and has to sit on something pale in either theme — with the mark centred and
+ * given room, and the brand's name under it in mono.
+ *
+ * Names and marks only: AKTCL supplied no copy for the individual brands, and this is a
+ * trade page, so nothing is claimed for them here.
+ */
+const Brands = ({ brands, title }: { brands: { slug: string; name: string }[]; title: string }) => (
+  <section aria-labelledby="brands-heading">
+    <SectionHead label="The Portfolio" title={title} id="brands-heading" />
+    <ul role="list" className="hairline-grid mt-10 grid grid-cols-2 sm:grid-cols-3 md:mt-12">
+      {brands.map((brand, i) => {
+        const mark = brandImages[brand.slug];
+        return (
+          <li key={brand.slug} className="min-w-0">
+            <Reveal delay={(i % 3) * 0.06} className="flex h-full flex-col">
+              <div className="flex flex-1 items-center justify-center bg-tile px-6 py-10 sm:px-8 sm:py-12">
+                {mark && (
+                  <LazyImage
+                    image={mark.image}
+                    alt={mark.alt}
+                    sizes={BRAND_SIZES}
+                    className="h-auto max-h-24 w-full object-contain"
+                  />
+                )}
+              </div>
+              <p className="mono-label border-t border-border px-4 py-4 text-muted-foreground sm:px-6">
+                {brand.name}
+              </p>
+            </Reveal>
+          </li>
+        );
+      })}
+    </ul>
+  </section>
+);
 
 /** /products/:category/:slug — only for products flagged hasDetailPage. */
 const ProductPage = () => {
@@ -78,7 +122,12 @@ const ProductPage = () => {
       containImages
       enquiryProduct={product.name}
       specs={
-        hasSheet ? <SpecCard rows={product.specs} templateLabels={templateLabels} product={product.name} /> : undefined
+        hasSheet ? (
+          <SpecCard rows={product.specs} templateLabels={templateLabels} product={product.name} />
+        ) : product.brands?.length ? (
+          // Where a product has no data sheet, its brand marks take that place.
+          <Brands brands={product.brands} title={`Brands in the ${product.name}`} />
+        ) : undefined
       }
       related={
         others.length > 0 && (

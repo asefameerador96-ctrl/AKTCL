@@ -57,6 +57,15 @@ import scrap from '@/assets/products/scrap.webp?w=480;800;1200&format=avif;webp&
 import recon from '@/assets/products/recon.webp?w=480;800;1200&format=avif;webp&quality=72&as=picture';
 import kingSize from '@/assets/products/king-size.webp?w=480;800;1200&format=avif;webp&quality=72&as=picture';
 
+// Brand marks (logos, not photographs): drawn small, so two widths are plenty, and WebP
+// only — AVIF's alpha buys nothing on a few KB of flat artwork.
+import aris from '@/assets/brands/aris.webp?w=320;640&format=webp&quality=88&as=picture';
+import avon from '@/assets/brands/avon.webp?w=320;640&format=webp&quality=88&as=picture';
+import blackDiamond from '@/assets/brands/black-diamond.webp?w=320;640&format=webp&quality=88&as=picture';
+import marise from '@/assets/brands/marise.webp?w=320;640&format=webp&quality=88&as=picture';
+import maxim from '@/assets/brands/maxim.webp?w=320;640&format=webp&quality=88&as=picture';
+import supreme from '@/assets/brands/supreme.webp?w=320;640&format=webp&quality=88&as=picture';
+
 export interface SiteImage {
   image: ResponsiveImage;
   alt: string;
@@ -149,6 +158,19 @@ export const categoryImages: Record<string, SiteImage> = {
     kingSize,
     'Two plain white king-size cigarette packs, one open showing filter cigarettes'
   ),
+};
+
+/**
+ * Brand marks for the AKT Signature Collection, keyed by the slug in products.ts.
+ * Each alt is the brand's name and nothing more: a logo says who, not what.
+ */
+export const brandImages: Record<string, SiteImage> = {
+  aris: img(aris, 'ARIS'),
+  avon: img(avon, 'AVON'),
+  'black-diamond': img(blackDiamond, 'Black Diamond'),
+  marise: img(marise, 'MARISE'),
+  maxim: img(maxim, 'MAXIM'),
+  supreme: img(supreme, 'SUPREME'),
 };
 
 /** Homepage gallery — drawn from the journey photography, in value-chain order. */
