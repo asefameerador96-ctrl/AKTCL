@@ -146,7 +146,20 @@ hidden or shows an honest "on request" state.
    set in the site's type. **Still welcome:** official brand colours / a full lockup if one
    exists, and the Abul Khair Group mark if it should appear.
 4. **Legal/regulatory sign-off** — age gate wording, footer health warning, Privacy
-   Notice and Terms of Use are drafts. Terms has no governing-law clause yet.
+   Notice and Terms of Use are drafts. Terms has no governing-law clause yet. Section 4
+   below now also covers the three company PDFs offered from the footer.
+
+**Deferred by the owner**
+
+4a. **Header typeface "Marlino"** (asked 2026-09-23, **deferred the same day**). It is a
+   commercial sans-serif from Nathatype: not on Google Fonts or Fontsource, no npm
+   package, and every free copy is a personal-use demo that forbids commercial use. It
+   needs a bought **webfont** licence — the ~$40 MyFonts family price is desktop-only —
+   and the .woff2 files, since the site's CSP forbids font CDNs. Two things to say before
+   anyone buys: Marlino is a *sans*, so it would remove the serif/sans contrast the
+   hierarchy is built on; and "Marlide Display" (Kontour) sounds almost identical and is
+   a condensed display serif much closer to the current Instrument Serif. The free
+   near-name match is Marcellus (`@fontsource/marcellus`, SIL OFL).
 
 **Needed for Orchid/Sopariwala-style product pages**
 
