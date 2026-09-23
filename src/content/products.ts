@@ -39,6 +39,12 @@ export interface Product {
    * line of copy and no dedicated photography, so a standalone page would be empty.
    */
   hasDetailPage: boolean;
+  /**
+   * Names of the brands this product covers, in the order AKTCL supplied their marks.
+   * Their logos live in ./images.ts under the same slug. Names only here: the marks are
+   * artwork, and nothing about them is described in words we did not receive.
+   */
+  brands?: { slug: string; name: string }[];
 }
 
 export interface ProductCategory {
@@ -221,6 +227,16 @@ export const categories: ProductCategory[] = [
           'These brands are backed by our extensive manufacturing capabilities, stringent quality standards, carefully selected tobacco blends, and deep understanding of local consumer preferences. With strong market recognition and broad market reach, our premium portfolio caters to multiple local markets and consumer segments across Bangladesh, reflecting the strength and scale of ABUL KHAIR TOBACCO as a leading local tobacco manufacturer.',
         specs: [],
         hasDetailPage: true,
+        // Brand marks supplied 2026-09-23 ("VISUAL Content/10. AKT Signature Collection").
+        // The file BD.png is the Black Diamond mark.
+        brands: [
+          { slug: 'aris', name: 'ARIS' },
+          { slug: 'avon', name: 'AVON' },
+          { slug: 'black-diamond', name: 'Black Diamond' },
+          { slug: 'marise', name: 'MARISE' },
+          { slug: 'maxim', name: 'MAXIM' },
+          { slug: 'supreme', name: 'SUPREME' },
+        ],
       },
     ],
   },
