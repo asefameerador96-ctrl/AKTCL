@@ -182,6 +182,31 @@ curl -i -X POST http://localhost:4280/api/enquiry -H "Content-Type: application/
 Expected: `503 not_configured` with empty settings, `200 {"ok":true}` once a sink works. Set
 `"website":"x"` to see the silent drop (200, nothing delivered, `dropped` in the log).
 
+## Testing the live form — never into someone's inbox
+
+A test enquiry on production is a real email to a real person, and **email cannot be
+recalled**: once ACS has handed it over, no one outside that mailbox can take it back. On
+2026-09-23 a single end-to-end test reached the export desk and had to be deleted by hand.
+
+Before testing production, point the recipient somewhere harmless and put it back after:
+
+```bash
+# 1. remember the real recipient, then redirect
+az staticwebapp appsettings set -n aktcl-web -g rg-aktcl --setting-names ENQUIRY_TO=<a mailbox you own>
+# 2. submit the test, check the row: emailStatus should be "sent"
+# 3. put it back
+az staticwebapp appsettings set -n aktcl-web -g rg-aktcl --setting-names ENQUIRY_TO=minhaz.chowdhury@abulkhairgroup.com
+```
+
+`az staticwebapp appsettings set` keeps the settings it is not given, but read them back with
+`--query "keys(properties)"` afterwards to be sure nothing was dropped.
+
+Most of the path can be proven without sending anything at all: the table row records
+`emailStatus`, and a deliberately malformed `ENQUIRY_FROM` makes the mail sink fail loudly in
+the logs while the row is still written. Only use a real send when the question is
+deliverability — and then send it to a mailbox you own and read the received headers for
+`spf=pass`, `dkim=pass`, `dmarc=pass`.
+
 ## Deployment requirements
 
 - The workflow must pass `api_location: "api"` to `Azure/static-web-apps-deploy`, and must
