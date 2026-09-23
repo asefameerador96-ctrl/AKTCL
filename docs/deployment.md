@@ -12,6 +12,7 @@ Same pattern as shahagro.com. Everything below was created on 2026-09-21 in
 | GitHub repo | `asefameerador96-ctrl/AKTCL`, branch `main` |
 | Repo secret | `AZURE_STATIC_WEB_APPS_API_TOKEN` (the SWA deployment token) |
 | Enquiry storage | storage account `staktcl76353` → table `enquiries` (app setting `ENQUIRY_STORAGE_CONNECTION_STRING`) |
+| Enquiry email | ACS `aktcl-comm` + Email Service `aktcl-email`, sending as `enquiries@mail.aktcl.com` to `minhaz.chowdhury@abulkhairgroup.com` (2026-09-23). Details: `docs/enquiry-api.md` |
 
 **Status (2026-09-21): live.** Nameservers were switched at GoDaddy, `www.aktcl.com` and
 `aktcl.com` are bound with Azure-managed certificates, and `www` is the default domain — the
@@ -63,6 +64,13 @@ nslookup -type=NS aktcl.com 8.8.8.8
 | --- | --- | --- |
 | `@` | A (alias) | → Static Web App `aktcl-web` |
 | `www` | CNAME | `thankful-meadow-0c4713600.5.azurestaticapps.net` |
+| `mail` | TXT | the ACS `ms-domain-verification=` token, **and** `v=spf1 include:spf.protection.outlook.com -all` |
+| `selector1-azurecomm-prod-net._domainkey.mail` | CNAME | `selector1-azurecomm-prod-net._domainkey.azurecomm.net` |
+| `selector2-azurecomm-prod-net._domainkey.mail` | CNAME | `selector2-azurecomm-prod-net._domainkey.azurecomm.net` |
+| `_dmarc.mail` | TXT | `v=DMARC1; p=none;` |
+
+The `mail` records belong to the enquiry sender, not to the website. There are still **no MX
+records**: `aktcl.com` sends mail but cannot receive it.
 
 ### 3. Bind the custom domains — after the nameservers have propagated
 
@@ -136,4 +144,5 @@ and need no entry. `style-src` keeps `'unsafe-inline'` because the prerendered H
 ## Costs
 
 Static Web App Free tier: $0. DNS zone: about $0.50/month plus negligible query charges.
-Table Storage for enquiries (if enabled): cents per month.
+Table Storage for enquiries (if enabled): cents per month. ACS Email: about USD 0.00025 per
+message plus ~USD 0.00012/MB — cents per year at this volume, with no standing fee.

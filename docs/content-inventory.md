@@ -92,6 +92,25 @@ generated at build time. Originals are not committed.
 | 9. PRODUCT/9.3 CUTRAG … 9.8 CRES | `products/cutrag, diet, stem, scrap, recon, cres` | Matching product pages |
 | 9. PRODUCT/10.1 KS | `products/king-size` | Finished Cigarettes category cover, home private-label band; stand-in on the AKT Signature Collection page until "AKT BRANDS_SITE.png" arrives (gap 6a) |
 | 10. AKT Signature Collection/ARIS, AVON, BD, MARISE, MAXIM, SUPREME | `brands/aris, avon, black-diamond, marise, maxim, supreme` | The brand grid on `/products/finished-cigarettes/akt-signature-collection` (supplied 2026-09-23). Logos, not photographs: transparent artwork in its own colours, shown on a light tile in both themes. BD.png is the Black Diamond mark |
+### Company literature (downloads)
+
+Three PDFs supplied 2026-09-23 and served untouched from `public/downloads`, offered by
+one button in the footer (`src/components/DownloadResources.tsx`, list in
+`src/content/downloads.ts`). Read page by page before publishing; what is in them:
+
+| File | Pages | What it is |
+| --- | --- | --- |
+| `AKT_Overview.pdf` | 9 | AKTCL corporate overview: positioning, About Us, portfolio (biri, leaf, leaf products, cigarettes), facilities (GLT 1993 Uttam Rangpur 10,000 kg/hr; cigarette factory Laksham), machine line-up, a 14-row QA lab equipment table, "~20 million kgs leaf tobacco & products exported annually", back cover with `export@abulkhairgroup.com` and a QR code (decoded: `https://aktcl.com/` — safe) |
+| `AKT_Cigarettes.pdf` | 32 | Brand catalogue (MARISE, Black Diamond, SUPREME, SUN MOON, ARIS, AVON, MAXIM, RALLY) then manufacturing: PMD lamina/stem/cutrag/RE-CON/DIET lines with suppliers and capacities, SMD making and packing machines, filter and rotogravure printing, QA, and Abul Khair Match Factory (lighters, matches). Head office contact on the last page. **Image-only — no text layer at all**, so it is not searchable and not readable by a screen reader |
+| `AKT_Leaf Operations.pdf` | 22 | Abul Khair **Leaf** Tobacco Co. Ltd.: growing regions, ~50,000 farmers on ~60,000 acres producing ~50 million kg, varieties (NC-95, K326, SPG28, Burley, Jati, Talim, DV, Motihari) **with nicotine and sugar ranges**, crop calendar, GLT plant and equipment with capacities, 700,000 sq ft finished-goods storage |
+
+Two things these decks change about the gap list. They contain much of what gap 5
+(specifications) and gap 8 (real photography) ask for — leaf chemistry, capacities, plant
+photography — so the site now offers a download that is more specific than its own product
+pages, which still say "on request". And `AKT_Leaf Operations.pdf` is branded **Abul Khair
+Leaf Tobacco Co. Ltd.**, a different legal entity from AKTCL: worth deciding whether AKLT
+material should sit under the AKTCL name.
+
 | 11. HERO BANNERS/WT-MIDDLE-EAST, WT-ASIA | `hero/wt-middle-east, wt-asia` | The two trade-fair slides of the home hero (supplied 2026-09-23). Finished artwork carrying its own words, so it is never cropped and the hero headline steps aside while one is up. **Dated:** WT Asia 22–23 October 2026, WT Middle East 10–11 November 2026 — take both out of `heroSlides` once the events have passed |
 
 Assumption to confirm: files "9.1" are Virginia Flue-Cured (golden leaf) and "9.2.x" are
@@ -113,9 +132,12 @@ hidden or shows an honest "on request" state.
 1. **Contact details** — export desk email, phone, WhatsApp number, office/factory
    address. Footer, contact page, floating button and JSON-LD are wired to
    `src/content/site.ts → contact` and stay hidden while it is `null`.
-2. **Enquiry delivery** — the mailbox that should receive enquiries, plus SMTP
-   credentials (or approval to use another mail service). Until then enquiries are only
-   stored in Azure Table Storage. See `docs/enquiry-api.md`.
+2. ~~**Enquiry delivery**~~ — **done 2026-09-23.** Enquiries now go to
+   `minhaz.chowdhury@abulkhairgroup.com` (owner) as well as to Azure Table Storage,
+   sent from `enquiries@mail.aktcl.com` through Azure Communication Services on a
+   verified sending domain. **Ask AKTCL IT to safe-list that sender** before the first
+   real enquiry, and note that `aktcl.com` still has no MX records, so the sending
+   address cannot receive anything. See `docs/enquiry-api.md`.
 3. ~~**Logo**~~ — **supplied 2026-09-21** ("AKT_LOGO ONLY.psd"). The vector was taken from
    the Illustrator smart object inside the PSD and is used in the header, footer, age gate,
    page sign-off, favicon/app icons, share image and Google structured data
@@ -212,6 +234,37 @@ hidden or shows an honest "on request" state.
     not an AKTCL profile, so it is `parentOrganization.url` in the JSON-LD, not `sameAs`.)
 
 ## 4. Compliance notes for legal review
+
+0. **The three company PDFs (published 2026-09-23, at the owner's instruction).** They are
+   offered from the footer of every page. Read in full before publishing; flagged here
+   rather than withheld, because the owner asked for them by name.
+   - **Branded consumer packs, roughly thirty of them**, across `AKT_Overview.pdf` and
+     `AKT_Cigarettes.pdf` — cigarette and biri packs, each carrying Bangladesh's
+     pictorial health warning. The site itself has deliberately used unbranded pack
+     imagery only; note 1 below already reserved this question for legal, and these
+     downloads answer it by default and at far greater volume.
+   - **A static file is not behind the age gate.** Anyone with the link — including
+     search and image crawlers — gets those pages without passing the 18+ gate and
+     without the trade-only notice the footer carries on every page.
+   - **Flavour and capsule products shown as live export offers** (`AKT_Overview.pdf`
+     p8): MAXIM Double Burst in apple spearmint / lemon grapefruit, blueberry spearmint /
+     redberry spearmint and ice apple, ARIS Apple and Strawberry super slims, and a
+     "CRUSH IT! FEEL IT!" ICE MINT pack photographed on a café table. Characterising
+     flavours and capsules are prohibited in the EU and the UK — which includes five of
+     the twenty countries the site's own Global Reach map names.
+   - **Consumer-advertising imagery and copy**: the café lifestyle shot above, and lines
+     such as biri "offering an authentic smoking experience … trusted by generations of
+     consumers". The footer states on every page that the site is not directed at
+     consumers.
+   - **Third-party marks**: `AKT_Overview.pdf` pp. 6–7 reproduce fifteen supplier logos
+     (Focke, Decouflé, Hauni, Körber, Skalar, Cerulean, Metrohm, Ametek Brookfield,
+     Memmert and others). On a public page a logo wall reads as endorsement; suppliers
+     normally have to agree to it.
+   - **Claims that differ from the site's own wording**: the decks say "a national market
+     leader" where the site says "a national segment leader"; they present BIRI as a
+     headline product category, which the site's product line does not carry at all; and
+     the overview's back cover publishes `export@abulkhairgroup.com`, a third contact
+     address, while `src/content/site.ts` still has no contact details at all.
 
 1. **F26 — AKT Signature Collection (added 2026-09-22).** The copy describes AKTCL's
    *domestic consumer* brands and market position: "well-established brands with a

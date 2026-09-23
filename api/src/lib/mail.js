@@ -1,14 +1,50 @@
 import nodemailer from "nodemailer";
+import { EmailClient, KnownEmailSendStatus } from "@azure/communication-email";
 import { headerSafe } from "./validate.js";
 
-const REQUIRED = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "ENQUIRY_TO"];
+/**
+ * Two ways out, whichever the application settings describe:
+ *
+ *   ACS   Azure Communication Services Email, sending as ENQUIRY_FROM from the
+ *         verified domain mail.aktcl.com (SPF, DKIM and DKIM2 all pass, and the
+ *         From domain is aligned with the site the enquiry came from — which is
+ *         what a corporate mail filter looks for). This is how aktcl.com sends.
+ *   SMTP  Any ordinary mailbox. Kept because it costs nothing to keep and it is
+ *         the obvious fallback if AKTCL later wants the mail to leave from their
+ *         own tenant.
+ *
+ * ACS wins when both are set. Either way the recipient is ENQUIRY_TO and Reply-To
+ * is the enquirer, so the export desk answers by pressing Reply.
+ */
+const ACS_REQUIRED = ["ACS_CONNECTION_STRING", "ENQUIRY_FROM", "ENQUIRY_TO"];
+const SMTP_REQUIRED = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "ENQUIRY_TO"];
+
+/**
+ * How long to wait for the service to report the message sent. ACS has already
+ * accepted and queued it by the time beginSend resolves, so running out of patience
+ * here is not a failure — it only means the row cannot be stamped "sent". Kept well
+ * inside the platform's request timeout.
+ */
+const ACS_POLL_MS = 10000;
 
 const env = (key) => (process.env[key] || "").trim();
 
-/** Names (never values) of the mail settings that are still empty. */
-export const missingMailSettings = () => REQUIRED.filter((key) => !env(key));
+const missing = (keys) => keys.filter((key) => !env(key));
 
-export const mailConfigured = () => missingMailSettings().length === 0;
+const useAcs = () => missing(ACS_REQUIRED).length === 0;
+
+/**
+ * Names (never values) of the mail settings that are still empty, for the route that
+ * is evidently being set up: ACS if its connection string is there at all, SMTP if a
+ * host is, and otherwise the ACS list, which is what aktcl.com runs on.
+ */
+export const missingMailSettings = () => {
+  if (env("ACS_CONNECTION_STRING")) return missing(ACS_REQUIRED);
+  if (env("SMTP_HOST")) return missing(SMTP_REQUIRED);
+  return missing(ACS_REQUIRED);
+};
+
+export const mailConfigured = () => useAcs() || missing(SMTP_REQUIRED).length === 0;
 
 let cached;
 
@@ -84,25 +120,58 @@ function htmlBody(enquiry, now) {
   ].join("");
 }
 
+/** ENQUIRY_TO is one address or several, comma separated. */
+const recipients = () =>
+  env("ENQUIRY_TO")
+    .split(",")
+    .map((address) => headerSafe(address))
+    .filter(Boolean);
+
+let acsClient;
+
+/**
+ * The Azure route. beginSend resolves once the service has accepted the message, so a
+ * poll that runs out of time is reported as accepted rather than failed — the mail is
+ * queued either way, and the enquiry is in the table regardless.
+ */
+async function sendThroughAcs(enquiry, now, subject) {
+  acsClient ??= new EmailClient(env("ACS_CONNECTION_STRING"));
+  const poller = await acsClient.beginSend({
+    senderAddress: headerSafe(env("ENQUIRY_FROM")),
+    content: { subject, plainText: textBody(enquiry, now), html: htmlBody(enquiry, now) },
+    recipients: { to: recipients().map((address) => ({ address })) },
+    replyTo: [{ address: headerSafe(enquiry.email, 254), displayName: headerSafe(enquiry.name, 120) }],
+  });
+
+  try {
+    const result = await poller.pollUntilDone({ abortSignal: AbortSignal.timeout(ACS_POLL_MS) });
+    if (result.status !== KnownEmailSendStatus.Succeeded) {
+      throw new Error(`ACS reported ${result.status}`);
+    }
+  } catch (err) {
+    // Still accepted; only the confirmation was slow.
+    if (err?.name !== "AbortError" && err?.name !== "TimeoutError") throw err;
+  }
+}
+
 /**
  * Sends the enquiry to ENQUIRY_TO with Reply-To set to the enquirer, so the export
  * desk answers by pressing Reply. Every header value built from user input goes
- * through headerSafe (CR/LF stripped) — nodemailer also guards against header
- * injection, this does not rely on it.
+ * through headerSafe (CR/LF stripped) — the transports also guard against header
+ * injection, this does not rely on that.
  */
 export async function sendEnquiryMail(enquiry, now) {
-  const from = env("ENQUIRY_FROM") || env("SMTP_USER");
   const subject = headerSafe(
     `[aktcl.com] Enquiry — ${enquiry.product} — ${enquiry.company}, ${enquiry.country}`,
     240
   );
 
+  if (useAcs()) return sendThroughAcs(enquiry, now, subject);
+
+  const from = env("ENQUIRY_FROM") || env("SMTP_USER");
   await getTransport().sendMail({
     from: { name: "AKTCL Website", address: headerSafe(from) },
-    to: env("ENQUIRY_TO")
-      .split(",")
-      .map((address) => headerSafe(address))
-      .filter(Boolean),
+    to: recipients(),
     replyTo: { name: headerSafe(enquiry.name, 120), address: headerSafe(enquiry.email, 254) },
     subject,
     text: textBody(enquiry, now),
